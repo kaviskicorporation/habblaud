@@ -99,3 +99,7 @@ Subir sempre com `python3 /home/hostadmin/base/scripts/kc-habblaud.py subir --bu
 ## Histórico do fork
 
 - 2026-11-04 — frame-ancestors, "Abrir no TwiCC", `?sala=`, cores/grupos por cliente (`/api/rooms/style`).
+
+## HTTP puro na porta remota (sem certificado)
+- `server/http/remote.ts` (1 linha, `fork Kaviski`): com `HABBLAUD_REMOTE_INSECURE_HTTP=1` a porta remota é HTTP mesmo que exista certificado em `~/.habblaud/remote-tls` (no original, o certificado vence). Decisão do Vitor: rede local, sem instalar CA. Com TwiCC (`http://…:3500`) e Habblaud (`http://…:4748`) os dois em HTTP no mesmo IP, são same-site e o cookie `SameSite=Strict` original funciona dentro do iframe do TwiCC.
+- Conflito no merge: manter `tls: hasTls && !insecure ? tls : undefined`.
