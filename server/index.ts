@@ -58,6 +58,7 @@ import { OwnerSocial } from './world/social';
 import { BuildingTokens } from './world/tokens';
 import { BuildingUplink } from './world/uplink';
 import { WorldViewer } from './world/viewer';
+import { createKaviski } from './kaviski'; // fork Kaviski (KAVISKI.md)
 
 const config = loadConfig();
 const startedAt = Date.now();
@@ -130,6 +131,9 @@ const office = new Office({
   updates: () => updates.status(),
   world: () => world?.meta() ?? { enabled: false, configured: false, state: 'off' },
 });
+// Fork Kaviski (KAVISKI.md): cores/grupos das salas e o link do TwiCC no snapshot.
+const kaviski = createKaviski({ dataDir: config.dataDir });
+kaviski.attach(office);
 // Fontes de agentes, uma por ferramenta (sources/source.ts): a do Claude Code e, depois dela, a do Codex (quando há
 // pastas do Codex; HABBLAUD_CODEX=0 desliga), com o histórico dela no HistorySet abaixo e as contas registradas por
 // ela mesma (accounts.setProviderAccounts). `codex` também recebe os eventos dos hooks do Codex (CodexLive).
@@ -339,6 +343,7 @@ const ticker = setInterval(() => {
 }, 250);
 
 const api = createApiHandler({
+  kaviski,
   renameRoom: (id, name) => {
     const path = office.roomPath(id);
     if (!path) return undefined;

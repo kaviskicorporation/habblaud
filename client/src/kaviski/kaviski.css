@@ -1,0 +1,59 @@
+/* Fork Kaviski (KAVISKI.md): estilos do "Abrir no TwiCC". Usa as variáveis dos temas da interface (styles.css). */
+
+a.kv-twicc-btn {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  height: 30px;
+  margin-top: 8px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+a.kv-twicc-btn[hidden] {
+  display: none;
+}
+
+a.kv-twicc-btn:hover .ui-px-icon,
+a.kv-twicc-btn:focus-visible .ui-px-icon {
+  color: var(--ui-accent);
+}
+
+.kv-hist-row {
+  position: relative;
+}
+
+.kv-hist-row > .ui-hist__item {
+  padding-right: 58px;
+}
+
+.kv-hist-twicc {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  padding: 1px 6px;
+  border: 1px solid var(--ui-line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--ui-bg-soft);
+  color: var(--ui-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 16px;
+  text-decoration: none;
+  opacity: 0.75;
+  transition:
+    opacity 0.12s,
+    color 0.12s,
+    border-color 0.12s;
+}
+
+.kv-hist-row:hover .kv-hist-twicc,
+.kv-hist-twicc:focus-visible {
+  opacity: 1;
+}
+
+.kv-hist-twicc:hover,
+.kv-hist-twicc:focus-visible {
+  color: var(--ui-accent);
+  border-color: var(--ui-accent);
+}

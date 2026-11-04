@@ -60,6 +60,7 @@ import {
   updateStatusDot,
 } from './widgets';
 import { tr } from '../../../shared/i18n';
+import { KvTwiccButton } from '../kaviski/twicc'; // fork Kaviski (KAVISKI.md)
 
 /** Itens da linha do tempo mostrados de início; "Mostrar mais" acrescenta outro tanto. */
 const TIMELINE_STEP = 15;
@@ -208,6 +209,7 @@ class AgentView {
   /** Dica dos hooks do Codex (ao vivo e aprovar pelo escritório), na gaveta de um agente do Codex. */
   private codexHint: HTMLElement;
   private roomBtn: HTMLButtonElement;
+  private kvTwicc = new KvTwiccButton(); // fork Kaviski: "Abrir no TwiCC"
   private roomName: HTMLElement;
   private gone: HTMLElement;
   private dot: HTMLElement;
@@ -412,6 +414,7 @@ class AgentView {
       this.gone,
       statusRow,
       this.termBtn,
+      this.kvTwicc.el, // fork Kaviski
       this.termWhy,
       this.alert,
       this.perm.el,
@@ -549,6 +552,7 @@ class AgentView {
     setText(this.accEmail, accSub);
     setHidden(this.accEmail, !accSub);
     setText(this.roomName, room?.name ?? a.roomId);
+    this.kvTwicc.update(a, room, this.ctx.store.liveSnapshot); // fork Kaviski
     setTitle(this.roomBtn, room ? tr('{0}\nClique para ver a sala', [room.path]) : '');
     setHidden(this.gone, !!live);
     this.el.classList.toggle('is-gone', !live);

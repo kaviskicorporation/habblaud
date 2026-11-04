@@ -14,6 +14,7 @@ import { isCodex } from './provider';
 import { sessionProjectName, TERMINAL_UNAVAILABLE_HINT, type TerminalControl } from './terminal';
 import { createAccountChip, updateAccountChip } from './widgets';
 import { intlLocale, tr } from '../../../shared/i18n';
+import { kvHistoryItem } from '../kaviski/twicc'; // fork Kaviski (KAVISKI.md)
 
 export const HISTORY_URL = '/api/sessions/recent';
 /** Fechou (clique fora) há tão pouco que o mesmo clique no botão não deve reabrir. */
@@ -303,7 +304,7 @@ export class HistoryPopover implements UiComponent {
     const frag = document.createDocumentFragment();
     for (const day of days) {
       const group = h('section', { class: 'ui-hist__day', attrs: { 'aria-label': day.label } }, h('h3', { class: 'ui-hist__day-label', text: day.label }));
-      for (const s of day.sessions) group.append(this.item(s, now));
+      for (const s of day.sessions) group.append(kvHistoryItem(this.item(s, now), s, this.ctx.store.liveSnapshot)); // fork Kaviski
       frag.append(group);
     }
     this.listEl.replaceChildren(frag);

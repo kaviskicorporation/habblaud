@@ -15,6 +15,7 @@ import { buildAnim } from './anim';
 import { drawFxBanner } from './github-fx';
 import type { HeadInfo, Renderer } from './renderer';
 import { tr } from '../../../../shared/i18n';
+import { kvAccent, kvDrawPillBadge, kvDrawSignStyle } from '../../kaviski/room-style'; // fork Kaviski (KAVISKI.md)
 
 // A Pixelify Sans tem o "C" maiúsculo quase fechado (lê-se "Oopa" em vez de "Copa") em qualquer
 // peso/tamanho usado no canvas; os textos do mundo usam a fonte do sistema, sempre legível.
@@ -428,6 +429,7 @@ export class Overlay {
         const h = rect.h * zoom;
         if (ax + w > 0 && ax < vw && ay + h > 0 && ay < vh) {
           this.drawSignText(text, ax, ay, w, h, this.renderer.signIsDark(vis), room?.accounts ?? []);
+          kvDrawSignStyle(this.ctx, room?.info, ax, ay, w, h); // fork Kaviski
           this.place(ax, ay, w, h);
         }
       }
@@ -438,7 +440,8 @@ export class Overlay {
       if (room) {
         // endereço antigo de uma mudança: o nome já está na sala nova
         if (!room.present || room.ghost || (anim && anim.walls < 0.6)) continue;
-        this.drawRoomPill(room.info.name, cx, cy, colW - 8, room.accounts, this.countIn(room.id), room.theme.accent, room.lightOn);
+        this.drawRoomPill(room.info.name, cx, cy, colW - 8, room.accounts, this.countIn(room.id), kvAccent(room.info, room.theme.accent), room.lightOn);
+        kvDrawPillBadge(this.ctx, room.info, cx, cy, colW - 8); // fork Kaviski
       } else if (CORE_NAMES[vis.id]) {
         this.drawCorePill(CORE_NAMES[vis.id], cx, cy, colW - 8);
       }

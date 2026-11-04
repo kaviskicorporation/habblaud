@@ -9,6 +9,7 @@ import { createReadStream, statSync, type Stats } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { extname, join, resolve, sep } from 'node:path';
 import { tr } from '../../shared/i18n';
+import { kvFrameHeaders } from '../kaviski/frame'; // fork Kaviski (KAVISKI.md)
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -76,7 +77,7 @@ export function createStaticHandler(distDir: string): (req: IncomingMessage, res
 
   const send = (req: IncomingMessage, res: ServerResponse, file: string, st: Stats, cache: string) => {
     const etag = etagOf(st);
-    const headers: Record<string, string | number> = {
+    const headers: Record<string, string | number> = kvFrameHeaders({
       'Cache-Control': cache,
       ETag: etag,
       'Last-Modified': new Date(st.mtimeMs).toUTCString(),
@@ -84,7 +85,7 @@ export function createStaticHandler(distDir: string): (req: IncomingMessage, res
       // A página não deve ser embutida em sites de terceiros (clickjacking nas configurações).
       'X-Frame-Options': 'DENY',
       'Referrer-Policy': 'no-referrer',
-    };
+    });
     if (isNotModified(req, etag, st.mtimeMs)) {
       res.writeHead(304, headers);
       return void res.end();

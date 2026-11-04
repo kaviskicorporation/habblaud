@@ -2,6 +2,21 @@
 // As lacunas {0}, {1}... (e as nomeadas, como {sala}) precisam aparecer na tradução, em qualquer ordem.
 // Chave ausente = o texto fica em PT. `npm run i18n:check` lista os textos sem tradução e as chaves que sobraram.
 export const EN: Readonly<Record<string, string>> = {
+  // fork Kaviski (KAVISKI.md): client/src/kaviski, server/kaviski
+  "Abrir esta sessão no TwiCC": "Open this session in TwiCC",
+  "Abrir no TwiCC": "Open in TwiCC",
+  "HABBLAUD_FRAME_ANCESTORS: origem ignorada ({0})": "HABBLAUD_FRAME_ANCESTORS: origin ignored ({0})",
+  "HABBLAUD_TWICC_URL inválida ({0}): o botão \"Abrir no TwiCC\" fica desligado.": "Invalid HABBLAUD_TWICC_URL ({0}): the \"Open in TwiCC\" button stays off.",
+  "cores das salas desligadas: só funcionam com o Habblaud acessível apenas pelo próprio computador": "room colors are off: they only work with Habblaud reachable only from this computer",
+  "cores das salas só pelo próprio computador (http://localhost)": "room colors only from this computer (http://localhost)",
+  "esperado {rooms: {\"<caminho>\": {color, group}}}": "expected {rooms: {\"<path>\": {color, group}}}",
+  "salas demais (máximo {0})": "too many rooms (maximum {0})",
+  "caminho de sala inválido: {0}": "invalid room path: {0}",
+  "estilo inválido para {0}": "invalid style for {0}",
+  "cor inválida para {0} (use #rgb ou #rrggbb)": "invalid color for {0} (use #rgb or #rrggbb)",
+  "grupo inválido para {0}": "invalid group for {0}",
+  "room-styles.json ilegível ({0}); sem cores de sala.": "room-styles.json unreadable ({0}); no room colors.",
+
   // client/src/main.ts
   "Escritório virtual em pixel art que mostra, em tempo real, o que seus agentes do Claude Code estão fazendo.": "Pixel-art virtual office that shows, in real time, what your Claude Code agents are doing.",
 

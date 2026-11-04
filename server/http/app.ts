@@ -22,6 +22,8 @@ import { AUDIO_BODY_MAX, type DictationService } from '../dictation/dictation';
 import type { DeliveryIndex } from '../deliveries/deliveries';
 import type { FileFetcher } from '../deliveries/fetcher';
 import { HOST_WAIT_MS } from '../host-wait';
+import { kvFrameHeaders } from '../kaviski/frame'; // fork Kaviski (KAVISKI.md)
+import type { Kaviski } from '../kaviski'; // fork Kaviski (KAVISKI.md)
 
 export interface ApiDeps {
   office: Office;
@@ -94,6 +96,8 @@ export interface ApiDeps {
    * local com Host local: pela porta do celular, nem com login (403 `local_only`).
    */
   world?: (req: IncomingMessage, res: ServerResponse, url: URL) => void;
+  /** Fork Kaviski (KAVISKI.md): GET|POST /api/rooms/style (cores e grupos das salas). */
+  kaviski?: Pick<Kaviski, 'route'>;
 }
 
 /** GET /api/agents/:id/terminal (ids nunca contêm '/'). */
@@ -170,7 +174,7 @@ export function sendJson(res: ServerResponse, status: number, body: unknown): vo
  */
 function sendFile(res: ServerResponse, data: Buffer, type: string, name: string): void {
   const active = /^text\/html|^image\/svg/.test(type);
-  res.writeHead(200, {
+  res.writeHead(200, kvFrameHeaders({
     'Content-Type': type,
     'Content-Length': data.length,
     'Cache-Control': 'private, max-age=300',
@@ -178,7 +182,7 @@ function sendFile(res: ServerResponse, data: Buffer, type: string, name: string)
     'X-Frame-Options': 'SAMEORIGIN',
     'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(name)}`,
     ...(active ? { 'Content-Security-Policy': "sandbox; default-src 'none'; img-src data: blob: 'self'; style-src 'unsafe-inline'; media-src 'self'" } : {}),
-  });
+  }));
   res.end(data);
 }
 
@@ -662,6 +666,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       else sendJson(res, 404, { error: tr('agente não encontrado') });
       return true;
     }
+    if (deps.kaviski?.route(req, res, path, { enabled: !!deps.terminal, trusted: trusted(req) })) return true; // fork Kaviski
     if (path === '/api/rooms/rename') {
       // Como o personagem: a mesma trava do terminal (bind local + Host local).
       if (method !== 'POST') methodNotAllowed(res, 'POST');

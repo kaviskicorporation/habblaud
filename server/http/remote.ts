@@ -28,6 +28,8 @@ import { dirname, join } from 'node:path';
 import { parsePasswordHash, verifyPassword, type PasswordHash } from '../remote/password';
 import { hostAllowed } from './guard';
 import { getLocale, tr } from '../../shared/i18n';
+import { kvFrameHeaders } from '../kaviski/frame'; // fork Kaviski (KAVISKI.md)
+import { kvKeepRoomQuery, kvSameSite } from '../kaviski/remote'; // fork Kaviski (KAVISKI.md)
 
 export type RemoteFeature = 'permissions' | 'messages' | 'terminal' | 'spawn';
 
@@ -358,7 +360,7 @@ export function loginPage(opts: { caDownload: boolean }): string {
     try {
       const r = await fetch('/api/remote/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin', body: JSON.stringify({ user: f.username.value, password: f.password.value }) });
-      if (r.ok) { location.replace('/'); return; }
+      if (r.ok) { location.replace('/' + location.search); return; }
       const body = await r.json().catch(() => ({}));
       err.textContent = body.error || ${js(tr('Não deu para entrar.'))};
     } catch { err.textContent = ${js(tr('Sem conexão com o Habblaud.'))}; }
@@ -371,19 +373,19 @@ export function loginPage(opts: { caDownload: boolean }): string {
 }
 
 function sendHtml(res: ServerResponse, html: string): void {
-  res.writeHead(200, {
+  res.writeHead(200, kvFrameHeaders({
     'Content-Type': 'text/html; charset=utf-8',
     'Content-Length': Buffer.byteLength(html),
     'Cache-Control': 'no-store',
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'no-referrer',
-  });
+  }));
   res.end(html);
 }
 
 function cookieHeader(value: string, maxAgeS: number, secure: boolean): string {
-  return `${COOKIE}=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAgeS}${secure ? '; Secure' : ''}`;
+  return `${COOKIE}=${value}; Path=/; HttpOnly; ${kvSameSite(secure)}; Max-Age=${maxAgeS}${secure ? '; Secure' : ''}`; // fork Kaviski: kvSameSite
 }
 
 export interface RemoteGateDeps {
@@ -489,7 +491,7 @@ export function createRemoteGate(deps: RemoteGateDeps): (req: IncomingMessage, r
     if (path === '/login') {
       req.resume();
       if (authed) {
-        res.writeHead(302, { Location: '/', 'Cache-Control': 'no-store' });
+        res.writeHead(302, { Location: kvKeepRoomQuery('/', req.url), 'Cache-Control': 'no-store' });
         res.end();
       } else sendHtml(res, loginPage({ caDownload: caAvailable() }));
       return true;
@@ -509,7 +511,7 @@ export function createRemoteGate(deps: RemoteGateDeps): (req: IncomingMessage, r
     if (path === '/api' || path.startsWith('/api/')) {
       sendJson(res, 401, { error: tr('faça login: abra o Habblaud por esta porta no navegador e entre com usuário e senha') });
     } else {
-      res.writeHead(302, { Location: '/login', 'Cache-Control': 'no-store' });
+      res.writeHead(302, { Location: kvKeepRoomQuery('/login', req.url), 'Cache-Control': 'no-store' });
       res.end();
     }
     return true;
