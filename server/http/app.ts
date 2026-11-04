@@ -666,7 +666,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       else sendJson(res, 404, { error: tr('agente não encontrado') });
       return true;
     }
-    if (deps.kaviski?.route(req, res, path, { enabled: !!deps.terminal, trusted: trusted(req) })) return true; // fork Kaviski
+    if (deps.kaviski?.route(req, res, path, { enabled: !!deps.terminal, trusted: trusted(req), host: trusted(req) && (!!deps.inDocker || isLoopbackAddress(req.socket.remoteAddress)) })) return true; // fork Kaviski
     if (path === '/api/rooms/rename') {
       // Como o personagem: a mesma trava do terminal (bind local + Host local).
       if (method !== 'POST') methodNotAllowed(res, 'POST');

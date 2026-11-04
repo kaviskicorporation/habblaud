@@ -37,6 +37,7 @@ import { SpotRegistry } from './spots';
 import type { Step } from './steps';
 import { EXIT_RADIUS, NO_INTENT, stepFree, tileAt, VISITOR_LANYARD, type VisitorIntent } from './visitor';
 import { tr } from '../../../../shared/i18n';
+import { kvDarkIfEmpty } from '../../kaviski/empty-rooms'; // fork Kaviski (KAVISKI.md)
 
 /**
  * Efeito visual pontual pedido pela simulação ao render (drenado a cada frame): confete (shell
@@ -180,7 +181,7 @@ export class Sim {
       listed.add(r.id);
       const rs = this.rooms.get(r.id);
       if (!rs) {
-        this.createRoom(r, first, now);
+        kvDarkIfEmpty(this.createRoom(r, first, now), snap, !!this.visit); // fork Kaviski: sala fixa vazia nasce apagada
         layoutDirty = true;
         continue;
       }

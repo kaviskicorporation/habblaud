@@ -3,6 +3,7 @@
 import type { AccountInfo, Activity, AgentInfo, AgentStatus, OfficeSnapshot, RoomInfo, ShellJob, TaskItem } from '../../../shared/types';
 import { formatElapsed, normalizeSearch } from './format';
 import { tr } from '../../../shared/i18n';
+import { kvRoomCount } from '../kaviski/empty-rooms'; // fork Kaviski (KAVISKI.md)
 
 export const STATUS_LABEL: Record<AgentStatus, string> = {
   working: tr('Trabalhando'),
@@ -66,7 +67,7 @@ export interface Counters {
 export function computeCounters(snap: Pick<OfficeSnapshot, 'rooms' | 'agents'> | null, now = Date.now()): Counters {
   const c: Counters = { rooms: 0, agents: 0, working: 0, subagents: 0, waiting: 0, shells: 0 };
   if (!snap) return c;
-  c.rooms = snap.rooms.length;
+  c.rooms = kvRoomCount(snap); // fork Kaviski: só as salas com alguém (as fixas vazias não contam)
   for (const a of snap.agents) {
     if (!isPresent(a)) continue;
     c.agents++;
@@ -373,6 +374,7 @@ export function groupRooms(snap: Pick<OfficeSnapshot, 'rooms' | 'agents' | 'acco
   const groups: RoomGroup[] = [];
   for (const room of [...snap.rooms].sort((a, b) => a.slot - b.slot)) {
     const agents = (byRoom.get(room.id) ?? []).slice().sort(byArrival);
+    if (!agents.length) continue; // fork Kaviski: sala fixa vazia fica só no prédio
     const visible = (a: AgentInfo) => !hidden.has(a.account) && matchesQuery(a, room, accounts.get(a.account), query);
     const ids = new Set(agents.map((a) => a.id));
     const subsOf = new Map<string, AgentInfo[]>();

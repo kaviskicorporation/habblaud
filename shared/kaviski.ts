@@ -1,23 +1,36 @@
 // Fork Kaviski (ver KAVISKI.md na raiz): tipos e funções puras usadas pelo servidor e pelo cliente.
 //
-// - Estilo por sala (cor e grupo do cliente): POST /api/rooms/style, vai no snapshot em RoomInfo.kaviski.
+// - Estilo por sala (cor e grupo do cliente, sala fixa, nome): POST /api/rooms/style, vai no snapshot em RoomInfo.kaviski.
+//   Sala fixa (`pinned`): existe sempre no escritório, mesmo vazia (a empresa inteira, um projeto por sala).
 // - TwiCC (interface web do Claude Code): HABBLAUD_TWICC_URL vai no snapshot em meta.kaviski.twiccUrl e o cliente monta
 //   o link da sessão (/project/<id>/session/<id>).
 // Nada aqui muda o comportamento original quando as variáveis e o arquivo de estilos não existem.
 import type { OfficeSnapshot, Provider, RoomInfo } from './types';
 
-/** Estilo de uma sala (cor do cliente e nome do grupo). */
+/** Estilo de uma sala (cor do cliente e nome do grupo); é o que vai no snapshot em RoomInfo.kaviski. */
 export interface KvRoomStyle {
   /** Cor em #rrggbb (minúsculas). */
   color?: string;
   /** Nome do grupo/cliente (curto). */
   group?: string;
+  /** Sala fixa: existe sempre no escritório, mesmo sem ninguém. */
+  pinned?: boolean;
+}
+
+/** Entrada do mapa de estilos guardada no servidor (o que vai ao snapshot é só o KvRoomStyle). */
+export interface KvRoomEntry extends KvRoomStyle {
+  /** Nome da sala quando não há apelido manual (botão direito > Renomear). */
+  name?: string;
+  /** Só nas fixas: o caminho como veio (com as maiúsculas), id e caminho da sala enquanto ela está vazia. */
+  path?: string;
 }
 
 /** O que o fork acrescenta ao meta do snapshot. */
 export interface KvMeta {
   /** Base do TwiCC (ex.: http://192.168.1.220:3500), sem barra no fim. */
   twiccUrl?: string;
+  /** Nome da empresa (HABBLAUD_BRAND): no topo, no título da aba e na tela de login. */
+  brand?: string;
 }
 
 /** RoomInfo com o campo do fork (opcional: ausente = sem estilo). */
@@ -26,6 +39,10 @@ export type KvRoomInfo = RoomInfo & { kaviski?: KvRoomStyle };
 export type KvSnapshotMeta = OfficeSnapshot['meta'] & { kaviski?: KvMeta };
 
 export const KV_GROUP_MAX = 40;
+/** Nome de sala (o mesmo limite de model/room-aliases.ts ROOM_NAME_MAX). */
+export const KV_NAME_MAX = 40;
+/** Nome da empresa (HABBLAUD_BRAND). */
+export const KV_BRAND_MAX = 60;
 export const KV_PATH_MAX = 1024;
 export const KV_ROOMS_MAX = 500;
 
@@ -43,6 +60,26 @@ export function kvGroup(v: unknown): string | undefined {
   if (typeof v !== 'string') return undefined;
   const s = v.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
   return s ? [...s].slice(0, KV_GROUP_MAX).join('').trim() : undefined;
+}
+
+/** Nome de sala limpo (mesma regra do grupo, até KV_NAME_MAX). Vazio -> undefined. */
+export function kvRoomName(v: unknown): string | undefined {
+  if (typeof v !== 'string') return undefined;
+  const s = v.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
+  return s ? [...s].slice(0, KV_NAME_MAX).join('').trim() : undefined;
+}
+
+/** Nome da empresa (HABBLAUD_BRAND) limpo, até KV_BRAND_MAX. Vazio -> undefined. */
+export function kvBrand(v: unknown): string | undefined {
+  if (typeof v !== 'string') return undefined;
+  const s = v.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
+  return s ? [...s].slice(0, KV_BRAND_MAX).join('').trim() : undefined;
+}
+
+/** Caminho como a sala o usa (cwd normalizado, como model/rooms.ts normalizeCwd), com barras normais. */
+export function kvRoomPath(p: string): string {
+  const s = p.trim().replace(/\\/g, '/').replace(/\/{2,}/g, '/');
+  return s.length > 1 ? s.replace(/\/+$/, '') : s;
 }
 
 /** Chave comparável de um caminho (igual à de server/model/room-aliases.ts pathKey). */

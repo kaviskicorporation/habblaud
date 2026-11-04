@@ -29,7 +29,7 @@ import { parsePasswordHash, verifyPassword, type PasswordHash } from '../remote/
 import { hostAllowed } from './guard';
 import { getLocale, tr } from '../../shared/i18n';
 import { kvFrameHeaders } from '../kaviski/frame'; // fork Kaviski (KAVISKI.md)
-import { kvKeepRoomQuery, kvSameSite } from '../kaviski/remote'; // fork Kaviski (KAVISKI.md)
+import { kvBrandLogin, kvKeepRoomQuery, kvSameSite } from '../kaviski/remote'; // fork Kaviski (KAVISKI.md)
 
 export type RemoteFeature = 'permissions' | 'messages' | 'terminal' | 'spawn';
 
@@ -493,7 +493,7 @@ export function createRemoteGate(deps: RemoteGateDeps): (req: IncomingMessage, r
       if (authed) {
         res.writeHead(302, { Location: kvKeepRoomQuery('/', req.url), 'Cache-Control': 'no-store' });
         res.end();
-      } else sendHtml(res, loginPage({ caDownload: caAvailable() }));
+      } else sendHtml(res, kvBrandLogin(loginPage({ caDownload: caAvailable() }))); // fork Kaviski: kvBrandLogin
       return true;
     }
 

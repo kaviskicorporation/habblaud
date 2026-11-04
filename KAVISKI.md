@@ -25,6 +25,10 @@ nos arquivos originais só há **ganchos de 1 linha**, marcados com `fork Kavisk
 | Abrir no TwiCC | `HABBLAUD_TWICC_URL=http://192.168.1.220:3500` | Vai no snapshot em `meta.kaviski.twiccUrl`. Botão **Abrir no TwiCC** no painel do agente e link **TwiCC** em cada sessão do histórico. Dentro de iframe abre em `_top`, fora em `_blank`. |
 | Link direto para a sala | sempre (só age com o parâmetro) | `/?sala=<caminho da pasta, urlencoded>` (ou `?room=`) seleciona e centraliza a sala; espera até 15 s se ela ainda não existe. Na porta remota o parâmetro sobrevive à tela de login. |
 | Cor e grupo por cliente | `POST /api/rooms/style` (só local) | Moldura colorida na placa da sala + selo com o nome do grupo; na pílula (zoom longe) a faixa usa a cor do cliente e o selo vai acima. Vai no snapshot em `RoomInfo.kaviski`. |
+| Empresa completa (salas fixas) | `"pinned": true` no mapa de `/api/rooms/style` | Toda sala fixa existe sempre, vazia (apagada) até alguém chegar, com o mesmo id/semente que o Office daria. Salas na ordem dos clientes: as do mapa primeiro, agrupadas por `group` (grupos na ordem em que aparecem no mapa), depois as outras. `server/kaviski/pinned.ts`. |
+| Nome da sala pelo mapa | `"name"` no mapa | Usado quando não há apelido manual (Renomear vence). |
+| Marca | `HABBLAUD_BRAND=Kaviski Corporation` | Linha pequena acima do logotipo no topo (a versão continua), título da aba `<marca> · Habblaud`, tela de login remota com o nome da empresa e "escritório virtual · Habblaud". |
+| Mensagens às sessões do TwiCC | `HABBLAUD_TWICC_MESSAGES=1` + `npm run codex:bridge` | Sessões que o TwiCC está rodando (Claude Code e Codex) recebem a caixa "Mandar mensagem"; o auxiliar do host entrega com `twicc send-message --no-expand -- <id> <texto>`. Ver abaixo. |
 
 ### URL da sessão no TwiCC
 
@@ -54,26 +58,64 @@ curl -s http://localhost:4747/api/rooms/style      # lê o mapa atual
 - Trava: a mesma de `/api/rooms/rename` — bind local + Host `localhost`/`127.0.0.1`; pela porta remota, nunca (403).
 - Persistido em `<dataDir>/room-styles.json` (no Docker, `/data/room-styles.json` no volume `habblaud-data`).
 
+### Salas fixas (empresa completa)
+
+```json
+{"rooms": {"/home/hostadmin/projetos/Clientes/14-FPF/05.FPFHub": {"color": "#800000", "group": "FPF", "pinned": true, "name": "FPF · FPFHub"}}}
+```
+
+- `pinned`: booleano (outro tipo → 400); exige caminho absoluto. `name`: texto, limpo e cortado em 40 (como o Renomear).
+  Entrada só com `pinned: false` é ignorada. As maiúsculas do caminho são guardadas (`path` no `room-styles.json`).
+- Teto: 500 entradas no mapa (`KV_ROOMS_MAX`); o prédio não tem teto (uma coluna a cada 2 salas: 82 salas = 41
+  colunas; a Visão geral (O) fica bem afastada, use o zoom/`?sala=`).
+- Sala fixa vazia: entra no snapshot (e no timelapse, que grava o snapshot), **não** vai ao Habblaud World (o prédio
+  enviado conta só salas com agentes, `server/world/uplink.ts`). Na tela: nasce apagada, não aparece na lista lateral
+  nem no contador "salas" (que conta só salas com alguém), aparece no prédio e na lista de pastas do Novo agente.
+- Quem manda o mapa é `python3 /home/hostadmin/base/scripts/kc-habblaud.py estilos` (só projetos não arquivados).
+
+### Mensagens às sessões do TwiCC
+
+As sessões do TwiCC rodam pelo SDK (sem terminal): o plugin `habblaud-mensagens` nunca fica presente nelas.
+`server/kaviski/twicc-messages.ts` embrulha, em tempo de execução, `send/get/canMessage/reachable` do
+`MessageRegistry` (o arquivo original não é tocado); `server/kaviski/twicc-bridge.ts` é a parte do auxiliar do host.
+
+- `POST /api/host/twicc/poll` `{live?: [ids]}` → `{messages: [{id, session, text}], want: [ids]}` e
+  `POST /api/host/twicc/ack` `{results: [{id, ok, error?}]}`. Só pela porta local (trava de `/api/host/*`).
+- O auxiliar, a cada 2 s, pergunta; quando há agentes candidatos (`want`), relê no máximo a cada 20 s
+  `twicc sessions --active --include-hidden` (o CLI gasta ~3 s de CPU) e manda os ids vivos.
+- Só sessões que o TwiCC está **rodando** (`process.state` ≠ `dead`) recebem: uma sessão morta no TwiCC pode estar
+  aberta num terminal, e o send-message a retomaria num segundo processo. Sessão viva no TwiCC tem prioridade também no
+  Codex (vai pelo TwiCC, não pelo `codex queue`).
+- Mesmos estados/prazos da original (queued → sent → delivered/failed; 60 s para buscar, 60 s para confirmar); a
+  atividade "Mensagem pelo Habblaud" entra no agente quando confirma. Texto nunca vai a log.
+- Binário: `HABBLAUD_TWICC_BIN` ou `twicc` do PATH (ou `~/.local/bin/twicc`). Depois de mudar o auxiliar:
+  `systemctl --user restart habblaud-codex-bridge`.
+
 ## Pontos de toque nos arquivos originais
 
 | Arquivo | Linhas | O quê | No conflito do merge |
 |---|---|---|---|
-| `server/http/app.ts` | +7/−2 | imports; `sendFile` com `kvFrameHeaders({...})`; campo `kaviski?` no `ApiDeps`; 1 linha antes de `/api/rooms/rename` chamando `deps.kaviski?.route(...)` | aceitar o original e reaplicar os ganchos |
+| `server/http/app.ts` | +7/−2 | imports; `sendFile` com `kvFrameHeaders({...})`; campo `kaviski?` no `ApiDeps`; 1 linha antes de `/api/rooms/rename` chamando `deps.kaviski?.route(...)` (com `host:` = trava do auxiliar do host) | aceitar o original e reaplicar os ganchos |
 | `server/http/static.ts` | +3/−2 | import; objeto `headers` de `send` embrulhado em `kvFrameHeaders({...})` | idem |
-| `server/http/remote.ts` | +8/−6 | imports; `sendHtml` com `kvFrameHeaders`; `kvSameSite(secure)` no `cookieHeader`; `kvKeepRoomQuery` nos dois redirecionamentos (`/` e `/login`); `location.replace('/' + location.search)` no JS da tela de login | idem |
-| `server/index.ts` | +5 | import; `createKaviski` + `kaviski.attach(office)` logo depois do `new Office(...)`; `kaviski,` no `createApiHandler` | idem |
-| `client/src/app.ts` | +2 | import; `kvStartRoomLink(location.search, store, world)` depois do `createUI` | idem |
+| `server/http/remote.ts` | +8/−6 | imports; `sendHtml` com `kvFrameHeaders`; `kvSameSite(secure)` no `cookieHeader`; `kvKeepRoomQuery` nos dois redirecionamentos (`/` e `/login`); `location.replace('/' + location.search)` no JS da tela de login; `kvBrandLogin(loginPage(...))` | idem |
+| `server/index.ts` | +6 | import; `createKaviski({..., roomAlias})` + `kaviski.attach(office)` logo depois do `new Office(...)`; `kaviski.attachMessages(messages, office)` depois de `late.messages = messages`; `kaviski,` no `createApiHandler` | idem |
+| `scripts/codex-bridge.ts` | +2 | import; `if (!parsed.once) void twiccLoop(post, log)` antes do laço principal | idem |
+| `client/src/app.ts` | +4 | imports; `kvStartRoomLink(...)` e `kvStartBrand(store)` depois do `createUI` | idem |
+| `client/src/ui/notify.ts` | +2/−1 | import; título da aba com `kvTitle(BASE_TITLE)` | idem |
+| `client/src/ui/model.ts` | +3/−1 | import; `c.rooms = kvRoomCount(snap)`; `if (!agents.length) continue;` em `groupRooms` (sala vazia fora da lista lateral) | idem |
+| `client/src/world/sim/sim.ts` | +2/−1 | import; `kvDarkIfEmpty(this.createRoom(...), snap, !!this.visit)` (sala fixa vazia nasce apagada) | idem |
 | `client/src/ui/drawer.ts` | +4 | import; campo `kvTwicc`; `this.kvTwicc.el` depois do `this.termBtn`; `this.kvTwicc.update(...)` no `render` | idem |
 | `client/src/ui/history.ts` | +2/−1 | import; `group.append(kvHistoryItem(this.item(s, now), s, ...))` | idem |
 | `client/src/world/render/overlay.ts` | +4/−1 | import; `kvDrawSignStyle(...)` depois do `drawSignText`; `kvAccent(room.info, room.theme.accent)` e `kvDrawPillBadge(...)` na pílula | idem |
 | `shared/locales/{en,es,fr}.ts` | +15 cada | bloco "fork Kaviski" logo no começo do objeto | manter os dois lados; rodar `npm run i18n:check` |
-| `docker-compose.yml` | +3 | `HABBLAUD_FRAME_ANCESTORS` e `HABBLAUD_TWICC_URL` no `environment:` | manter os dois lados |
+| `docker-compose.yml` | +5 | `HABBLAUD_FRAME_ANCESTORS`, `HABBLAUD_TWICC_URL`, `HABBLAUD_TWICC_MESSAGES` e `HABBLAUD_BRAND` no `environment:` | manter os dois lados |
 
 `server/model/office.ts` **não** foi tocado: `kaviski.attach(office)` embrulha `office.commit()` em tempo de execução e
 decora cada snapshot novo. Se o original renomear `commit`, o teste `server/kaviski/kaviski.test.ts` acusa.
 
-Arquivos só do fork: `shared/kaviski.ts` (+ teste), `server/kaviski/{index,frame,remote,room-styles}.ts` (+ teste),
-`client/src/kaviski/{twicc,room-link,room-style}.ts` e `kaviski.css`, este `KAVISKI.md`.
+Arquivos só do fork: `shared/kaviski.ts` (+ teste), `server/kaviski/{index,frame,remote,room-styles,pinned,twicc-messages,twicc-bridge}.ts`
+(+ `kaviski.test.ts`, `kaviski-extra.test.ts`), `client/src/kaviski/{twicc,room-link,room-style,brand,empty-rooms}.ts`
+(+ `kaviski.test.ts`) e `kaviski.css`, este `KAVISKI.md`.
 
 O `CHANGELOG.md` do original **não** recebe as mudanças do fork (evita conflito a cada versão): o histórico fica aqui.
 
@@ -82,6 +124,8 @@ O `CHANGELOG.md` do original **não** recebe as mudanças do fork (evita conflit
 ```
 HABBLAUD_FRAME_ANCESTORS=http://192.168.1.220:3500 http://localhost:3500 http://127.0.0.1:3500
 HABBLAUD_TWICC_URL=http://192.168.1.220:3500
+HABBLAUD_BRAND=Kaviski Corporation
+HABBLAUD_TWICC_MESSAGES=1
 ```
 
 Subir sempre com `python3 /home/hostadmin/base/scripts/kc-habblaud.py subir --build` (mantém o fuso).
@@ -99,6 +143,9 @@ Subir sempre com `python3 /home/hostadmin/base/scripts/kc-habblaud.py subir --bu
 ## Histórico do fork
 
 - 2026-11-04 — frame-ancestors, "Abrir no TwiCC", `?sala=`, cores/grupos por cliente (`/api/rooms/style`).
+- 2026-11-04 — salas fixas (`pinned`) e `name` no mapa de estilos, marca (`HABBLAUD_BRAND`), mensagens às sessões do
+  TwiCC (`HABBLAUD_TWICC_MESSAGES`). Timelapse ("Não foi possível buscar a linha do tempo"): não reproduzido no
+  Chromium e no Firefox (porta local, remota com login e dentro de iframe com a origem do TwiCC); as rotas dão 200.
 
 ## HTTP puro na porta remota (sem certificado)
 - `server/http/remote.ts` (1 linha, `fork Kaviski`): com `HABBLAUD_REMOTE_INSECURE_HTTP=1` a porta remota é HTTP mesmo que exista certificado em `~/.habblaud/remote-tls` (no original, o certificado vence). Decisão do Vitor: rede local, sem instalar CA. Com TwiCC (`http://…:3500`) e Habblaud (`http://…:4748`) os dois em HTTP no mesmo IP, são same-site e o cookie `SameSite=Strict` original funciona dentro do iframe do TwiCC.

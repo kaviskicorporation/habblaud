@@ -132,7 +132,7 @@ const office = new Office({
   world: () => world?.meta() ?? { enabled: false, configured: false, state: 'off' },
 });
 // Fork Kaviski (KAVISKI.md): cores/grupos das salas e o link do TwiCC no snapshot.
-const kaviski = createKaviski({ dataDir: config.dataDir });
+const kaviski = createKaviski({ dataDir: config.dataDir, roomAlias: (path) => roomAliases.get(path) });
 kaviski.attach(office);
 // Fontes de agentes, uma por ferramenta (sources/source.ts): a do Claude Code e, depois dela, a do Codex (quando há
 // pastas do Codex; HABBLAUD_CODEX=0 desliga), com o histórico dela no HistorySet abaixo e as contas registradas por
@@ -281,6 +281,7 @@ const messages = config.messages
     })
   : undefined;
 late.messages = messages;
+kaviski.attachMessages(messages, office); // fork Kaviski (KAVISKI.md): mensagens às sessões do TwiCC
 
 // Terminal interativo (abrir/assumir sessões e encerrar agentes): opt-in com HABBLAUD_PTY=1, só com bind local, fora
 // do Docker, com node-pty e o executável do claude no PATH.

@@ -6,6 +6,7 @@ import type { SoundBoard } from '../audio/board';
 import type { UiComponent, UiContext } from './context';
 import { computeCounters } from './model';
 import { tr } from '../../../shared/i18n';
+import { kvTitle } from '../kaviski/brand'; // fork Kaviski (KAVISKI.md)
 
 const BASE_TITLE = 'Habblaud';
 
@@ -40,7 +41,7 @@ export class Notifier implements UiComponent {
   render(): void {
     // Ao vivo, mesmo durante o timelapse: o título da aba avisa quem precisa de você agora.
     const waiting = computeCounters(this.ctx.store.liveSnapshot).waiting;
-    const title = waiting > 0 ? `(${waiting}) ${BASE_TITLE}` : BASE_TITLE;
+    const title = waiting > 0 ? `(${waiting}) ${kvTitle(BASE_TITLE)}` : kvTitle(BASE_TITLE); // fork Kaviski: kvTitle (HABBLAUD_BRAND)
     if (title !== this.lastTitle) {
       this.lastTitle = title;
       document.title = title;

@@ -57,3 +57,25 @@ a.kv-twicc-btn:focus-visible .ui-px-icon {
   color: var(--ui-accent);
   border-color: var(--ui-accent);
 }
+
+/* Marca da empresa (HABBLAUD_BRAND, kaviski/brand.ts): linha pequena logo acima do logotipo "Habblaud". Fica dentro de
+   .ui-brand__name, então some junto com ele nas telas estreitas. */
+.ui-brand__name .kv-brand {
+  display: block;
+  max-width: 135px;
+  margin: 0 0 3px;
+  overflow: hidden;
+  color: var(--ui-accent);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  line-height: 10px;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Com a marca, as três linhas (marca, logotipo, status) ficam mais juntas para caber na barra. */
+.ui-brand__text:has(.kv-brand) {
+  gap: 2px;
+}
