@@ -30,6 +30,7 @@ nos arquivos originais só há **ganchos de 1 linha**, marcados com `fork Kavisk
 | Nome da sala pelo mapa | `"name"` no mapa | Usado quando não há apelido manual (Renomear vence). |
 | Marca | `HABBLAUD_BRAND=Kaviski Corporation` | Linha pequena acima do logotipo no topo (a versão continua), título da aba `<marca> · Habblaud`, tela de login remota com o nome da empresa e "escritório virtual · Habblaud". |
 | Mensagens às sessões do TwiCC | `HABBLAUD_TWICC_MESSAGES=1` + `npm run codex:bridge` | Sessões que o TwiCC está rodando (Claude Code e Codex) recebem a caixa "Mandar mensagem"; o auxiliar do host entrega com `twicc send-message --no-expand -- <id> <texto>`. Ver abaixo. |
+| Terminal interativo pela porta remota | `HABBLAUD_REMOTE_PTY=1` (modo Node, fora do Docker, com `HABBLAUD_PTY=1`) | Com login, a porta remota também abre/assume/encerra sessões do Claude Code (terminal interativo), edita personagem e renomeia sala. Só para instalação atrás de VPN: quem passa no login tem um shell na máquina. Confere Origin/Sec-Fetch-Site. `server/kaviski/remote-pty.ts`. Na VM kc-dev-01 o Habblaud roda fora do Docker (serviço `habblaud` do systemd do usuário, `kc-habblaud.py subir`) justamente para isso. |
 
 ### URL da sessão no TwiCC
 

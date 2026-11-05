@@ -1,4 +1,5 @@
 // Rotas da API (/api/*). Respostas JSON; rotas desconhecidas -> 404 JSON.
+import { kvRemotePty } from '../kaviski/remote-pty'; // fork Kaviski
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { NAME_MAX, parseAppearanceParts, parseCharacterName, parseSeed } from '../../shared/appearance';
 import type { AccessInfo, AgentInfo, ModSummary, OfficeSnapshot, SourceInfo, UpdateStatus } from '../../shared/types';
@@ -377,7 +378,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
           terminal: !!terminals && (!remote || trusted(req, 'terminal')),
           permissions: !!deps.permissions && (!remote || trusted(req, 'permissions')),
           // O terminal interativo (pty) nunca vale pela porta remota.
-          pty: !!deps.pty && !remote,
+          pty: !!deps.pty && (!remote || kvRemotePty()), // fork Kaviski: HABBLAUD_REMOTE_PTY
           messages: !!deps.messages && (!remote || trusted(req, 'messages')),
           codexEvents: !!deps.codexLive,
           updates: updatesSummary(deps.updates?.status()),
@@ -403,6 +404,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
           terminal: !!terminals && trusted(req, 'terminal'),
           spawn: !!deps.spawn && trusted(req, 'spawn'),
           world: !!deps.world && !!deps.terminal && !remote && isLoopbackHost(req.headers.host),
+          ...(remote && kvRemotePty() ? { kvRemotePty: true } : {}), // fork Kaviski: HABBLAUD_REMOTE_PTY
         };
         sendJson(res, 200, access);
       }
@@ -458,7 +460,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
     if (path === '/api/pty' || path.startsWith('/api/pty/') || AGENT_ACTION_ROUTE.test(path)) {
       // Executa comandos na máquina: nunca pela porta remota, nem com login (o Host e o endereço de quem conecta não
       // bastam: o Tailscale chega pelo loopback e o Host se imita).
-      if (isRemote(req)) sendJson(res, 403, { error: tr('o terminal interativo só pode ser usado no próprio computador') });
+      if (isRemote(req) && !kvRemotePty()) sendJson(res, 403, { error: tr('o terminal interativo só pode ser usado no próprio computador') }); // fork Kaviski: HABBLAUD_REMOTE_PTY
       else if (!deps.pty) sendJson(res, 403, { error: tr('terminal interativo desligado (veja o log do servidor)') });
       else deps.pty(req, res, path);
       return true;
@@ -469,7 +471,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       if (method !== 'PUT' && method !== 'DELETE') methodNotAllowed(res, 'PUT, DELETE');
       else if (!deps.terminal) {
         sendJson(res, 403, { error: tr('editar o personagem desligado: só funciona com o Habblaud acessível apenas pelo próprio computador') });
-      } else if (!trusted(req)) {
+      } else if (!trusted(req) && !(isRemote(req) && kvRemotePty())) { // fork Kaviski: HABBLAUD_REMOTE_PTY
         sendJson(res, 403, { error: denied(req, tr('o personagem só é editado pelo próprio computador (http://localhost ou http://127.0.0.1)')) });
       } else {
         let id: string;
@@ -671,7 +673,7 @@ export function createApiHandler(deps: ApiDeps): (req: IncomingMessage, res: Ser
       // Como o personagem: a mesma trava do terminal (bind local + Host local).
       if (method !== 'POST') methodNotAllowed(res, 'POST');
       else if (!deps.terminal) sendJson(res, 403, { error: tr('renomear salas desligado: só funciona com o Habblaud acessível apenas pelo próprio computador') });
-      else if (!trusted(req)) sendJson(res, 403, { error: denied(req, tr('renomear salas só pelo próprio computador (http://localhost)')) });
+      else if (!trusted(req) && !(isRemote(req) && kvRemotePty())) sendJson(res, 403, { error: denied(req, tr('renomear salas só pelo próprio computador (http://localhost)')) }); // fork Kaviski: HABBLAUD_REMOTE_PTY
       else
         readJson(req)
           .then((body) => {

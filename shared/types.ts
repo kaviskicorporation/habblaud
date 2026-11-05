@@ -396,6 +396,8 @@ export interface AccessInfo {
    * com Host local. Ausente em servidores antigos.
    */
   world?: boolean;
+  /** Fork Kaviski: HABBLAUD_REMOTE_PTY — terminal interativo e editor de personagem pela porta remota. */
+  kvRemotePty?: boolean;
 }
 
 export interface FeedItem {

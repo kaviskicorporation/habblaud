@@ -76,7 +76,7 @@ export class CharacterEditor {
     const allowed = canEditCharacter(a, {
       live,
       terminal: !!store.snapshot?.meta.terminal,
-      local: access().local,
+      local: access().local || !!access().kvRemotePty, // fork Kaviski: HABBLAUD_REMOTE_PTY
       replaying: store.replaying,
       mock: store.mock,
     });

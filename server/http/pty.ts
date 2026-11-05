@@ -11,6 +11,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { PtyError, type PtyManager } from '../pty/manager';
 import { HttpError, readJson, sendJson } from './app';
 import { isLoopbackHost } from './guard';
+import { isRemoteRequest } from './remote'; // fork Kaviski
+import { kvRemotePty, kvRemotePtyProblem } from '../kaviski/remote-pty'; // fork Kaviski
 import { tr } from '../../shared/i18n';
 
 /** /api/agents/:id/(stop|takeover) (ids nunca contêm '/'). */
@@ -24,6 +26,7 @@ function isLoopbackAddress(addr: string | undefined): boolean {
 
 /** Motivo da recusa, ou null. */
 export function ptyRequestProblem(req: IncomingMessage): string | null {
+  if (isRemoteRequest(req) && kvRemotePty()) return kvRemotePtyProblem(req); // fork Kaviski: HABBLAUD_REMOTE_PTY
   if (!isLoopbackAddress(req.socket.remoteAddress)) return tr('o terminal interativo só pode ser usado no próprio computador');
   const host = req.headers.host;
   if (!isLoopbackHost(host)) return tr('abra o Habblaud por http://localhost para usar o terminal interativo');
