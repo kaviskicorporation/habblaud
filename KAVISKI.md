@@ -17,6 +17,8 @@ Regra: a lógica nova mora em arquivos **só nossos** (`server/kaviski/`, `clien
 nos arquivos originais só há **ganchos de 1 linha**, marcados com `fork Kaviski`. Sem as variáveis abaixo (e sem
 `room-styles.json`), o comportamento é o original.
 
+> Plano em andamento: **pessoas no escritório** (estilo Gather, equipe + clientes, voz e vídeo) — ver `KAVISKI-HUMANOS.md`.
+
 ## Recursos
 
 | Recurso | Como liga | O que faz |
