@@ -3,6 +3,14 @@
 // Chave ausente = o texto fica em PT. `npm run i18n:check` lista os textos sem tradução e as chaves que sobraram.
 export const EN: Readonly<Record<string, string>> = {
   // fork Kaviski (KAVISKI.md): client/src/kaviski, server/kaviski
+  "Hall": "Hall",
+  "arquivo": "archive",
+  "Outros": "Others",
+  "{0} (cont.)": "{0} (cont.)",
+  "Térreo": "Ground floor",
+  "{0}º andar": "Floor {0}",
+  "andar inválido para {0}": "invalid floor for {0}",
+  "dim inválido para {0} (use true ou false)": "invalid dim for {0} (use true or false)",
   "Abrir esta sessão no TwiCC": "Open this session in TwiCC",
   "Abrir no TwiCC": "Open in TwiCC",
   "HABBLAUD_FRAME_ANCESTORS: origem ignorada ({0})": "HABBLAUD_FRAME_ANCESTORS: origin ignored ({0})",

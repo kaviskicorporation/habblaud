@@ -6,13 +6,13 @@ import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { errMsg, log } from '../log';
 import { tr } from '../../shared/i18n';
-import { kvColor, kvGroup, kvPathKey, kvRoomName, kvRoomPath, KV_PATH_MAX, KV_ROOMS_MAX, type KvRoomEntry } from '../../shared/kaviski';
+import { kvColor, kvFloorLabel, kvGroup, kvPathKey, kvRoomName, kvRoomPath, KV_PATH_MAX, KV_ROOMS_MAX, type KvRoomEntry } from '../../shared/kaviski';
 
 export type ParsedStyles = { rooms: Map<string, KvRoomEntry> } | { error: string };
 
 /**
  * Valida o corpo de POST /api/rooms/style:
- * `{"rooms": {"<caminho>": {"color": "#rrggbb", "group": "Nome", "pinned": true, "name": "Nome da sala"}}}`.
+ * `{"rooms": {"<caminho>": {"color": "#rrggbb", "group": "Nome", "pinned": true, "name": "Nome da sala", "floor": "Andar", "dim": true}}}`.
  * Cor inválida, `pinned` que não é booleano, caminho vazio/longo demais ou muitas salas -> erro; grupo e nome são limpos
  * e cortados (KV_GROUP_MAX, KV_NAME_MAX); entrada sem nenhum campo é ignorada. Chave repetida (sem diferença de
  * maiúsculas): vale a última. `path` na entrada (o arquivo gravado) devolve as maiúsculas do caminho.
@@ -27,7 +27,7 @@ export function parseRoomStyles(body: unknown): ParsedStyles {
     const key = kvPathKey(path);
     if (!key || path.length > KV_PATH_MAX) return { error: tr('caminho de sala inválido: {0}', [path.slice(0, 80)]) };
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { error: tr('estilo inválido para {0}', [path.slice(0, 80)]) };
-    const r = raw as { color?: unknown; group?: unknown; pinned?: unknown; name?: unknown; path?: unknown };
+    const r = raw as { color?: unknown; group?: unknown; pinned?: unknown; name?: unknown; path?: unknown; floor?: unknown; dim?: unknown };
     const style: KvRoomEntry = {};
     if (r.color !== undefined && r.color !== null && r.color !== '') {
       const color = kvColor(r.color);
@@ -48,7 +48,16 @@ export function parseRoomStyles(body: unknown): ParsedStyles {
       const name = kvRoomName(r.name);
       if (name) style.name = name;
     }
-    if (!style.color && !style.group && !style.pinned && !style.name) continue;
+    if (r.floor !== undefined && r.floor !== null) {
+      if (typeof r.floor !== 'string') return { error: tr('andar inválido para {0}', [path.slice(0, 80)]) };
+      const floor = kvFloorLabel(r.floor);
+      if (floor) style.floor = floor;
+    }
+    if (r.dim !== undefined && r.dim !== null) {
+      if (typeof r.dim !== 'boolean') return { error: tr('dim inválido para {0} (use true ou false)', [path.slice(0, 80)]) };
+      if (r.dim) style.dim = true;
+    }
+    if (!style.color && !style.group && !style.pinned && !style.name && !style.floor && !style.dim) continue;
     if (style.pinned) {
       // A sala fixa vazia usa o caminho como id: as maiúsculas da chave, ou as do `path` gravado (a chave do arquivo
       // já está em minúsculas).

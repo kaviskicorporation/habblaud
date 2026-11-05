@@ -56,6 +56,7 @@ services:
       HABBLAUD_TWICC_URL: ${HABBLAUD_TWICC_URL:-}
       HABBLAUD_TWICC_MESSAGES: ${HABBLAUD_TWICC_MESSAGES:-}
       HABBLAUD_BRAND: ${HABBLAUD_BRAND:-}
+      HABBLAUD_FLOOR_COLS: ${HABBLAUD_FLOOR_COLS:-}
     # O host visto de dentro do container (servidor do Habblaud World local em teste: HABBLAUD_WORLD_URL=
     # http://host.docker.internal:<porta> com HABBLAUD_WORLD_DEV=1). No Docker Desktop o nome já existe; no Linux,
     # host-gateway o aponta para o host. Inofensivo sem o World.

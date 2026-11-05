@@ -5,13 +5,14 @@
 //   RoomInfo.kaviski; as salas fixas vazias entram no snapshot (kaviski/pinned.ts);
 // - HABBLAUD_TWICC_URL: vai no snapshot em meta.kaviski.twiccUrl (o cliente monta "Abrir no TwiCC");
 // - HABBLAUD_BRAND: nome da empresa em meta.kaviski.brand (topo e título da aba) e na tela de login (kaviski/remote.ts);
+// - HABBLAUD_FLOOR_COLS: colunas de projeto por andar em meta.kaviski.floorCols (client/src/kaviski/floors.ts);
 // - HABBLAUD_TWICC_MESSAGES=1: mensagens às sessões do TwiCC pelo auxiliar do host (kaviski/twicc-messages.ts);
 // - HABBLAUD_FRAME_ANCESTORS: ver kaviski/frame.ts.
 // Sem variáveis e sem estilos gravados, o snapshot sai idêntico ao original.
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { join } from 'node:path';
 import type { OfficeSnapshot } from '../../shared/types';
-import { kvBrand, kvTwiccBase, type KvMeta, type KvSnapshotMeta } from '../../shared/kaviski';
+import { kvBrand, kvFloorCols, kvTwiccBase, type KvMeta, type KvSnapshotMeta } from '../../shared/kaviski';
 import { tr } from '../../shared/i18n';
 import { log } from '../log';
 import { HttpError, readJson, sendJson } from '../http/app';
@@ -58,6 +59,7 @@ export function createKaviski(opts: { dataDir: string | null; env?: NodeJS.Proce
   const env = opts.env ?? process.env;
   const now = opts.now ?? Date.now;
   const brand = kvBrand(env.HABBLAUD_BRAND);
+  const floorCols = kvFloorCols(env.HABBLAUD_FLOOR_COLS);
   const startedAt = now();
   const styles = new RoomStyles(opts.dataDir ? join(opts.dataDir, 'room-styles.json') : null);
   styles.load();
@@ -68,10 +70,11 @@ export function createKaviski(opts: { dataDir: string | null; env?: NodeJS.Proce
 
   const decorate = (snap: OfficeSnapshot): void => {
     if (styles.size) snap.rooms = kvDecorateRooms(snap.rooms, styles.entries(), { alias: opts.roomAlias, createdAt: startedAt });
-    if (twiccUrl || brand) {
+    if (twiccUrl || brand || floorCols) {
       const meta: KvMeta = {};
       if (twiccUrl) meta.twiccUrl = twiccUrl;
       if (brand) meta.brand = brand;
+      if (floorCols) meta.floorCols = floorCols;
       (snap.meta as KvSnapshotMeta).kaviski = meta;
     }
   };
@@ -140,7 +143,7 @@ export function createKaviski(opts: { dataDir: string | null; env?: NodeJS.Proce
         if (r.changed) decorate(r.snapshot);
         return r;
       };
-      if (styles.size || twiccUrl || brand) o.markDirty();
+      if (styles.size || twiccUrl || brand || floorCols) o.markDirty();
     },
   };
   return kv;

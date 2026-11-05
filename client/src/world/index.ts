@@ -9,6 +9,8 @@ import { Camera, overviewFrame } from './camera';
 import { createDebug, type WorldDebug } from './debug';
 import { BUILDING_H, COL_W } from './constants';
 import { RECEPTION_ID } from './layout/core';
+import { kvBuildingPx } from '../kaviski/floors-draw'; // fork Kaviski: andares
+import { kvBuildingKey } from '../kaviski/floors'; // fork Kaviski: andares
 import { inRect } from './layout/geometry';
 import { attachInput, type Hit } from './input';
 import type { AgentInfo } from '../../../shared/types';
@@ -98,7 +100,7 @@ export function createWorld(canvas: HTMLCanvasElement, store: OfficeStore, o: Cr
     updateBounds();
   };
 
-  const buildingRect = () => ({ x: 0, y: 0, w: sim.building.cols * COL_W * TILE, h: BUILDING_H * TILE });
+  const buildingRect = () => kvBuildingPx(sim.building) ?? { x: 0, y: 0, w: sim.building.cols * COL_W * TILE, h: BUILDING_H * TILE }; // fork Kaviski: andares
 
   const updateBounds = () => {
     const b = buildingRect();
@@ -292,8 +294,8 @@ export function createWorld(canvas: HTMLCanvasElement, store: OfficeStore, o: Cr
         events.length = 0;
       }
       renderer.sync(seasonalThemeFor(options.theme, new Date()));
-      if (sim.building.cols !== lastCols) {
-        lastCols = sim.building.cols;
+      if (kvBuildingKey(sim.building) !== lastCols) { // fork Kaviski: muda também com o número de andares
+        lastCols = kvBuildingKey(sim.building);
         updateBounds();
         if (!framed && sim.initialized) {
           overview(false);
