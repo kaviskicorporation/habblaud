@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { RoomState } from '../world/sim/room-state';
 import { kvDarkIfEmpty, kvRoomCount, kvRoomEmpty } from './empty-rooms';
 import { kvTitle } from './brand';
+import { kvCompanionSrc } from './companion';
 
 const fakeRoom = (id: string, pinned: boolean) => ({ info: { id, kaviski: pinned ? { pinned: true } : undefined }, lightOn: true, lightAt: 0 }) as unknown as RoomState;
 
@@ -35,5 +36,15 @@ describe('salas fixas vazias', () => {
 
   it('título sem marca fica igual', () => {
     expect(kvTitle('Habblaud')).toBe('Habblaud');
+  });
+});
+
+describe('companion do TwiCC', () => {
+  it('só carrega dentro do iframe e com URL http/https', () => {
+    expect(kvCompanionSrc('http://192.168.1.220:3500', true)).toBe('http://192.168.1.220:3500/_twicc/browser-companion.js');
+    expect(kvCompanionSrc('http://192.168.1.220:3500/', true)).toBe('http://192.168.1.220:3500/_twicc/browser-companion.js');
+    expect(kvCompanionSrc('http://192.168.1.220:3500', false)).toBeUndefined();
+    expect(kvCompanionSrc(undefined, true)).toBeUndefined();
+    expect(kvCompanionSrc('javascript:alert(1)', true)).toBeUndefined();
   });
 });

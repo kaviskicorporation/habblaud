@@ -10,6 +10,7 @@ import { migrateLegacyKeys, safeLocalStorage } from './ui/prefs';
 import { getLocale, tr } from '../../shared/i18n';
 import { kvStartRoomLink } from './kaviski/room-link'; // fork Kaviski (KAVISKI.md)
 import { kvStartBrand } from './kaviski/brand'; // fork Kaviski (KAVISKI.md)
+import { kvStartCompanion } from './kaviski/companion'; // fork Kaviski (KAVISKI.md)
 
 export function start(): void {
   // Antes de tudo: o mundo (carteiras) e a UI (preferências) leem o localStorage ao serem criados.
@@ -31,6 +32,7 @@ export function start(): void {
   createUI(uiRoot, store, world, city);
   kvStartRoomLink(location.search, store, world); // fork Kaviski: ?sala=<pasta>
   kvStartBrand(store); // fork Kaviski: HABBLAUD_BRAND no topo
+  kvStartCompanion(store); // fork Kaviski: companion do painel Browser do TwiCC
   // O que esta página pode fazer (porta local ou remota com login) chega antes do primeiro snapshot (ou desiste em
   // poucos segundos e fica a regra de antes).
   if (store.mock) store.connect();
