@@ -24,8 +24,6 @@ function publicStyle(e: KvRoomEntry): KvRoomStyle {
   if (e.color) s.color = e.color;
   if (e.group) s.group = e.group;
   if (e.pinned) s.pinned = true;
-  if (e.floor) s.floor = e.floor;
-  if (e.dim) s.dim = true;
   return s;
 }
 
@@ -42,7 +40,7 @@ export function kvDecorateRooms(rooms: readonly RoomInfo[], entries: readonly [s
     const e = byKey.get(kvPathKey(room.path)) ?? byKey.get(kvPathKey(room.id));
     if (!e) continue;
     const style = publicStyle(e);
-    if (style.color || style.group || style.pinned || style.floor || style.dim) room.kaviski = style;
+    if (style.color || style.group || style.pinned) room.kaviski = style;
     if (e.name && !opts.alias?.(room.path)) room.name = e.name;
   }
 
@@ -70,28 +68,23 @@ export function kvDecorateRooms(rooms: readonly RoomInfo[], entries: readonly [s
     }
   }
 
-  // Ordem: as do mapa agrupadas pelo andar (`floor`, ordem de primeira aparição) e, dentro dele, pelo grupo (idem),
-  // depois as outras pela ordem de chegada. Sem `floor` no mapa, todas ficam no mesmo "andar" (a ordem de antes).
+  // Ordem: as do mapa agrupadas pelo grupo (ordem de primeira aparição), depois as outras pela ordem de chegada.
   const index = new Map(entries.map(([k], i) => [k, i]));
-  const floorRank = new Map<string, number>();
   const groupRank = new Map<string, number>();
   entries.forEach(([, e], i) => {
-    const f = (e.floor ?? '').toLowerCase();
-    if (!floorRank.has(f)) floorRank.set(f, i);
-    const g = `${f}\u0000${(e.group ?? '').toLowerCase()}`;
+    const g = (e.group ?? '').toLowerCase();
     if (!groupRank.has(g)) groupRank.set(g, i);
   });
-  const rank = (r: KvRoomInfo): [number, number, number, number] => {
+  const rank = (r: KvRoomInfo): [number, number, number] => {
     const k = kvPathKey(r.path);
     const i = index.get(k) ?? index.get(kvPathKey(r.id));
-    if (i === undefined) return [1, 0, 0, r.slot];
+    if (i === undefined) return [1, 0, r.slot];
     const e = entries[i][1];
-    const f = (e.floor ?? '').toLowerCase();
-    return [0, floorRank.get(f) ?? i, groupRank.get(`${f}\u0000${(e.group ?? '').toLowerCase()}`) ?? i, i];
+    return [0, groupRank.get((e.group ?? '').toLowerCase()) ?? i, i];
   };
   const all = [...out, ...empty]
     .map((r) => ({ r, k: rank(r) }))
-    .sort((a, b) => a.k[0] - b.k[0] || a.k[1] - b.k[1] || a.k[2] - b.k[2] || a.k[3] - b.k[3])
+    .sort((a, b) => a.k[0] - b.k[0] || a.k[1] - b.k[1] || a.k[2] - b.k[2])
     .map((x) => x.r);
   all.forEach((r, i) => (r.slot = i));
   return all;

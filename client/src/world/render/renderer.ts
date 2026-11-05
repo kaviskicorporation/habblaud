@@ -21,9 +21,6 @@ import { Lighting } from './lighting';
 import { Particles } from './particles';
 import { carSprite, propSprite, shadowSprite } from './props';
 import { countBadge, fallbackIcon } from './shell-sprites';
-import { kvBaseStale, kvElevatorVis } from '../../kaviski/floors-draw'; // fork Kaviski: andares
-import { kvLayoutExterior, kvUpperShells } from '../../kaviski/floors-world'; // fork Kaviski: andares
-import { kvHeightOf } from '../../kaviski/floors'; // fork Kaviski: andares
 import { decorateElevator, drawSeasonalLights, drawSeasonalWindow, seasonalCostume, seasonalFurniture } from './seasonal';
 import { buildAreaVis, furnitureSprites, opaqueBounds, paintShell, toWallVis, WALL_MARGIN, wallItemOrigin, wallSprites, type AreaVis, type FurnVis, type WallVis } from './scene';
 
@@ -127,7 +124,7 @@ export class Renderer {
     private readonly camera: Camera,
   ) {
     this.ctx = canvas.getContext('2d', { alpha: false })!;
-    this.exterior = kvLayoutExterior(sim.building.cols, sim.building) ?? layoutExterior(sim.building.cols); // fork Kaviski: andares
+    this.exterior = layoutExterior(sim.building.cols);
     this.lighting = new Lighting(art, sim);
   }
 
@@ -144,7 +141,7 @@ export class Renderer {
     const themeChanged = theme !== this.theme;
     this.theme = theme;
     const assetsChanged = this.builtAssetsVersion !== this.assetsVersion || themeChanged;
-    if (kvBaseStale(this, sim.building) || this.baseCols !== sim.building.cols || assetsChanged) this.buildBase(); // fork Kaviski: andares
+    if (this.baseCols !== sim.building.cols || assetsChanged) this.buildBase();
     if (this.layoutVersion !== sim.layoutVersion || assetsChanged) {
       this.layoutVersion = sim.layoutVersion;
       const want = new Set<string>();
@@ -158,7 +155,7 @@ export class Renderer {
         want.add(room.id);
       }
       for (const id of [...this.areas.keys()]) if (!want.has(id)) this.areas.delete(id);
-      this.elevatorVis = kvElevatorVis(this.areas, sim) ?? this.areas.get('core:recepcao')?.wallItems.filter((w) => w.kind === 'elevator') ?? []; // fork Kaviski: andares
+      this.elevatorVis = this.areas.get('core:recepcao')?.wallItems.filter((w) => w.kind === 'elevator') ?? [];
     }
     // salas: (re)constrói quando surgem, mudam de layout ou de versão (nome/tema)
     this.occupiedSlots.clear();
@@ -178,7 +175,7 @@ export class Renderer {
   private buildBase(): void {
     const cols = this.sim.building.cols;
     this.baseCols = cols;
-    this.exterior = kvLayoutExterior(cols, this.sim.building) ?? layoutExterior(cols); // fork Kaviski: andares
+    this.exterior = layoutExterior(cols);
     const b = this.exterior.bounds;
     this.baseX = b.x * TILE;
     this.baseY = b.y * TILE;
@@ -202,12 +199,6 @@ export class Renderer {
         paintShell(this.art, ctx, sh.floors, sh.walls);
         for (const w of sh.windows) this.shellWindows.push(toWallVis(w, `shell:${sh.slot}`));
       }
-    }
-    // fork Kaviski: jardins dos slots vazios dos outros andares
-    for (const sh of kvUpperShells(this.sim.building)) {
-      this.shells.push(sh);
-      paintShell(this.art, ctx, sh.floors, sh.walls);
-      for (const w of sh.windows) this.shellWindows.push(toWallVis(w, `shell:${sh.slot}`));
     }
     this.desaturate(ctx);
     // fundo além da área desenhada: a própria grama (amostra espelhada 2x2, sem emendas), já no
@@ -299,8 +290,7 @@ export class Renderer {
           const wx = b.x + tx + 0.5;
           const wy = b.y + ty + 0.5;
           const fx = wx < 0 ? smooth(6, -b.x, -wx) : wx > bwT ? smooth(6, b.x + b.w - bwT, wx - bwT) : 0;
-          const BH = kvHeightOf(this.sim.building); // fork Kaviski: altura com andares (sem andares = BUILDING_H)
-          const fy = wy < 0 ? smooth(5, -b.y, -wy) : wy > BH ? smooth(12, b.y + b.h - BH, wy - BH) : 0;
+          const fy = wy < 0 ? smooth(5, -b.y, -wy) : wy > BUILDING_H ? smooth(12, b.y + b.h - BUILDING_H, wy - BUILDING_H) : 0;
           const i = (ty * b.w + tx) * 4;
           img.data[i] = 18;
           img.data[i + 1] = 40;

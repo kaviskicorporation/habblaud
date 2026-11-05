@@ -30,7 +30,6 @@ import {
 } from './behavior';
 import { Character, dirOf, facing } from './character';
 import { Elevator } from './elevator';
-import { kvElevatorPool, kvFloorCount, kvFloorHop, kvKeepSameFloor, kvNoCompact, kvPlanFloors, kvRoomSlot, kvStepLift, kvSyncElevators } from '../../kaviski/floors-sim'; // fork Kaviski: andares
 import { RoomFxState } from './github';
 import { RoomState } from './room-state';
 import { countShells, latestShellDone, shellLabel, shellStage, shellWaitSince, spinDir, spinPhase, yawnPhase } from './shell';
@@ -168,7 +167,6 @@ export class Sim {
       snap = { ...snap, agents: snap.agents.map((a) => (patches.has(a.id) ? { ...a, ...patches.get(a.id) } : a)) };
     }
     this.lastSnapshot = input;
-    kvPlanFloors(this, snap); // fork Kaviski: andares
     this.now = now;
     const first = !this.initialized;
     this.initialized = true;
@@ -261,7 +259,7 @@ export class Sim {
       theme = FALLBACK_THEME;
     }
     // a primeira vaga livre do prédio (o slot do servidor só dá a ordem de chegada)
-    const slot = kvRoomSlot(this, r) ?? this.freeSlot(); // fork Kaviski: andar pelo rótulo
+    const slot = this.freeSlot();
     const layout = layoutProjectRoom({ id: r.id, slot, seed: r.seed }, theme);
     const rs = new RoomState(r, theme, layout, first ? 'ready' : 'building', now, first, slot);
     this.rooms.set(r.id, rs);
@@ -512,9 +510,8 @@ export class Sim {
   }
 
   private pickElevator(ch: Character): Elevator {
-    const pool = kvElevatorPool(this, ch); // fork Kaviski: elevador do andar
-    let best = pool[0];
-    for (const e of pool) if (e.load < best.load || (e.load === best.load && ch.rng() < 0.5)) best = e;
+    let best = this.elevators[0];
+    for (const e of this.elevators) if (e.load < best.load || (e.load === best.load && ch.rng() < 0.5)) best = e;
     return best;
   }
 
@@ -537,13 +534,11 @@ export class Sim {
       cols,
       present.map((r) => r.layout),
       this.layoutVersion + 1,
-      kvFloorCount(this), // fork Kaviski: andares
     );
     this.building = building;
     this.layoutVersion++;
     this.finder.setGrid(building.grid);
     const lost = this.spots.setSpots(building.spots);
-    kvSyncElevators(this.elevators, this.spots.ofKind('elevator')); // fork Kaviski: elevadores dos andares
     for (const { owner } of lost) {
       const ch = this.chars.get(owner);
       if (!ch) continue;
@@ -654,7 +649,6 @@ export class Sim {
    * vez, só sala pronta e com a sessão aberta; o prédio encolhe quando o endereço antigo é desmontado.
    */
   private compact(now: number): void {
-    if (kvNoCompact()) return; // fork Kaviski: com andares os buracos são de propósito
     const free = this.freeSlot();
     let far: RoomState | null = null;
     for (const r of this.rooms.values()) {
@@ -896,8 +890,6 @@ export class Sim {
       case 'remove':
         ch.gone = true;
         return true;
-      case 'kvLift':
-        return kvStepLift(this, ch, s, dt, now); // fork Kaviski: elevador entre andares
     }
   }
 
@@ -919,7 +911,6 @@ export class Sim {
   }
 
   private stepGo(ch: Character, s: Extract<Step, { t: 'go' }>, dt: number): boolean {
-    kvFloorHop(this, ch, s); // fork Kaviski: destino em outro andar vai pelo elevador
     if (!s.path) {
       s.path = [];
       s.i = 0;
@@ -1483,7 +1474,6 @@ export class Sim {
   private randomFree(kinds: SpotKind[], ch: Character): SpotDef | null {
     const cands: SpotDef[] = [];
     for (const k of kinds) for (const s of this.spots.ofKind(k)) if (this.spots.isFree(s.id, ch.id)) cands.push(s);
-    kvKeepSameFloor(cands, ch.ty); // fork Kaviski: prefere o mesmo andar
     if (!cands.length) return null;
     return cands[Math.floor(ch.rng() * cands.length)];
   }

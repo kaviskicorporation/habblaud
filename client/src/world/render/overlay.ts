@@ -16,8 +16,6 @@ import { drawFxBanner } from './github-fx';
 import type { HeadInfo, Renderer } from './renderer';
 import { tr } from '../../../../shared/i18n';
 import { kvAccent, kvDrawPillBadge, kvDrawSignStyle } from '../../kaviski/room-style'; // fork Kaviski (KAVISKI.md)
-import { kvCoreName, kvDrawDimRooms, kvDrawFloorSigns, kvHallText } from '../../kaviski/floors-draw'; // fork Kaviski: andares
-import { kvBubbleArea } from '../../kaviski/floors'; // fork Kaviski: andares
 
 // A Pixelify Sans tem o "C" maiúsculo quase fechado (lê-se "Oopa" em vez de "Copa") em qualquer
 // peso/tamanho usado no canvas; os textos do mundo usam a fonte do sistema, sempre legível.
@@ -286,7 +284,6 @@ export class Overlay {
     const vw = camera.viewW;
     const vh = camera.viewH;
 
-    kvDrawDimRooms(ctx, this.sim, now, (x) => this.sx(x), (y) => this.sy(y), vw, vh); // fork Kaviski: salas paradas
     // ---- seleção de sala
     if (sel.room) {
       const room = this.sim.rooms.get(sel.room);
@@ -308,7 +305,6 @@ export class Overlay {
     }
 
     // placas e pílulas primeiro: são fixas e grandes; balões e etiquetas desviam delas
-    kvDrawFloorSigns(ctx, this.sim, zoom, (x) => this.sx(x), (y) => this.sy(y), vw, vh, (x, y, w, h) => this.place(x, y, w, h)); // fork Kaviski: placas dos andares
     this.drawRoomTexts(now, zoom);
     this.drawFxBanners(now, zoom);
 
@@ -402,7 +398,7 @@ export class Overlay {
       if (it.type !== 'bubble' || (it.tone !== 'info' && it.tone !== 'shell' && it.tone !== 'say') || it.prio >= 75) continue;
       // por área FÍSICA (onde o personagem está agora), que é o que polui a tela
       const ch = it.ch;
-      rin.push({ room: kvBubbleArea(ch.tx, ch.ty, COL_W, SOUTH_Y), prio: it.prio, changedAt: it.changedAt }); // fork Kaviski: + andar (sem andares, a chave original)
+      rin.push({ room: `${Math.floor(ch.tx / COL_W)}:${ch.ty < CORRIDOR_Y ? 'n' : ch.ty < SOUTH_Y ? 'c' : 's'}`, prio: it.prio, changedAt: it.changedAt });
       idx.push(it);
     }
     if (!idx.length) return;
@@ -424,7 +420,7 @@ export class Overlay {
       const anim = room ? buildAnim(room.phase, room.progress(now)) : null;
       // texto da placa quando ela fica grande o bastante para ler; senão, o nome flutuante
       const rect = this.renderer.signRect(vis);
-      const text = room ? room.info.name : vis.id === 'core:recepcao' ? 'Habblaud' : kvHallText(vis.id, this.sim); // fork Kaviski: hall do andar
+      const text = room ? room.info.name : vis.id === 'core:recepcao' ? 'Habblaud' : null;
       const readable = !!rect && rect.h * zoom >= SIGN_MIN_PX;
       if (readable && rect && text && (!anim || anim.sign >= 1)) {
         const ax = this.sx(rect.x);
@@ -446,8 +442,8 @@ export class Overlay {
         if (!room.present || room.ghost || (anim && anim.walls < 0.6)) continue;
         this.drawRoomPill(room.info.name, cx, cy, colW - 8, room.accounts, this.countIn(room.id), kvAccent(room.info, room.theme.accent), room.lightOn);
         kvDrawPillBadge(this.ctx, room.info, cx, cy, colW - 8); // fork Kaviski
-      } else if (CORE_NAMES[vis.id] || kvCoreName(vis.id, CORE_NAMES)) {
-        this.drawCorePill(CORE_NAMES[vis.id] ?? kvCoreName(vis.id, CORE_NAMES)!, cx, cy, colW - 8); // fork Kaviski: núcleo dos andares
+      } else if (CORE_NAMES[vis.id]) {
+        this.drawCorePill(CORE_NAMES[vis.id], cx, cy, colW - 8);
       }
     }
   }

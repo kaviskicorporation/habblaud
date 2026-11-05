@@ -7,8 +7,6 @@ import { layoutCafe, layoutLounge, layoutReception, layoutRestroom } from './cor
 import { layoutCorridor } from './corridor';
 import { buildingRect } from './geometry';
 import type { AreaLayout, SpotDef, TileRect } from './types';
-import { kvBuildingH } from '../../kaviski/floors'; // fork Kaviski: andares
-import { kvUpperFloorAreas } from '../../kaviski/floors-world'; // fork Kaviski: andares
 
 export interface BuildingLayout {
   cols: number;
@@ -18,8 +16,6 @@ export interface BuildingLayout {
   rooms: AreaLayout[];
   grid: WalkGrid;
   spots: SpotDef[];
-  /** Fork Kaviski: número de andares (HABBLAUD_FLOOR_COLS); ausente = 1 (o original). */
-  kvFloors?: number;
 }
 
 let coreCache: AreaLayout[] | null = null;
@@ -44,18 +40,18 @@ export function paintArea(grid: WalkGrid, area: AreaLayout): void {
   }
 }
 
-export function buildWalkGrid(cols: number, areas: readonly AreaLayout[], version = 0, floors = 1): WalkGrid {
-  const grid = new WalkGrid(cols * COL_W, floors > 1 ? kvBuildingH(floors) : BUILDING_H, version); // fork Kaviski: andares
+export function buildWalkGrid(cols: number, areas: readonly AreaLayout[], version = 0): WalkGrid {
+  const grid = new WalkGrid(cols * COL_W, BUILDING_H, version);
   for (const a of areas) paintArea(grid, a);
   return grid;
 }
 
-export function assembleBuilding(cols: number, rooms: readonly AreaLayout[], version = 0, floors = 1): BuildingLayout {
-  const core = [...coreAreas(), ...kvUpperFloorAreas(cols, floors)]; // fork Kaviski: núcleo e corredor dos outros andares
+export function assembleBuilding(cols: number, rooms: readonly AreaLayout[], version = 0): BuildingLayout {
+  const core = coreAreas();
   const corridor = layoutCorridor(cols);
   const all = [...core, corridor, ...rooms];
-  const grid = buildWalkGrid(cols, all, version, floors); // fork Kaviski: andares
+  const grid = buildWalkGrid(cols, all, version);
   const spots: SpotDef[] = [];
   for (const a of all) spots.push(...a.spots);
-  return { cols, rect: buildingRect(cols, floors), core, corridor, rooms: [...rooms], grid, spots, ...(floors > 1 ? { kvFloors: floors } : {}) }; // fork Kaviski: andares
+  return { cols, rect: buildingRect(cols), core, corridor, rooms: [...rooms], grid, spots };
 }

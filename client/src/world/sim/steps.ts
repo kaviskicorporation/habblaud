@@ -26,6 +26,4 @@ export type Step =
   /** Efeito colateral imediato. */
   | { t: 'do'; fn: () => void }
   /** Remove o personagem do mundo. */
-  | { t: 'remove' }
-  /** Fork Kaviski: viagem de elevador entre andares (kaviski/floors-sim.ts). */
-  | import('../../kaviski/floors-sim').KvLiftStep;
+  | { t: 'remove' };

@@ -15,10 +15,6 @@ export interface KvRoomStyle {
   group?: string;
   /** Sala fixa: existe sempre no escritório, mesmo sem ninguém. */
   pinned?: boolean;
-  /** Rótulo do andar (HABBLAUD_FLOOR_COLS): cada rótulo, na ordem do mapa, começa um andar novo. */
-  floor?: string;
-  /** Projeto parado: sala com visual "arquivado" enquanto está vazia e apagada. */
-  dim?: boolean;
 }
 
 /** Entrada do mapa de estilos guardada no servidor (o que vai ao snapshot é só o KvRoomStyle). */
@@ -35,8 +31,6 @@ export interface KvMeta {
   twiccUrl?: string;
   /** Nome da empresa (HABBLAUD_BRAND): no topo, no título da aba e na tela de login. */
   brand?: string;
-  /** Colunas de projeto por andar (HABBLAUD_FLOOR_COLS): o prédio cresce em andares. Ausente = faixa única (original). */
-  floorCols?: number;
 }
 
 /** RoomInfo com o campo do fork (opcional: ausente = sem estilo). */
@@ -45,10 +39,6 @@ export type KvRoomInfo = RoomInfo & { kaviski?: KvRoomStyle };
 export type KvSnapshotMeta = OfficeSnapshot['meta'] & { kaviski?: KvMeta };
 
 export const KV_GROUP_MAX = 40;
-/** Rótulo do andar (`floor` no mapa de estilos). */
-export const KV_FLOOR_MAX = 40;
-/** Teto de HABBLAUD_FLOOR_COLS. */
-export const KV_FLOOR_COLS_MAX = 40;
 /** Nome de sala (o mesmo limite de model/room-aliases.ts ROOM_NAME_MAX). */
 export const KV_NAME_MAX = 40;
 /** Nome da empresa (HABBLAUD_BRAND). */
@@ -70,20 +60,6 @@ export function kvGroup(v: unknown): string | undefined {
   if (typeof v !== 'string') return undefined;
   const s = v.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
   return s ? [...s].slice(0, KV_GROUP_MAX).join('').trim() : undefined;
-}
-
-/** Rótulo do andar limpo (mesma regra do grupo, até KV_FLOOR_MAX). Vazio -> undefined. */
-export function kvFloorLabel(v: unknown): string | undefined {
-  if (typeof v !== 'string') return undefined;
-  const s = v.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
-  return s ? [...s].slice(0, KV_FLOOR_MAX).join('').trim() : undefined;
-}
-
-/** HABBLAUD_FLOOR_COLS: inteiro 1..KV_FLOOR_COLS_MAX; vazio, 0 ou inválido -> undefined (sem andares). */
-export function kvFloorCols(v: unknown): number | undefined {
-  const n = typeof v === 'number' ? v : typeof v === 'string' && /^\s*\d+\s*$/.test(v) ? Number(v) : NaN;
-  if (!Number.isInteger(n) || n < 1) return undefined;
-  return Math.min(KV_FLOOR_COLS_MAX, n);
 }
 
 /** Nome de sala limpo (mesma regra do grupo, até KV_NAME_MAX). Vazio -> undefined. */
