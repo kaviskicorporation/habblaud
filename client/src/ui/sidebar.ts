@@ -8,6 +8,7 @@ import { h, iconButton, KeyedList, setAttr, setHidden, setStyleVar, setText, set
 import { plural, shortPath } from './format';
 import { ICONS } from './icons';
 import { groupRooms, type AgentNode, type RoomGroup } from './model';
+import { kvFloorHeads, kvSortByFloor } from '../kaviski/floors-list'; // fork Kaviski: andares
 import { officeIsEmpty } from './overlays';
 import { createAgentRow, updateAgentRow } from './rows';
 import { createAccountChip, createProgress, updateAccountChip, updateProgress } from './widgets';
@@ -150,9 +151,10 @@ export class Sidebar implements UiComponent {
     setHidden(this.filters, accounts.length <= 1);
 
     // Ordem das salas escolhida pelo usuário (arrastando o cabeçalho da sala).
-    const groups = orderRooms(groupRooms(snap, { query: this.query, hiddenAccounts: hidden }), (g) => g.room.id);
+    const groups = kvSortByFloor(orderRooms(groupRooms(snap, { query: this.query, hiddenAccounts: hidden }), (g) => g.room.id), snap); // fork Kaviski: ordem do prédio
     this.shownRooms = groups.map((g) => g.room.id);
     this.rooms.sync(groups);
+    kvFloorHeads(this.rooms, groups, snap); // fork Kaviski: cabeçalhos dos andares
 
     const filtering = this.query.trim().length > 0 || hidden.size > 0;
     const total = snap?.agents.length ?? 0;

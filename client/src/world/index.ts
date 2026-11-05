@@ -9,7 +9,7 @@ import { Camera, overviewFrame } from './camera';
 import { createDebug, type WorldDebug } from './debug';
 import { BUILDING_H, COL_W } from './constants';
 import { RECEPTION_ID } from './layout/core';
-import { kvBuildingPx } from '../kaviski/floors-draw'; // fork Kaviski: andares
+import { kvBuildingPx, kvStartFloorDirectory } from '../kaviski/floors-draw'; // fork Kaviski: andares
 import { kvBuildingKey } from '../kaviski/floors'; // fork Kaviski: andares
 import { inRect } from './layout/geometry';
 import { attachInput, type Hit } from './input';
@@ -245,6 +245,7 @@ export function createWorld(canvas: HTMLCanvasElement, store: OfficeStore, o: Cr
     active: () => !suspended,
     keys: () => !visitMode,
   });
+  kvStartFloorDirectory(canvas, camera, () => sim); // fork Kaviski: clique no diretório dos andares
 
   // ------------------------------------------------------------------ dados
 

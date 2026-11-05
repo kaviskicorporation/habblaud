@@ -3,7 +3,15 @@
 // Chave ausente = o texto fica em PT. `npm run i18n:check` lista os textos sem tradução e as chaves que sobraram.
 export const ES: Readonly<Record<string, string>> = {
   // fork Kaviski (KAVISKI.md): client/src/kaviski, server/kaviski
-  "Hall": "Vestíbulo",
+  "{0} à toa": "{0} libres",
+  "{0} de {1} salas com alguém": "{0} de {1} salas ocupadas",
+  "{0} precisam de você": "{0} te necesitan",
+  "{0} salas, ninguém": "{0} salas, nadie",
+  "{0} trabalhando": "{0} trabajando",
+  "1 precisa de você": "1 te necesita",
+  "1 sala, ninguém": "1 sala, nadie",
+  "Enquadrar o andar no prédio": "Encuadrar este piso en el edificio",
+  "T": "PB",
   "arquivo": "archivo",
   "Outros": "Otros",
   "{0} (cont.)": "{0} (cont.)",

@@ -4,7 +4,7 @@ import { mulberry32 } from '../../../../shared/hash';
 import { BUILDING_H, COL_W, CORE_COLS, CORRIDOR_Y, EXT_EAST, EXT_NORTH, EXT_SOUTH, EXT_WEST, SOUTH_Y, TILE } from '../constants';
 import { cellRect, slotAt, slotColumn, slotSide } from './geometry';
 import type { ExteriorProp, FloorPatch, TileRect, WallItemPlacement, WallSegment } from './types';
-import { kvFloorY, kvShiftShell, kvSlotFloor, kvSlotLocal } from '../../kaviski/floors'; // fork Kaviski: andares
+import { kvSlotShell } from '../../kaviski/floors'; // fork Kaviski: andares
 
 export const EXTERIOR_WALL: WallStyle = { base: '#cfc8bd', trim: '#8a8174', pattern: 'brick', exterior: true };
 
@@ -111,7 +111,8 @@ export function layoutExterior(cols: number): ExteriorLayout {
 
 /** Parede externa + jardim de um slot vazio: deck de madeira com mesas e guarda-sóis, canteiros e caminho. */
 export function slotShell(slot: number, lastColumn: boolean): SlotShell {
-  if (kvSlotFloor(slot) > 0) return kvShiftShell(slotShell(kvSlotLocal(slot), lastColumn), kvFloorY(kvSlotFloor(slot)), slot); // fork Kaviski
+  const kv = kvSlotShell(slot, lastColumn, slotShell); // fork Kaviski: andares (o desenho do original, deslocado)
+  if (kv) return kv; // fork Kaviski
   const col = slotColumn(slot);
   const side = slotSide(slot);
   const rect = cellRect(col, side);

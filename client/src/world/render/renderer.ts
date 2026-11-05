@@ -22,8 +22,8 @@ import { Particles } from './particles';
 import { carSprite, propSprite, shadowSprite } from './props';
 import { countBadge, fallbackIcon } from './shell-sprites';
 import { kvBaseStale, kvElevatorVis } from '../../kaviski/floors-draw'; // fork Kaviski: andares
-import { kvLayoutExterior, kvUpperShells } from '../../kaviski/floors-world'; // fork Kaviski: andares
-import { kvHeightOf } from '../../kaviski/floors'; // fork Kaviski: andares
+import { kvLayoutExterior, kvPaintBase, kvUpperShells } from '../../kaviski/floors-world'; // fork Kaviski: andares
+import { kvGroundY, kvHeightOf } from '../../kaviski/floors'; // fork Kaviski: andares
 import { decorateElevator, drawSeasonalLights, drawSeasonalWindow, seasonalCostume, seasonalFurniture } from './seasonal';
 import { buildAreaVis, furnitureSprites, opaqueBounds, paintShell, toWallVis, WALL_MARGIN, wallItemOrigin, wallSprites, type AreaVis, type FurnVis, type WallVis } from './scene';
 
@@ -210,6 +210,7 @@ export class Renderer {
       for (const w of sh.windows) this.shellWindows.push(toWallVis(w, `shell:${sh.slot}`));
     }
     this.desaturate(ctx);
+    kvPaintBase(ctx, this.sim.building); // fork Kaviski: lajes, fachada, telhado e escadas do prédio em andares
     // fundo além da área desenhada: a própria grama (amostra espelhada 2x2, sem emendas), já no
     // tom da borda da vinheta
     const s = 4 * TILE;
@@ -316,7 +317,7 @@ export class Renderer {
       // sem vinheta
     }
     // capacho diante da fachada de vidro da entrada (oeste do corredor)
-    const my = (CORRIDOR_Y + 1.25) * TILE;
+    const my = (kvGroundY() + CORRIDOR_Y + 1.25) * TILE; // fork Kaviski: térreo embaixo (sem andares = 0)
     ctx.fillStyle = '#3f4652';
     ctx.fillRect(-1.75 * TILE, my, 1.5 * TILE, 2.5 * TILE);
     ctx.fillStyle = '#596170';

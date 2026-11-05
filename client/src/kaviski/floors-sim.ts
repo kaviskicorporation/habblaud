@@ -15,18 +15,29 @@ import type { KvRoomInfo, KvSnapshotMeta } from '../../../shared/kaviski';
 import { tr } from '../../../shared/i18n';
 import { FOOT_DX, FOOT_DY, TILE } from '../world/constants';
 import type { SpotDef } from '../world/layout/types';
+import { layoutProjectRoom } from '../world/layout/room';
 import type { Character } from '../world/sim/character';
 import { Elevator } from '../world/sim/elevator';
 import type { Sim } from '../world/sim/sim';
 import type { Step } from '../world/sim/steps';
-import { kvFloorOfTile, kvFloorOrdinal, kvFloorsFor, kvFloorsOn, kvRoomsPerFloor, kvSetFloorCols, kvSlotFloor } from './floors';
+import {
+  FLOOR_PITCH,
+  kvEnsureFloors,
+  kvFloorCapacity,
+  kvFloorCount as kvGlobalFloors,
+  kvFloorFirstSlot,
+  kvFloorOfTile,
+  kvFloorOrdinal,
+  kvFloorPlan,
+  kvFloorsFor,
+  kvFloorsOn,
+  kvGeomVersion,
+  kvSetFloorCols,
+  kvSlotFloor,
+  type KvFloorEntry,
+} from './floors';
 
-export interface KvFloorEntry {
-  /** Rótulo do mapa ('' = sala sem rótulo). */
-  label: string;
-  /** Continuação de um rótulo que não coube no andar anterior. */
-  cont: boolean;
-}
+export type { KvFloorEntry };
 
 interface FloorTable {
   floors: KvFloorEntry[];
@@ -52,39 +63,44 @@ export function kvFloorEntries(sim: object): KvFloorEntry[] {
 
 /**
  * Início de cada snapshot: liga os andares (meta.kaviski.floorCols) e acrescenta à tabela os andares que faltam para
- * as salas do snapshot, na ordem dos rótulos (os sem rótulo por último).
+ * as salas do snapshot (na carga, o plano inteiro de kvFloorPlan; depois, só no fim). Garante o número global de
+ * andares e reposiciona a simulação se ele mudou.
  */
-export function kvPlanFloors(sim: object, snap: Pick<OfficeSnapshot, 'rooms' | 'meta'>): void {
+export function kvPlanFloors(sim: Sim, snap: Pick<OfficeSnapshot, 'rooms' | 'meta'>, now = 0): void {
   kvSetFloorCols((snap.meta as KvSnapshotMeta | undefined)?.kaviski?.floorCols);
   if (!kvFloorsOn()) return;
   const t = table(sim);
-  const per = kvRoomsPerFloor();
-  const order: string[] = [];
+  if (!t.floors.length) t.floors = kvFloorPlan(snap.rooms, kvRoomFloorLabel).floors;
   const count = new Map<string, number>();
-  for (const r of [...snap.rooms].sort((a, b) => a.slot - b.slot)) {
-    const l = kvRoomFloorLabel(r);
-    if (!count.has(l)) order.push(l);
-    count.set(l, (count.get(l) ?? 0) + 1);
+  for (const r of snap.rooms) count.set(kvRoomFloorLabel(r), (count.get(kvRoomFloorLabel(r)) ?? 0) + 1);
+  const order = [...[...count.keys()].filter((l) => l), ...[...count.keys()].filter((l) => !l)];
+  for (const l of order) {
+    let cap = 0;
+    let have = 0;
+    t.floors.forEach((e, f) => {
+      if (e.label !== l) return;
+      have++;
+      cap += kvFloorCapacity(f);
+    });
+    while (cap < (count.get(l) ?? 0)) {
+      t.floors.push({ label: l, cont: have++ > 0 });
+      cap += kvFloorCapacity(t.floors.length - 1);
+    }
   }
-  // sem rótulo por último ("Outros" no topo)
-  const labels = [...order.filter((l) => l), ...order.filter((l) => !l)];
-  for (const l of labels) {
-    const need = Math.ceil((count.get(l) ?? 0) / per);
-    let have = t.floors.filter((e) => e.label === l).length;
-    while (have < need) t.floors.push({ label: l, cont: have++ > 0 });
-  }
+  kvEnsureFloors(t.floors.length);
+  kvSyncGeometry(sim, now);
 }
 
 /** Vaga (slot) de uma sala nova com andares: primeira célula livre de um andar com o rótulo dela. null = sem andares. */
-export function kvRoomSlot(sim: { rooms: Map<string, { slot: number; phase: string }> }, r: RoomInfo): number | null {
+export function kvRoomSlot(sim: Sim, r: RoomInfo): number | null {
   if (!kvFloorsOn()) return null;
   const t = table(sim);
-  const per = kvRoomsPerFloor();
   const used = new Set<number>();
   for (const rs of sim.rooms.values()) if (rs.phase !== 'gone') used.add(rs.slot);
   const label = kvRoomFloorLabel(r);
   const pick = (f: number): number | null => {
-    for (let i = 0; i < per; i++) if (!used.has(f * per + i)) return f * per + i;
+    const first = kvFloorFirstSlot(f);
+    for (let i = 0; i < kvFloorCapacity(f); i++) if (!used.has(first + i)) return first + i;
     return null;
   };
   let seen = false;
@@ -95,24 +111,31 @@ export function kvRoomSlot(sim: { rooms: Map<string, { slot: number; phase: stri
     if (s !== null) return s;
   }
   t.floors.push({ label, cont: seen });
-  return pick(t.floors.length - 1) ?? (t.floors.length - 1) * per;
+  // andar novo: o prédio cresce (tudo desce) antes de a sala nova ser montada
+  if (kvEnsureFloors(t.floors.length)) kvSyncGeometry(sim, sim.now);
+  return pick(t.floors.length - 1) ?? kvFloorFirstSlot(t.floors.length - 1);
 }
 
-/** Andares do prédio: os da tabela e os das salas presentes (mínimo 1). */
+/** Andares do prédio: o número global (que cobre a tabela e as salas). */
 export function kvFloorCount(sim: { rooms: Map<string, { slot: number; present: boolean }> }): number {
   if (!kvFloorsOn()) return 1;
   const slots = [...sim.rooms.values()].filter((r) => r.present).map((r) => r.slot);
-  return Math.max(table(sim).floors.length, kvFloorsFor(slots), 1);
+  kvEnsureFloors(Math.max(table(sim).floors.length, kvFloorsFor(slots)));
+  return kvGlobalFloors();
 }
 
-/** Texto da placa do andar f: "Térreo · Kaviski · Interno", "3º andar · Arquivo (cont.)", "2º andar · Outros". */
-export function kvFloorTitle(sim: object, f: number): { ordinal: string; label: string } {
-  const t = table(sim);
-  const e = t.floors[f];
-  const anyLabel = t.floors.some((x) => x.label);
+/** Rótulo (já com "Outros"/"(cont.)") do andar f desta simulação. */
+export function kvFloorLabelText(floors: readonly KvFloorEntry[], f: number): string {
+  const e = floors[f];
+  const anyLabel = floors.some((x) => x.label);
   let label = e ? e.label || (anyLabel ? tr('Outros') : '') : '';
   if (label && e?.cont) label = tr('{0} (cont.)', [label]);
-  return { ordinal: kvFloorOrdinal(f), label };
+  return label;
+}
+
+/** Texto da placa do andar f: "Térreo" + "Kaviski · Interno". */
+export function kvFloorTitle(sim: object, f: number): { ordinal: string; label: string } {
+  return { ordinal: kvFloorOrdinal(f), label: kvFloorLabelText(table(sim).floors, f) };
 }
 
 /** Andar onde a sala fica (pelo slot). */
@@ -123,6 +146,42 @@ export function kvRoomFloor(slot: number): number {
 /** Desliga a compactação do original (com andares os buracos são de propósito). */
 export function kvNoCompact(): boolean {
   return kvFloorsOn();
+}
+
+// =================================================================== reposicionar quando o prédio cresce
+
+const seenGeom = new WeakMap<object, { version: number; floors: number }>();
+
+/**
+ * O número de andares mudou (um rótulo novo, "Outros", ou outra simulação da página): o térreo desce e todo o
+ * prédio com ele. Refaz as salas no lugar novo, remonta o prédio, desloca quem está andando e conclui os planos (como
+ * ao voltar de uma aba oculta). Barato quando nada mudou (chamado também a cada frame).
+ */
+export function kvSyncGeometry(sim: Sim, now: number): void {
+  if (!kvFloorsOn()) return;
+  const v = kvGeomVersion();
+  const prev = seenGeom.get(sim);
+  if (prev && prev.version === v) return;
+  const floors = kvGlobalFloors();
+  seenGeom.set(sim, { version: v, floors });
+  if (prev && prev.floors === floors && sim.rooms.size === 0) return;
+  for (const room of sim.rooms.values()) room.layout = layoutProjectRoom({ id: room.id, slot: room.slot, seed: room.seed }, room.theme);
+  sim.relayout(true);
+  if (!prev || !sim.chars.size) return;
+  const dy = (floors - prev.floors) * FLOOR_PITCH;
+  if (!dy) return;
+  for (const ch of sim.chars.values()) {
+    ch.ty += dy;
+    ch.y += dy * TILE;
+    if (ch.standTile) ch.standTile = { x: ch.standTile.x, y: ch.standTile.y + dy };
+    for (const s of ch.step ? [ch.step, ...ch.queue] : ch.queue) {
+      if (s.t !== 'go') continue;
+      s.ty += dy;
+      if (s.fy !== undefined) s.fy += dy * TILE;
+      s.path = undefined;
+    }
+  }
+  sim.fastForward(now || sim.now);
 }
 
 // =================================================================== elevadores

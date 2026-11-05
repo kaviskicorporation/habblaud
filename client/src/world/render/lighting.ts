@@ -8,7 +8,7 @@
 import { TILE, type ArtModule, type ScreenMode } from '../../art/api';
 import { mulberry32 } from '../../../../shared/hash';
 import { BUILDING_H, COL_W, CORRIDOR_H, CORRIDOR_Y } from '../constants';
-import { kvCorridorMidsPx, kvFloorsOn, kvIsTopRow, kvLocalY } from '../../kaviski/floors'; // fork Kaviski: andares
+import { kvBuildingKey, kvCorridorMidsPx, kvFloorsOn, kvIsTopRow, kvSpillsSouth, kvVacantCell } from '../../kaviski/floors'; // fork Kaviski: andares
 import type { ExteriorLayout, SlotShell } from '../layout/exterior';
 import type { RoomState } from '../sim/room-state';
 import type { Sim } from '../sim/sim';
@@ -321,7 +321,7 @@ export class Lighting {
   /** Tudo o que muda o mapa, em passos discretos (evita refazê-lo a cada frame). */
   private lightKey(scene: LightScene, now: number): string {
     const a = this.ambient;
-    let k = `${Math.round(a.night * 200)}|${a.outside.join(',')}|${a.inside.join(',')}|${a.dim.join(',')}|${this.sim.building.cols}`;
+    let k = `${Math.round(a.night * 200)}|${a.outside.join(',')}|${a.inside.join(',')}|${a.dim.join(',')}|${kvBuildingKey(this.sim.building)}`; // fork Kaviski: + andares (sem andares = cols)
     for (const vis of scene.areas.values()) {
       const { lit, cover } = this.areaLight(vis, now);
       k += `|${vis.id}:${Math.round(lit * 24)}:${Math.round(cover * 20)}`;
@@ -346,7 +346,8 @@ export class Lighting {
       if (scene.roomInSlot(sh.slot)) continue;
       const r = sh.rect;
       m.fillStyle = corridorLit;
-      if (kvIsTopRow(r.y)) m.fillRect(r.x * TILE, (r.y + r.h - 2) * TILE, r.w * TILE, 2 * TILE); // fork Kaviski: andares
+      if (kvVacantCell(r)) m.fillRect(r.x * TILE, r.y * TILE, r.w * TILE, r.h * TILE); // fork Kaviski: espaço livre de um andar de cima (interior, não jardim)
+      else if (kvIsTopRow(r.y)) m.fillRect(r.x * TILE, (r.y + r.h - 2) * TILE, r.w * TILE, 2 * TILE); // fork Kaviski: andares
       else m.fillRect(r.x * TILE, r.y * TILE, r.w * TILE, TILE);
     }
     const lit = new Map<AreaVis, number>();
@@ -431,10 +432,10 @@ export class Lighting {
     for (const [vis, l] of lit) {
       if (l < 0.3) continue;
       const r = vis.layout.rect;
-      if (kvIsTopRow(r.y)) {
+      if (r.y === 0) {
         // janelas da parede norte -> gramado ao norte do prédio
-        for (const w of vis.wallItems) if (w.kind === 'window') halo(warm, w.cx, r.y * TILE - 12, 58, 30, 0.55 * k * l); // fork Kaviski: + y do andar
-      } else if (vis.layout.kind !== 'corridor' && kvLocalY(r.y) + r.h >= BUILDING_H) {
+        for (const w of vis.wallItems) if (w.kind === 'window') halo(warm, w.cx, -12, 58, 30, 0.55 * k * l);
+      } else if (vis.layout.kind !== 'corridor' && kvSpillsSouth(r.y, r.h)) { // fork Kaviski: só o térreo dá para a rua
         // salas ao sul: brilho suave sobre a cerca viva e a calçada
         for (const fx of [0.25, 0.75]) halo(warm, (r.x + r.w * fx) * TILE, (kvFloorsOn() ? (r.y + r.h) * TILE : bh) + 16, 96, 30, 0.35 * k * l); // fork Kaviski: andares
       }
