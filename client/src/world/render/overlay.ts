@@ -16,7 +16,7 @@ import { drawFxBanner } from './github-fx';
 import type { HeadInfo, Renderer } from './renderer';
 import { tr } from '../../../../shared/i18n';
 import { kvAccent, kvDrawPillBadge, kvDrawSignStyle } from '../../kaviski/room-style'; // fork Kaviski (KAVISKI.md)
-import { kvDrawDimRooms, kvDrawDirectory, kvHallText } from '../../kaviski/floors-draw'; // fork Kaviski: andares
+import { kvCoreName, kvDrawDimRooms, kvDrawFloorSigns, kvHallText } from '../../kaviski/floors-draw'; // fork Kaviski: andares
 import { kvBubbleArea } from '../../kaviski/floors'; // fork Kaviski: andares
 
 // A Pixelify Sans tem o "C" maiúsculo quase fechado (lê-se "Oopa" em vez de "Copa") em qualquer
@@ -308,7 +308,7 @@ export class Overlay {
     }
 
     // placas e pílulas primeiro: são fixas e grandes; balões e etiquetas desviam delas
-    kvDrawDirectory(ctx, this.sim, zoom, (x) => this.sx(x), (y) => this.sy(y), vw, vh, (x, y, w, h) => this.place(x, y, w, h)); // fork Kaviski: diretório dos andares
+    kvDrawFloorSigns(ctx, this.sim, zoom, (x) => this.sx(x), (y) => this.sy(y), vw, vh, (x, y, w, h) => this.place(x, y, w, h)); // fork Kaviski: placas dos andares
     this.drawRoomTexts(now, zoom);
     this.drawFxBanners(now, zoom);
 
@@ -446,8 +446,8 @@ export class Overlay {
         if (!room.present || room.ghost || (anim && anim.walls < 0.6)) continue;
         this.drawRoomPill(room.info.name, cx, cy, colW - 8, room.accounts, this.countIn(room.id), kvAccent(room.info, room.theme.accent), room.lightOn);
         kvDrawPillBadge(this.ctx, room.info, cx, cy, colW - 8); // fork Kaviski
-      } else if (CORE_NAMES[vis.id]) {
-        this.drawCorePill(CORE_NAMES[vis.id], cx, cy, colW - 8);
+      } else if (CORE_NAMES[vis.id] || kvCoreName(vis.id, CORE_NAMES)) {
+        this.drawCorePill(CORE_NAMES[vis.id] ?? kvCoreName(vis.id, CORE_NAMES)!, cx, cy, colW - 8); // fork Kaviski: núcleo dos andares
       }
     }
   }

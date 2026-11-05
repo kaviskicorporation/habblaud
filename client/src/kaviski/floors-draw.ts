@@ -1,18 +1,15 @@
 // Fork Kaviski (KAVISKI.md): desenho dos andares.
-// - Diretório do prédio: uma placa por andar do lado ESQUERDO, junto da coluna dos elevadores (como o painel do
-//   lobby): número grande, nome do andar e um resumo vivo ("3 trabalhando · 1 precisa de você", em âmbar quando alguém
-//   precisa de você). Clicar na placa (ou no cabeçalho do andar na lista lateral) enquadra o andar.
-// - Salas `dim` (projeto parado): enquanto vazias e apagadas, um véu cinza com listras ("arquivo").
-// - Elevadores dos andares ligados às portas animadas; o hall de cada andar com o número do andar na placa.
+// - placa de cada andar (letreiro na faixa de grama acima do andar, em espaço de tela: legível na visão geral);
+// - salas `dim` (projeto parado): enquanto estão vazias e apagadas, um véu cinza com listras ("arquivo");
+// - elevadores dos outros andares ligados às portas animadas; o hall de cada andar com o nome do andar na placa.
 import type { KvRoomInfo } from '../../../shared/kaviski';
 import { tr } from '../../../shared/i18n';
-import type { Camera } from '../world/camera';
-import { BUILDING_H, COL_W, ROOM_H, TILE } from '../world/constants';
+import { COL_W, CORRIDOR_H, CORRIDOR_Y, TILE } from '../world/constants';
 import type { AreaVis, WallVis } from '../world/render/scene';
 import type { Sim } from '../world/sim/sim';
-import { kvFloorShort, kvFloorsOf, kvFloorsOn, kvFloorY, kvHeightOf, kvSlotFloor, ROOF_H } from './floors';
+import { kvFloorsOf, kvFloorsOn, kvFloorY, kvHeightOf } from './floors';
 import { kvFloorTitle } from './floors-sim';
-import { HALL_ID, kvSplitAreaId } from './floors-world';
+import { kvSplitAreaId } from './floors-world';
 
 const UI_FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif';
 
@@ -46,201 +43,102 @@ export function kvElevatorVis(areas: ReadonlyMap<string, AreaVis>, sim: Pick<Sim
   return out;
 }
 
-/** Texto da placa do hall de um andar ("3º andar"); null nas outras áreas. */
+/** Texto da placa do hall de um andar de cima ("3º andar"); null nas outras áreas. */
 export function kvHallText(id: string, sim: object): string | null {
   const { base, floor } = kvSplitAreaId(id);
-  if (base !== HALL_ID || !floor) return null;
-  return kvFloorTitle(sim, floor).ordinal;
+  if (base !== 'core:recepcao' || !floor) return null;
+  const t = kvFloorTitle(sim, floor);
+  return t.ordinal;
 }
 
-/** Largura (tiles) reservada a oeste do prédio para o diretório. */
-const DIR_MARGIN = 26;
+/** Nome da pílula das áreas do núcleo dos outros andares (null = não é cópia). */
+export function kvCoreName(id: string, names: Record<string, string>): string | null {
+  const { base, floor } = kvSplitAreaId(id);
+  if (!floor) return null;
+  if (base === 'core:recepcao') return tr('Hall');
+  return names[base] ?? null;
+}
 
-/** Retângulo (px de mundo) que a câmera enquadra: telhado, prédio e o diretório a oeste. */
+/** Margem a leste (tiles) enquadrada junto do prédio: é onde ficam as placas dos andares. */
+const SIGN_MARGIN = 18;
+
+/** Retângulo (px de mundo) que a câmera enquadra: o prédio e, com andares, as placas a leste. */
 export function kvBuildingPx(b: { cols: number; kvFloors?: number }): { x: number; y: number; w: number; h: number } | null {
   if (!kvFloorsOn()) return null;
-  return { x: -DIR_MARGIN * TILE, y: -ROOF_H * TILE, w: (b.cols * COL_W + DIR_MARGIN + 1) * TILE, h: (kvHeightOf(b) + ROOF_H) * TILE };
+  return { x: 0, y: 0, w: (b.cols * COL_W + SIGN_MARGIN) * TILE, h: kvHeightOf(b) * TILE };
 }
 
 type Map2 = (v: number) => number;
 
-/** Resumo vivo de cada andar (pelo andar da sala de cada agente). */
-export interface KvFloorStats {
-  working: number;
-  waiting: number;
-  idle: number;
-  rooms: number;
-  busyRooms: number;
-}
-
-export function kvFloorStats(sim: Sim): KvFloorStats[] {
-  const n = kvFloorsOf(sim.building);
-  const out: KvFloorStats[] = Array.from({ length: n }, () => ({ working: 0, waiting: 0, idle: 0, rooms: 0, busyRooms: 0 }));
-  const floorOfRoom = new Map<string, number>();
-  for (const r of sim.rooms.values()) {
-    if (!r.present || r.ghost) continue;
-    const f = Math.min(n - 1, kvSlotFloor(r.slot));
-    floorOfRoom.set(r.id, f);
-    out[f].rooms++;
-  }
-  const busy = new Set<string>();
-  for (const c of sim.chars.values()) {
-    if (c.gone || c.leaving) continue;
-    const f = floorOfRoom.get(c.roomId);
-    if (f === undefined) continue;
-    busy.add(c.roomId);
-    const st = c.info.status;
-    if (st === 'waiting') out[f].waiting++;
-    else if (st === 'working' || st === 'shell') out[f].working++;
-    else out[f].idle++;
-  }
-  for (const id of busy) out[floorOfRoom.get(id)!].busyRooms++;
-  return out;
-}
-
-/** Placas desenhadas no último frame (px CSS do canvas), para o clique. */
-let hitRects: { f: number; x: number; y: number; w: number; h: number }[] = [];
-
-/** Placas do diretório (lado esquerdo). `place` registra o retângulo para os balões desviarem. */
-export function kvDrawDirectory(ctx: CanvasRenderingContext2D, sim: Sim, zoom: number, sx: Map2, sy: Map2, vw: number, vh: number, place: (x: number, y: number, w: number, h: number) => void): void {
-  hitRects = [];
-  if (!kvFloorsOn()) return;
-  const n = kvFloorsOf(sim.building);
-  const stats = kvFloorStats(sim);
-  const right = Math.round(sx(-1.4 * TILE));
-  const h = Math.round(Math.max(40, Math.min(70, ROOM_H * TILE * zoom * 0.62)));
-  const numW = Math.round(h * 0.9);
-  const big = Math.round(h * 0.56);
-  const fsLabel = Math.max(11, Math.min(17, Math.round(h * 0.3)));
-  const fsSum = Math.max(10, Math.min(14, Math.round(h * 0.24)));
-  const maxText = Math.max(110, Math.min(260, right - 12 - numW - 20));
-  ctx.save();
-  ctx.textBaseline = 'middle';
-  for (let f = 0; f < n; f++) {
-    const cy = sy((kvFloorY(f) + BUILDING_H / 2) * TILE);
-    if (cy < -h || cy > vh + h) continue;
-    const st = stats[f];
-    const { label } = kvFloorTitle(sim, f);
-    const title = label || kvFloorTitle(sim, f).ordinal;
-    // resumo: partes com cor
-    const parts: { text: string; color: string }[] = [];
-    if (st.waiting) parts.push({ text: st.waiting === 1 ? tr('1 precisa de você') : tr('{0} precisam de você', [st.waiting]), color: '#ffc14d' });
-    if (st.working) parts.push({ text: tr('{0} trabalhando', [st.working]), color: '#7ee0a1' });
-    if (!st.waiting && !st.working && st.idle) parts.push({ text: tr('{0} à toa', [st.idle]), color: '#c3c9d6' });
-    if (!parts.length) parts.push({ text: st.rooms === 1 ? tr('1 sala, ninguém') : tr('{0} salas, ninguém', [st.rooms]), color: '#8d95a6' });
-    const fontLabel = `700 ${fsLabel}px ${UI_FONT}`;
-    const fontSum = `600 ${fsSum}px ${UI_FONT}`;
-    ctx.font = fontLabel;
-    const tLabel = fitText(ctx, title, maxText);
-    let tw = ctx.measureText(tLabel).width;
-    ctx.font = fontSum;
-    const sep = ' · ';
-    let sw = 0;
-    for (let i = 0; i < parts.length; i++) sw += ctx.measureText(parts[i].text + (i < parts.length - 1 ? sep : '')).width;
-    sw = Math.min(sw, maxText);
-    tw = Math.max(tw, sw);
-    const w = Math.round(numW + 14 + tw + 12);
-    const x = right - w;
-    const y = Math.round(cy - h / 2);
-    if (x > vw || x + w < 0) continue;
-    const alert = st.waiting > 0;
-    // sombra + placa (latão escovado escuro, como o painel do lobby)
-    ctx.fillStyle = 'rgba(8,12,20,0.4)';
-    ctx.beginPath();
-    ctx.roundRect(x + 1, y + 3, w, h, 7);
-    ctx.fill();
-    ctx.fillStyle = '#18202f';
-    ctx.beginPath();
-    ctx.roundRect(x, y, w, h, 7);
-    ctx.fill();
-    ctx.lineWidth = alert ? 2 : 1.25;
-    ctx.strokeStyle = alert ? '#ffb02e' : 'rgba(214,180,98,0.85)';
-    ctx.stroke();
-    // número do andar
-    ctx.fillStyle = alert ? '#ffb02e' : '#d9b25c';
-    ctx.beginPath();
-    ctx.roundRect(x + 4, y + 4, numW - 4, h - 8, 5);
-    ctx.fill();
-    ctx.fillStyle = '#18202f';
-    ctx.font = `800 ${big}px ${UI_FONT}`;
-    ctx.textAlign = 'center';
-    ctx.fillText(kvFloorShort(f), x + 2 + numW / 2, y + h / 2 + 1);
-    // nome do andar e resumo
-    ctx.textAlign = 'left';
-    const tx = x + numW + 10;
-    ctx.font = fontLabel;
-    ctx.fillStyle = '#f4efe2';
-    ctx.fillText(tLabel, tx, y + h * 0.36);
-    ctx.font = fontSum;
-    let px = tx;
-    for (let i = 0; i < parts.length; i++) {
-      const p = parts[i];
-      const room = tx + maxText - px;
-      if (room <= 8) break;
-      const t = fitText(ctx, p.text, room);
-      ctx.fillStyle = p.color;
-      ctx.fillText(t, px, y + h * 0.7);
-      px += ctx.measureText(t).width;
-      if (i < parts.length - 1) {
-        ctx.fillStyle = '#6f7889';
-        ctx.fillText(sep, px, y + h * 0.7);
-        px += ctx.measureText(sep).width;
-      }
-    }
-    place(x, y, w, h);
-    hitRects.push({ f, x, y, w, h });
-  }
-  ctx.restore();
-}
-
-function fitText(ctx: CanvasRenderingContext2D, text: string, max: number): string {
-  if (ctx.measureText(text).width <= max) return text;
-  let t = text;
-  while (t.length > 1 && ctx.measureText(`${t}…`).width > max) t = t.slice(0, -1);
-  return `${t.trimEnd()}…`;
-}
-
-/** Evento (window) que a lista lateral dispara para enquadrar um andar. */
-export const KV_FLOOR_EVENT = 'kv:andar';
-
-/** Enquadra o andar f (prédio inteiro na largura, o andar na altura). */
-export function kvFrameFloor(camera: Camera, sim: Sim, f: number): void {
+/**
+ * Placas dos andares (letreiros) a leste do prédio, na altura do corredor de cada andar (a faixa entre andares é das
+ * pílulas das salas). `place` registra o retângulo para os balões desviarem.
+ */
+export function kvDrawFloorSigns(ctx: CanvasRenderingContext2D, sim: Sim, zoom: number, sx: Map2, sy: Map2, vw: number, vh: number, place: (x: number, y: number, w: number, h: number) => void): void {
   if (!kvFloorsOn()) return;
   const b = sim.building;
-  const r = { x: -1.5 * TILE, y: (kvFloorY(f) - 1.5) * TILE, w: (b.cols * COL_W + 3) * TILE, h: (BUILDING_H + 2.5) * TILE };
-  const z = Math.max(camera.minZoom, Math.min(4, camera.fitZoom(r, 20)));
-  const c = camera.centerFor(r.x + r.w / 2, r.y + r.h / 2, z);
-  camera.follow = null;
-  camera.animateTo(c.x, c.y, z, Date.now(), 450);
-}
-
-/** Liga o clique nas placas do diretório e o evento da lista lateral. */
-export function kvStartFloorDirectory(canvas: HTMLCanvasElement, camera: Camera, sim: () => Sim): void {
-  const hit = (e: PointerEvent | MouseEvent) => {
-    if (!hitRects.length) return null;
-    const r = canvas.getBoundingClientRect();
-    const x = e.clientX - r.left;
-    const y = e.clientY - r.top;
-    return hitRects.find((p) => x >= p.x && y >= p.y && x <= p.x + p.w && y <= p.y + p.h) ?? null;
-  };
-  canvas.addEventListener(
-    'pointerdown',
-    (e) => {
-      const p = hit(e);
-      if (!p) return;
-      e.stopImmediatePropagation();
-      e.preventDefault();
-      kvFrameFloor(camera, sim(), p.f);
-    },
-    { capture: true },
-  );
-  canvas.addEventListener('pointermove', (e) => {
-    if (hit(e)) canvas.style.cursor = 'pointer';
-  });
-  window.addEventListener(KV_FLOOR_EVENT, (e) => {
-    const f = (e as CustomEvent<number>).detail;
-    if (typeof f === 'number') kvFrameFloor(camera, sim(), f);
-  });
+  const floors = kvFloorsOf(b);
+  const left = sx((b.cols * COL_W + 1.5) * TILE);
+  const maxW = Math.max(160, vw - left - 12);
+  const h = Math.round(Math.max(24, Math.min(40, 2.7 * TILE * zoom)));
+  const fs = Math.max(10, Math.round(h * 0.5));
+  const chipFs = Math.max(9, Math.round(h * 0.4));
+  ctx.save();
+  ctx.textBaseline = 'middle';
+  for (let f = 0; f < floors; f++) {
+    const cy = sy((kvFloorY(f) + CORRIDOR_Y + CORRIDOR_H / 2) * TILE);
+    if (cy < -h || cy > vh + h) continue;
+    const { ordinal, label } = kvFloorTitle(sim, f);
+    const chipFont = `800 ${chipFs}px ${UI_FONT}`;
+    const font = `700 ${fs}px ${UI_FONT}`;
+    ctx.font = chipFont;
+    const chipText = ordinal.toUpperCase();
+    const chipW = Math.round(ctx.measureText(chipText).width + chipFs * 1.4);
+    ctx.font = font;
+    let text = label;
+    const pad = Math.round(h * 0.45);
+    const room = maxW - chipW - pad * 3;
+    if (text && ctx.measureText(text).width > room) {
+      while (text.length > 1 && ctx.measureText(`${text}…`).width > room) text = text.slice(0, -1);
+      text = `${text.trimEnd()}…`;
+    }
+    const tw = text ? Math.round(ctx.measureText(text).width) : 0;
+    const w = chipW + (text ? pad * 2 + tw : 0) + Math.round(h * 0.2);
+    const x = Math.round(left);
+    const y = Math.round(cy - h / 2);
+    if (x > vw || x + w < 0) continue;
+    // sombra + placa escura com fio dourado (letreiro de prédio)
+    ctx.fillStyle = 'rgba(10,14,24,0.35)';
+    ctx.beginPath();
+    ctx.roundRect(x, y + 2, w, h, h * 0.22);
+    ctx.fill();
+    ctx.fillStyle = '#1d2536';
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, h * 0.22);
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = '#c9a24a';
+    ctx.stroke();
+    // número do andar num selo dourado
+    const ci = Math.round(h * 0.14);
+    ctx.fillStyle = '#e2b755';
+    ctx.beginPath();
+    ctx.roundRect(x + ci, y + ci, chipW - ci, h - ci * 2, (h - ci * 2) * 0.25);
+    ctx.fill();
+    ctx.font = chipFont;
+    ctx.fillStyle = '#1d2536';
+    ctx.textAlign = 'center';
+    ctx.fillText(chipText, x + ci + (chipW - ci) / 2, y + h / 2 + 0.5);
+    if (text) {
+      ctx.font = font;
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#f4efe2';
+      ctx.fillText(text, x + chipW + pad, y + h / 2 + 0.5);
+    }
+    place(x, y, w, h);
+  }
+  ctx.textAlign = 'left';
+  ctx.restore();
 }
 
 let stripe: CanvasPattern | null | undefined;
@@ -292,7 +190,8 @@ export function kvDrawDimRooms(ctx: CanvasRenderingContext2D, sim: Sim, now: num
       ctx.save();
       any = true;
     }
-    ctx.globalAlpha = 1 - light / 0.6;
+    const a = 1 - light / 0.6;
+    ctx.globalAlpha = a;
     ctx.fillStyle = 'rgba(96,102,116,0.42)';
     ctx.fillRect(x, y, w, h);
     const p = stripes(ctx);
@@ -300,6 +199,7 @@ export function kvDrawDimRooms(ctx: CanvasRenderingContext2D, sim: Sim, now: num
       ctx.fillStyle = p;
       ctx.fillRect(x, y, w, h);
     }
+    // etiqueta "arquivo" no canto, quando dá para ler
     if (h > 40) {
       const fs = Math.max(9, Math.min(13, Math.round(h * 0.07)));
       ctx.font = `700 ${fs}px ${UI_FONT}`;

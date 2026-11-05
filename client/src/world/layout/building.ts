@@ -8,7 +8,7 @@ import { layoutCorridor } from './corridor';
 import { buildingRect } from './geometry';
 import type { AreaLayout, SpotDef, TileRect } from './types';
 import { kvBuildingH } from '../../kaviski/floors'; // fork Kaviski: andares
-import { kvBuildingCore, kvGroundCorridor } from '../../kaviski/floors-world'; // fork Kaviski: andares
+import { kvUpperFloorAreas } from '../../kaviski/floors-world'; // fork Kaviski: andares
 
 export interface BuildingLayout {
   cols: number;
@@ -51,8 +51,8 @@ export function buildWalkGrid(cols: number, areas: readonly AreaLayout[], versio
 }
 
 export function assembleBuilding(cols: number, rooms: readonly AreaLayout[], version = 0, floors = 1): BuildingLayout {
-  const core = kvBuildingCore(cols, floors) ?? coreAreas(); // fork Kaviski: térreo embaixo + circulação dos andares
-  const corridor = kvGroundCorridor(cols) ?? layoutCorridor(cols); // fork Kaviski: andares
+  const core = [...coreAreas(), ...kvUpperFloorAreas(cols, floors)]; // fork Kaviski: núcleo e corredor dos outros andares
+  const corridor = layoutCorridor(cols);
   const all = [...core, corridor, ...rooms];
   const grid = buildWalkGrid(cols, all, version, floors); // fork Kaviski: andares
   const spots: SpotDef[] = [];

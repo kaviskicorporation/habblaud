@@ -82,42 +82,35 @@ curl -s http://localhost:4747/api/rooms/style      # lê o mapa atual
            "/home/hostadmin/projetos/Clientes/14-FPF/02.Antigo": {"pinned": true, "group": "FPF", "floor": "Arquivo", "dim": true}}}
 ```
 
-UM prédio de vários andares, visto em corte (`client/src/kaviski/floors*.ts`):
-
-- `HABBLAUD_FLOOR_COLS` (inteiro 1..40; vazio/0 = original) vai no snapshot em `meta.kaviski.floorCols`. Valor: **5**.
-  - **Térreo** (embaixo, junto da rua ao sul, com a entrada a oeste): o núcleo original (recepção, banheiros, copa,
-    lounge) + 5 colunas de projeto = **10 salas**.
-  - **Andares de cima**: só a coluna 0 é circulação, exatamente sobre a recepção — ao norte o hall dos elevadores (os
-    elevadores no mesmo x dos da recepção, placa com "Nº andar", ponto de café e mesinha), ao sul a escada (pintada) e
-    um cantinho de espera — + 6 colunas de projeto = **12 salas**.
-  - Andares separados só por uma laje de concreto; fachadas laterais contínuas; telhado com platibanda, casa de
-    máquinas, caixa d'água, condensadoras e antena (`kvPaintBase`, na camada base). Célula vaga num andar de cima =
-    espaço livre (laje de concreto, iluminado como interior); no térreo continua o jardim do original.
-  - Com o mapa atual (Interno 8 · Em andamento 10 · Em pausa 5 · Arquivo 6): 4 andares, 7 colunas (112 × ~120 tiles
-    + telhado), quase quadrado.
-- `floor` (texto, até 40): um andar por rótulo, na ordem do mapa; o 1º no térreo; o que não cabe continua no andar de
-  cima com "(cont.)". Sala sem `floor` (fora do mapa) vai para **"Outros"**, no topo. Sem nenhum `floor`, andares só
-  sequenciais. O servidor ordena as salas por andar e, dentro dele, por grupo. O mesmo plano (`kvFloorPlan`, puro) é
-  usado pela simulação e pela lista lateral.
-- `dim` (booleano): projeto parado — véu cinza listrado com "arquivo" enquanto vazia e apagada.
-- **Diretório do prédio** (lado esquerdo, junto da coluna dos elevadores, em espaço de tela): por andar, número grande
-  ("T", "1", "2"...), nome e resumo vivo ("4 trabalhando · 1 precisa de você"; borda e número em âmbar quando alguém
-  precisa de você). Clicar na placa enquadra o andar.
-- **Lista lateral "Escritório"**: salas na ordem do prédio, com o cabeçalho do andar (número, nome, resumo) antes da
-  primeira sala de cada andar; andar sem ninguém aparece recolhido (uma linha). Clicar no cabeçalho enquadra o andar
-  (evento `kv:andar` em `window`).
-- Geometria (`floors.ts`): o andar f começa em y = (F − 1 − f) × 30 tiles (29 do andar + 1 de laje); F é **global** na
-  página e só cresce. Quando cresce (rótulo novo, "Outros", ou o timelapse/visita precisando de mais), tudo desce 30
-  tiles: cada simulação refaz as salas no lugar novo, remonta o prédio, desloca os personagens e conclui os planos
-  (`kvSyncGeometry`, como ao voltar de uma aba oculta). Na carga, os andares já vêm todos do 1º snapshot.
-- Movimento: o A* não atravessa andares. Um `go` para outro andar vira: ir ao elevador do andar → passo `kvLift`
-  (entra, porta fecha, ~0,65 s + 0,26 s por andar, sai no elevador do outro andar, com as animações originais) → o `go`
-  original. Quem chega aparece no elevador do andar da própria sala; quem vai embora usa o do andar onde está. Café e
-  água: o mais perto (o hall de cada andar tem); banheiro, lounge, TV, espelho e a mesa da copa ficam no térreo (vão de
-  elevador). A compactação do original fica desligada com andares (buracos de propósito).
-- Não muda: o que vai ao Habblaud World (server/world conta as salas com agentes), `?mock=1` (sem meta, original),
-  timelapse (mesma simulação), visita a outro prédio (salas sem rótulo: andares sequenciais; se precisar de mais
-  andares, o prédio da página cresce junto).
+- `HABBLAUD_FLOOR_COLS` (inteiro 1..40; vazio/0 = original) vai no snapshot em `meta.kaviski.floorCols`. Cada andar é a
+  faixa original (fileira norte + corredor + fileira sul) com o núcleo (2 colunas) + N colunas de projeto = 2N salas.
+  Valor escolhido: **5** (10 salas por andar). Com ~29 salas fixas em 4 rótulos (Interno 8, Em andamento, Em pausa,
+  Arquivo, cada um ≤ 10) dá 4 andares de 7 colunas: 112 × 131 tiles, quase quadrado; com 6+ colunas os andares ficam
+  meio vazios (o número de andares vem dos rótulos, não da largura).
+- `floor` (texto, até 40): os andares seguem a ordem em que os rótulos aparecem no mapa; o 1º rótulo fica no térreo
+  (com a recepção). Rótulo que passa de 2N salas continua no andar seguinte com "(cont.)". Sala sem `floor` (projeto
+  fora do mapa, agente avulso) vai para um andar próprio **"Outros"**, depois dos rotulados. Sem nenhum `floor` no mapa
+  os andares são só sequenciais (sem nome). O servidor ordena as salas por andar e, dentro dele, por grupo.
+- `dim` (booleano): projeto parado. Só visual (`client/src/kaviski/floors-draw.ts`).
+- Geometria: o térreo fica no **topo** (y = 0) e os andares se empilham para baixo, separados por 5 tiles de grama
+  (`FLOOR_GAP`) — assim nenhuma sala muda de lugar quando um andar novo aparece. A rua passa **ao norte**, junto do
+  térreo (área externa própria, `kvLayoutExterior`), com a entrada a oeste do corredor do térreo. O slot da sala vira
+  célula: `slot = andar × 2N + local` (`client/src/kaviski/floors.ts`, pura).
+- Cada andar de cima repete o núcleo: **hall dos elevadores** (a recepção sem o balcão, placa com "Nº andar"),
+  banheiros, copa e lounge, mais o corredor (ids com sufixo `~<andar>`; grupos dos spots também, para não formar par
+  entre andares). Placas dos andares ("TÉRREO · Kaviski · Interno") a **leste** do prédio, na altura de cada corredor,
+  em espaço de tela (legíveis na Visão geral, que as enquadra).
+- Vagas: tabela de andares por simulação, montada na ordem dos rótulos do snapshot e que só cresce (ninguém muda de
+  lugar com a página aberta; recarregar reorganiza). Com andares a **compactação** do original (sala do fim se
+  mudando para um buraco) fica desligada: os buracos são de propósito.
+- Movimento: o A* não atravessa andares (sem ligação a pé). Um passo `go` para outro andar vira: ir ao elevador do
+  andar atual → passo `kvLift` (entra, porta fecha, ~0,65 s + 0,26 s por andar, sai no elevador do outro andar, com as
+  animações originais de chegada/saída) → o `go` original. Vale para tudo (chegar na mesa, passeios, rodas, entregas,
+  visitante). Quem chega aparece no elevador do andar da própria sala; quem vai embora usa o do andar onde está.
+  Passeios sorteados (lounge, celular) preferem o mesmo andar; café/água vão ao mais perto; as rodas que usam a TV, o
+  espelho e a mesa da copa continuam no térreo (o social original filtra pelas áreas do térreo) — vão de elevador.
+- Não muda: o que vai ao Habblaud World (server/world conta as salas com agentes, não a geometria), `?mock=1` (sem
+  meta, original), timelapse (mesma simulação), visita a outro prédio (salas sem rótulo: andares sequenciais).
 
 ### Mensagens às sessões do TwiCC
 
@@ -155,29 +148,27 @@ As sessões do TwiCC rodam pelo SDK (sem terminal): o plugin `habblaud-mensagens
 | `client/src/world/render/overlay.ts` | +4/−1 | import; `kvDrawSignStyle(...)` depois do `drawSignText`; `kvAccent(room.info, room.theme.accent)` e `kvDrawPillBadge(...)` na pílula | idem |
 | `shared/locales/{en,es,fr}.ts` | +15 cada | bloco "fork Kaviski" logo no começo do objeto | manter os dois lados; rodar `npm run i18n:check` |
 | `client/src/world/layout/geometry.ts` | +11/−7 | import; 1 linha de andar em `slotColumn`, `slotSide`, `cellRect` (+`floor`), `slotRect`, `slotAt` (+`floor`), `columnsFor`, `buildingRect` (+`floors`) | aceitar o original e reaplicar (sem andares tudo dá o original) |
-| `client/src/world/layout/building.ts` | +10/−6 | imports; `kvFloors?` no `BuildingLayout`; `floors` em `buildWalkGrid`/`assembleBuilding`; `kvBuildingCore(...) ?? coreAreas()` e `kvGroundCorridor(...) ?? layoutCorridor(...)` | idem |
-| `client/src/world/layout/exterior.ts` | +3 | import; 2 primeiras linhas de `slotShell` (`kvSlotShell`: o desenho do original, deslocado; espaço livre nos andares de cima) | idem |
-| `client/src/world/sim/sim.ts` | +13/−3 (mais o de cima) | import; `kvPlanFloors` no início do `applySnapshot`; `kvRoomSlot(...) ?? this.freeSlot()` no `createRoom`; pool de `pickElevator`; `kvFloorCount(this)` no `assembleBuilding` do `relayout`; `kvSyncElevators` depois do `setSpots`; `kvNoCompact` em `compact`; `kvSyncGeometry` no início de `update`; `case 'kvLift'` no `runStep`; `kvFloorHop` no início de `stepGo`; `kvKeepSameFloor` em `randomFree` | idem |
+| `client/src/world/layout/building.ts` | +10/−6 | imports; `kvFloors?` no `BuildingLayout`; `floors` em `buildWalkGrid`/`assembleBuilding` (núcleo dos outros andares com `kvUpperFloorAreas`) | idem |
+| `client/src/world/layout/exterior.ts` | +2 | import; 1ª linha de `slotShell` (slot de outro andar = o do térreo deslocado) | idem |
+| `client/src/world/sim/sim.ts` | +13/−3 (mais o de cima) | import; `kvPlanFloors` no início do `applySnapshot`; `kvRoomSlot(...) ?? this.freeSlot()` no `createRoom`; pool de `pickElevator`; `kvFloorCount(this)` no `assembleBuilding` do `relayout`; `kvSyncElevators` depois do `setSpots`; `kvNoCompact` em `compact`; `case 'kvLift'` no `runStep`; `kvFloorHop` no início de `stepGo`; `kvKeepSameFloor` em `randomFree` | idem |
 | `client/src/world/sim/steps.ts` | +3/−1 | `KvLiftStep` no tipo `Step` | idem |
-| `client/src/world/render/renderer.ts` | +17/−6 | imports; `kvLayoutExterior(...) ?? layoutExterior(...)` (2×); `kvBaseStale` no `sync`; `kvElevatorVis(...) ??` nos elevadores; jardins dos outros andares depois do laço de `buildBase`; `kvPaintBase` depois do `desaturate`; altura com andares na vinheta; `kvGroundY()` no capacho da entrada | idem |
-| `client/src/world/render/lighting.ts` | +15/−10 | import; `kvVacantCell`/`kvIsTopRow` nos fechamentos e no sol das janelas; `kvSpillsSouth` no brilho para a rua; um halo de fachada por corredor; `kvBuildingKey` na chave do mapa de luz | idem |
-| `client/src/world/render/overlay.ts` | +4/−2 (mais o de cima) | imports; `kvDrawDimRooms` antes da seleção; `kvDrawDirectory` antes de `drawRoomTexts`; `kvBubbleArea` na chave dos balões; `kvHallText` na placa | idem |
-| `client/src/world/index.ts` | +6/−3 | imports; `kvBuildingPx(...) ??` em `buildingRect`; `kvBuildingKey` no lugar de `cols` para refazer o enquadramento; `kvStartFloorDirectory` depois do `attachInput` | idem |
-| `client/src/ui/sidebar.ts` | +3/−1 | import; `kvSortByFloor(...)` em volta do `orderRooms`; `kvFloorHeads(...)` depois do `this.rooms.sync` | idem |
+| `client/src/world/render/renderer.ts` | +15/−5 | imports; `kvLayoutExterior(...) ?? layoutExterior(...)` (2×); `kvBaseStale` no `sync`; `kvElevatorVis(...) ??` nos elevadores; jardins dos outros andares depois do laço de `buildBase`; altura com andares na vinheta | idem |
+| `client/src/world/render/lighting.ts` | +14/−11 | import; `kvIsTopRow` no lugar de `y === 0` (4×); y do andar nas janelas/fachadas; um halo de fachada por corredor | idem |
+| `client/src/world/render/overlay.ts` | +4/−2 (mais o de cima) | imports; `kvDrawDimRooms` antes da seleção; `kvDrawFloorSigns` antes de `drawRoomTexts`; `kvBubbleArea` na chave dos balões; `kvHallText` na placa; `kvCoreName` nas pílulas do núcleo | idem |
+| `client/src/world/index.ts` | +5/−3 | imports; `kvBuildingPx(...) ??` em `buildingRect`; `kvBuildingKey` no lugar de `cols` para refazer o enquadramento | idem |
 | `docker-compose.yml` | +6 | `HABBLAUD_FRAME_ANCESTORS`, `HABBLAUD_TWICC_URL`, `HABBLAUD_TWICC_MESSAGES` e `HABBLAUD_BRAND` no `environment:` (e `HABBLAUD_FLOOR_COLS`) | manter os dois lados |
 
 `server/model/office.ts` **não** foi tocado: `kaviski.attach(office)` embrulha `office.commit()` em tempo de execução e
 decora cada snapshot novo. Se o original renomear `commit`, o teste `server/kaviski/kaviski.test.ts` acusa.
 
 Arquivos só do fork: `shared/kaviski.ts` (+ teste), `server/kaviski/{index,frame,remote,room-styles,pinned,twicc-messages,twicc-bridge}.ts`
-(+ `kaviski.test.ts`, `kaviski-extra.test.ts`, `floors.test.ts`), `client/src/kaviski/{twicc,room-link,room-style,brand,empty-rooms,floors,floors-world,floors-sim,floors-draw,floors-list}.ts`
+(+ `kaviski.test.ts`, `kaviski-extra.test.ts`, `floors.test.ts`), `client/src/kaviski/{twicc,room-link,room-style,brand,empty-rooms,floors,floors-world,floors-sim,floors-draw}.ts`
 (+ `kaviski.test.ts`, `floors.test.ts`) e `kaviski.css`, este `KAVISKI.md`.
 
 Se o original mexer na geometria (`geometry.ts`, `constants.ts`, `core.ts`, `exterior.ts`) ou no elevador
 (`stepElevIn`/`stepElevOut`, que o `kvLift` chama), rode `npx vitest run client/src/kaviski/floors.test.ts`: ele monta
-um prédio de 3 andares (núcleo só no térreo, elevadores alinhados), confere que não há ligação a pé entre andares,
-leva um agente de um andar a outro e de volta (sem atravessar parede) e embora pelo elevador do próprio andar, e faz o
-prédio crescer com gente dentro.
+um prédio de 3 andares, confere que não há ligação a pé entre andares e leva um agente de um andar a outro e de volta
+(sem atravessar parede) e embora pelo elevador do próprio andar.
 
 O `CHANGELOG.md` do original **não** recebe as mudanças do fork (evita conflito a cada versão): o histórico fica aqui.
 
@@ -210,10 +201,8 @@ Subir sempre com `python3 /home/hostadmin/base/scripts/kc-habblaud.py subir --bu
   TwiCC (`HABBLAUD_TWICC_MESSAGES`). Timelapse ("Não foi possível buscar a linha do tempo"): não reproduzido no
   Chromium e no Firefox (porta local, remota com login e dentro de iframe com a origem do TwiCC); as rotas dão 200.
 
-- 2026-11-05 — prédio em andares (`HABBLAUD_FLOOR_COLS`), `floor` e `dim` no mapa de estilos, viagem de elevador entre
-  andares. Refeito no mesmo dia (feedback "parecem novas empresas"): um prédio só em corte, térreo embaixo com a rua,
-  núcleo só no térreo e coluna de circulação alinhada nos andares, lajes e telhado, diretório clicável à esquerda e
-  lista lateral agrupada por andar.
+- 2026-11-05 — prédio em andares (`HABBLAUD_FLOOR_COLS`), `floor` e `dim` no mapa de estilos, placas dos andares,
+  hall com elevadores em cada andar e viagem de elevador entre andares.
 
 ## HTTP puro na porta remota (sem certificado)
 - `server/http/remote.ts` (1 linha, `fork Kaviski`): com `HABBLAUD_REMOTE_INSECURE_HTTP=1` a porta remota é HTTP mesmo que exista certificado em `~/.habblaud/remote-tls` (no original, o certificado vence). Decisão do Vitor: rede local, sem instalar CA. Com TwiCC (`http://…:3500`) e Habblaud (`http://…:4748`) os dois em HTTP no mesmo IP, são same-site e o cookie `SameSite=Strict` original funciona dentro do iframe do TwiCC.

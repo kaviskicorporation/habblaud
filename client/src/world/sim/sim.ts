@@ -30,7 +30,7 @@ import {
 } from './behavior';
 import { Character, dirOf, facing } from './character';
 import { Elevator } from './elevator';
-import { kvElevatorPool, kvFloorCount, kvFloorHop, kvKeepSameFloor, kvNoCompact, kvPlanFloors, kvRoomSlot, kvStepLift, kvSyncElevators, kvSyncGeometry } from '../../kaviski/floors-sim'; // fork Kaviski: andares
+import { kvElevatorPool, kvFloorCount, kvFloorHop, kvKeepSameFloor, kvNoCompact, kvPlanFloors, kvRoomSlot, kvStepLift, kvSyncElevators } from '../../kaviski/floors-sim'; // fork Kaviski: andares
 import { RoomFxState } from './github';
 import { RoomState } from './room-state';
 import { countShells, latestShellDone, shellLabel, shellStage, shellWaitSince, spinDir, spinPhase, yawnPhase } from './shell';
@@ -168,7 +168,7 @@ export class Sim {
       snap = { ...snap, agents: snap.agents.map((a) => (patches.has(a.id) ? { ...a, ...patches.get(a.id) } : a)) };
     }
     this.lastSnapshot = input;
-    kvPlanFloors(this, snap, now); // fork Kaviski: andares
+    kvPlanFloors(this, snap); // fork Kaviski: andares
     this.now = now;
     const first = !this.initialized;
     this.initialized = true;
@@ -580,7 +580,6 @@ export class Sim {
 
   update(dt: number, now: number): void {
     this.now = now;
-    kvSyncGeometry(this, now); // fork Kaviski: o prédio ganhou andar (tudo desce)
     for (const e of this.elevators) e.update(dt, now);
     this.updateRooms(now);
     this.social.update(now);
