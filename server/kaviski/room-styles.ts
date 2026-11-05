@@ -27,7 +27,7 @@ export function parseRoomStyles(body: unknown): ParsedStyles {
     const key = kvPathKey(path);
     if (!key || path.length > KV_PATH_MAX) return { error: tr('caminho de sala inválido: {0}', [path.slice(0, 80)]) };
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { error: tr('estilo inválido para {0}', [path.slice(0, 80)]) };
-    const r = raw as { color?: unknown; group?: unknown; pinned?: unknown; name?: unknown; path?: unknown };
+    const r = raw as { color?: unknown; group?: unknown; pinned?: unknown; name?: unknown; path?: unknown; hidden?: unknown };
     const style: KvRoomEntry = {};
     if (r.color !== undefined && r.color !== null && r.color !== '') {
       const color = kvColor(r.color);
@@ -47,6 +47,16 @@ export function parseRoomStyles(body: unknown): ParsedStyles {
       if (typeof r.name !== 'string') return { error: tr('nome inválido para {0}', [path.slice(0, 80)]) };
       const name = kvRoomName(r.name);
       if (name) style.name = name;
+    }
+    if (r.hidden !== undefined && r.hidden !== null) {
+      if (typeof r.hidden !== 'boolean') return { error: tr('hidden inválido para {0} (use true ou false)', [path.slice(0, 80)]) };
+      if (r.hidden) style.hidden = true;
+    }
+    if (style.hidden) {
+      // Escondida vence o resto: não faz sentido cor, nome ou sala fixa de uma sala que não aparece.
+      out.delete(key);
+      out.set(key, { hidden: true });
+      continue;
     }
     if (!style.color && !style.group && !style.pinned && !style.name) continue;
     if (style.pinned) {

@@ -21,6 +21,7 @@ export const EN: Readonly<Record<string, string>> = {
   "{0} · entrar": "{0} · sign in",
   "escritório virtual · Habblaud": "virtual office · Habblaud",
   "pinned inválido para {0} (use true ou false)": "invalid pinned for {0} (use true or false)",
+  "hidden inválido para {0} (use true ou false)": "invalid hidden for {0} (use true or false)",
   "nome inválido para {0}": "invalid name for {0}",
   "sala fixa precisa de caminho absoluto: {0}": "a pinned room needs an absolute path: {0}",
   "id de sessão do TwiCC inválido": "invalid TwiCC session id",

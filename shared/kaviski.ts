@@ -15,6 +15,8 @@ export interface KvRoomStyle {
   group?: string;
   /** Sala fixa: existe sempre no escritório, mesmo sem ninguém. */
   pinned?: boolean;
+  /** Sala escondida: nem a sala nem os agentes dela aparecem (projeto fora da organização da empresa). */
+  hidden?: boolean;
 }
 
 /** Entrada do mapa de estilos guardada no servidor (o que vai ao snapshot é só o KvRoomStyle). */

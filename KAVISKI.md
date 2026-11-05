@@ -150,3 +150,8 @@ Subir sempre com `python3 /home/hostadmin/base/scripts/kc-habblaud.py subir --bu
 ## HTTP puro na porta remota (sem certificado)
 - `server/http/remote.ts` (1 linha, `fork Kaviski`): com `HABBLAUD_REMOTE_INSECURE_HTTP=1` a porta remota é HTTP mesmo que exista certificado em `~/.habblaud/remote-tls` (no original, o certificado vence). Decisão do Vitor: rede local, sem instalar CA. Com TwiCC (`http://…:3500`) e Habblaud (`http://…:4748`) os dois em HTTP no mesmo IP, são same-site e o cookie `SameSite=Strict` original funciona dentro do iframe do TwiCC.
 - Conflito no merge: manter `tls: hasTls && !insecure ? tls : undefined`.
+
+## Salas escondidas e volta ao visual original (2026-11-05)
+- Os andares (`HABBLAUD_FLOOR_COLS`, `floor`/`dim`) foram **revertidos** (`git revert` de 504113e e 0966a56): o Vitor preferiu o visual original. As salas fixas (`pinned`) e as cores/selos (`color`/`group`) continuam no código, mas o `kc-habblaud.py` não as manda mais — sem elas o prédio é o original.
+- Campo novo `"hidden": true` no mapa de `/api/rooms/style`: a sala e **todos os agentes dela** somem do snapshot (lista, prédio, contadores). Vence os outros campos da entrada. Implementado em `server/kaviski/index.ts` (`decorate`) e `room-styles.ts`; testes em `server/kaviski/hidden.test.ts`. O `kc-habblaud.py estilos` esconde os projetos sem GitHub, os com ` *` no nome e a pasta pessoal (`~`).
+- Conflito no merge: nenhum arquivo original novo foi tocado por esta mudança.

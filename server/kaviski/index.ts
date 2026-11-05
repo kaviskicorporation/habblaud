@@ -11,7 +11,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { join } from 'node:path';
 import type { OfficeSnapshot } from '../../shared/types';
-import { kvBrand, kvTwiccBase, type KvMeta, type KvSnapshotMeta } from '../../shared/kaviski';
+import { kvBrand, kvPathKey, kvTwiccBase, type KvMeta, type KvSnapshotMeta } from '../../shared/kaviski';
 import { tr } from '../../shared/i18n';
 import { log } from '../log';
 import { HttpError, readJson, sendJson } from '../http/app';
@@ -67,7 +67,15 @@ export function createKaviski(opts: { dataDir: string | null; env?: NodeJS.Proce
   let office: KvOffice | undefined;
 
   const decorate = (snap: OfficeSnapshot): void => {
-    if (styles.size) snap.rooms = kvDecorateRooms(snap.rooms, styles.entries(), { alias: opts.roomAlias, createdAt: startedAt });
+    if (styles.size) {
+      const hidden = new Set(styles.entries().filter(([, e]) => e.hidden).map(([k]) => k));
+      if (hidden.size) {
+        // Salas escondidas: some a sala e todo agente dela (principal e subagentes), como se não existissem.
+        snap.rooms = snap.rooms.filter((r) => !hidden.has(kvPathKey(r.path ?? r.id)));
+        snap.agents = snap.agents.filter((a) => !hidden.has(kvPathKey(a.roomId)));
+      }
+      snap.rooms = kvDecorateRooms(snap.rooms, styles.entries().filter(([, e]) => !e.hidden), { alias: opts.roomAlias, createdAt: startedAt });
+    }
     if (twiccUrl || brand) {
       const meta: KvMeta = {};
       if (twiccUrl) meta.twiccUrl = twiccUrl;
