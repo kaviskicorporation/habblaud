@@ -15,6 +15,7 @@ import { h, iconButton } from '../../ui/dom';
 import { ICONS } from '../../ui/icons';
 import { ROLE_LABEL } from './people';
 import { kvPeople, kvRandomSeed, STATUS_LABEL } from './world';
+import { kvOpenPersonCard } from './person-card';
 
 const WALK_KEY = 'habblaud.kv.andar';
 
@@ -138,7 +139,18 @@ export class KvOnline {
           {},
           h(
             'button',
-            { class: 'kv-online__item', type: 'button', attrs: !p.pos || p.id === s?.me ? { disabled: '' } : {}, on: { click: () => kvPeople.follow?.(p.id) } },
+            {
+              class: 'kv-online__item',
+              type: 'button',
+              attrs: p.id === s?.me ? { disabled: '' } : { title: tr('Abrir o cartão de {0}', [p.name]) },
+              on: {
+                click: (e: Event) => {
+                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  this.toggle(false);
+                  kvOpenPersonCard(p.id, { x: r.left + r.width / 2, y: r.top });
+                },
+              },
+            },
             avatarOf(p.look),
             h(
               'span',

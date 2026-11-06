@@ -146,3 +146,29 @@ export function kvChatText(v: unknown): string | undefined {
   const s = v.replace(/[\u0000-\u0008\u000b-\u001f\u007f\u2028\u2029\u202a-\u202e\u2066-\u2069]/g, '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
   return s ? [...s].slice(0, KV_CHAT_MAX).join('') : undefined;
 }
+
+// ---------------------------------------------------------------- conversa 1:1 (estilo Teams)
+
+/** Uma fala na conversa 1:1 (evento `dm` do fluxo de presença, para quem manda e quem recebe). */
+export interface KvDirectMessage {
+  id: string;
+  at: number;
+  from: { id: string; name: string; role: KvRole };
+  to: { id: string; name: string };
+  text: string;
+  /** Pedido urgente (quem recebe ganha aviso mais chamativo). */
+  urgent?: boolean;
+}
+
+/** Uma pessoa com quem dá para conversar (GET /api/kaviski/humanos/contacts). */
+export interface KvContact {
+  id: string;
+  name: string;
+  role: KvRole;
+  look: KvLook;
+  online?: boolean;
+  status?: KvStatus;
+  /** Falas dela que eu ainda não li. */
+  unread: number;
+  last?: { text: string; at: number; mine: boolean };
+}

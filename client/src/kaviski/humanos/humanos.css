@@ -493,17 +493,19 @@ button.kv-me:hover {
   object-fit: contain;
 }
 
-/* ---- fase 2: conversa ---- */
+/* ---- fase 2 e 1:1: conversas (estilo Teams, com a cara do Habblaud) ---- */
 
 .kv-dock__media {
   display: contents;
 }
 
-.kv-dock__chat {
+.kv-dock__chat,
+.kv-btn-chat {
   position: relative;
 }
 
-.kv-dock__chat.is-on {
+.kv-dock__chat.is-on,
+.kv-btn-chat.is-on {
   color: var(--ui-accent);
   background: var(--ui-accent-soft);
 }
@@ -520,6 +522,7 @@ button.kv-me:hover {
   color: #fff;
   font: 700 10px/15px var(--font-ui);
   text-align: center;
+  pointer-events: none;
 }
 
 .kv-dock__badge[hidden] {
@@ -532,36 +535,221 @@ button.kv-me:hover {
   left: 50%;
   top: calc(var(--free-top) + 54px);
   transform: translateX(-50%);
-  width: min(380px, calc(100vw - 24px));
-  max-height: min(52vh, 460px);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px 12px;
+  width: min(680px, calc(100vw - 24px));
+  height: min(62vh, 540px);
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
   border-radius: var(--radius);
   border: 1px solid var(--ui-line-strong);
   background: var(--ui-bg-solid);
   box-shadow: 0 18px 50px rgba(5, 7, 12, 0.55);
   color: var(--ui-text);
   font: 13px/1.4 var(--font-ui);
+  overflow: hidden;
 }
 
 .kv-chat[hidden] {
   display: none;
 }
 
+.kv-chat__side {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--ui-line);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.kv-chat__side-head {
+  padding: 12px 12px 6px;
+  font: 600 14px/1.2 var(--font-px);
+  letter-spacing: 0.02em;
+}
+
+.kv-chat__search {
+  margin: 4px 10px 8px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--ui-line-strong);
+  background: var(--ui-bg-soft);
+  color: var(--ui-text);
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.kv-chat__search:focus {
+  outline: none;
+  border-color: var(--ui-accent);
+}
+
+.kv-chat__convs {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0 6px 8px;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.kv-chat__conv {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.kv-chat__conv:hover {
+  background: var(--ui-bg-hover);
+}
+
+.kv-chat__conv.is-on {
+  background: var(--ui-accent-soft);
+  box-shadow: inset 2px 0 0 var(--ui-accent);
+}
+
+.kv-chat__conv-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 6px;
+  background: var(--ui-bg-soft);
+  font-size: 15px;
+}
+
+.kv-chat__avatar {
+  position: relative;
+  flex: none;
+}
+
+.kv-chat__presence {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--ui-bg-solid);
+  background: var(--st-working);
+}
+
+.kv-chat__presence.kv-st--ocupado {
+  background: var(--lv-crit);
+}
+
+.kv-chat__presence.kv-st--ausente {
+  background: var(--st-waiting);
+}
+
+.kv-chat__presence.is-off {
+  background: var(--st-offline);
+}
+
+.kv-chat__conv-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.kv-chat__conv-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.kv-chat__conv-top strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.kv-chat__conv-top time {
+  flex: none;
+  font-size: 11px;
+  color: var(--ui-faint);
+}
+
+.kv-chat__conv-preview {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--ui-muted);
+}
+
+.kv-chat__conv.has-unread .kv-chat__conv-top strong,
+.kv-chat__conv.has-unread .kv-chat__conv-preview {
+  color: var(--ui-text);
+  font-weight: 700;
+}
+
+.kv-chat__unread {
+  flex: none;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--lv-crit);
+  color: #fff;
+  font: 700 10.5px/18px var(--font-ui);
+  text-align: center;
+}
+
+.kv-chat__main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
 .kv-chat__head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--ui-line);
+}
+
+.kv-chat__head-icon {
+  display: flex;
+  flex: none;
+}
+
+.kv-chat__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
 }
 
 .kv-chat__title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font: 700 13.5px/1.2 var(--font-ui);
+  font: 700 14px/1.2 var(--font-ui);
+}
+
+.kv-chat__subtitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--ui-muted);
+}
+
+.kv-chat__back {
+  display: none;
+  font-size: 22px;
+  line-height: 1;
 }
 
 .kv-chat__close {
@@ -571,42 +759,60 @@ button.kv-me:hover {
 
 .kv-chat__list {
   flex: 1;
-  min-height: 60px;
+  min-height: 0;
   margin: 0;
-  padding: 0;
+  padding: 12px;
   list-style: none;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
 }
 
 .kv-chat__msg {
   display: flex;
   flex-direction: column;
-  padding: 5px 8px;
-  border-radius: var(--radius-sm);
+  align-self: flex-start;
+  max-width: 82%;
+  margin-top: 8px;
+  padding: 6px 10px 7px;
+  border-radius: 10px 10px 10px 3px;
   background: var(--ui-bg-soft);
-  border-left: 3px solid var(--ui-line-strong);
+  border: 1px solid var(--ui-line);
 }
 
-.kv-chat__msg.kv-role--cliente {
-  border-left-color: var(--st-working);
+.kv-chat__msg.is-grouped {
+  margin-top: 0;
+  border-top-left-radius: 3px;
 }
 
-.kv-chat__msg.kv-role--equipe,
-.kv-chat__msg.kv-role--admin {
-  border-left-color: var(--ui-accent);
+.kv-chat__msg.is-mine {
+  align-self: flex-end;
+  border-radius: 10px 10px 3px 10px;
+  background: var(--ui-accent-soft);
+  border-color: rgba(124, 200, 255, 0.3);
+}
+
+.kv-chat__msg.is-mine.is-grouped {
+  border-top-right-radius: 3px;
+}
+
+.kv-chat__msg.kv-role--cliente:not(.is-mine) {
+  border-left: 3px solid var(--st-working);
+}
+
+.kv-chat__msg.is-urgent {
+  border-color: var(--lv-crit);
 }
 
 .kv-chat__msg.is-old {
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
 .kv-chat__meta {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   font-size: 11.5px;
   color: var(--ui-muted);
 }
@@ -622,8 +828,12 @@ button.kv-me:hover {
 }
 
 .kv-chat__hint {
-  font-size: 12px;
+  align-self: center;
+  margin: auto 0;
+  padding: 16px;
+  font-size: 12.5px;
   color: var(--ui-faint);
+  text-align: center;
   list-style: none;
 }
 
@@ -631,15 +841,17 @@ button.kv-me:hover {
   display: flex;
   gap: 6px;
   align-items: flex-end;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--ui-line);
 }
 
 .kv-chat__input {
   flex: 1;
-  min-height: 32px;
-  max-height: 96px;
-  resize: vertical;
-  padding: 7px 9px;
-  border-radius: 6px;
+  min-height: 34px;
+  max-height: 110px;
+  resize: none;
+  padding: 7px 10px;
+  border-radius: 8px;
   border: 1px solid var(--ui-line-strong);
   background: var(--ui-bg-soft);
   color: var(--ui-text);
@@ -651,14 +863,180 @@ button.kv-me:hover {
   border-color: var(--ui-accent);
 }
 
+.kv-chat__input:disabled {
+  opacity: 0.55;
+}
+
+.kv-chat__send {
+  height: 34px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.kv-chat__greet-btn {
+  height: 34px;
+  font-size: 15px;
+}
+
+.kv-chat__greet-btn[hidden] {
+  display: none;
+}
+
 .kv-chat__error {
   margin: 0;
+  padding: 0 12px 10px;
   font-size: 12px;
   color: var(--lv-crit);
 }
 
 .kv-chat__error:empty {
   display: none;
+}
+
+/* celular: uma coluna (lista ou conversa) */
+@media (max-width: 700px) {
+  .kv-chat {
+    grid-template-columns: 1fr;
+    top: calc(var(--free-top) + 4px);
+    height: min(78vh, 620px);
+  }
+
+  .kv-chat.is-reading .kv-chat__side {
+    display: none;
+  }
+
+  .kv-chat:not(.is-reading) .kv-chat__main {
+    display: none;
+  }
+
+  .kv-chat__back {
+    display: block;
+  }
+}
+
+/* aviso de mensagem nova (com a janela fechada ou noutra conversa) */
+.kv-chat-toast {
+  position: fixed;
+  z-index: 46;
+  left: 50%;
+  top: calc(var(--free-top) + 54px);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(420px, calc(100vw - 24px));
+  padding: 8px 14px 8px 8px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(124, 200, 255, 0.45);
+  background: var(--ui-bg-solid);
+  box-shadow: 0 14px 40px rgba(5, 7, 12, 0.55);
+  color: var(--ui-text);
+  text-align: left;
+  cursor: pointer;
+  animation: ui-dialog-in 0.25s var(--ease);
+}
+
+.kv-chat-toast[hidden] {
+  display: none;
+}
+
+.kv-chat-toast.is-urgent {
+  border-color: var(--lv-crit);
+}
+
+.kv-chat-toast__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 12.5px;
+}
+
+.kv-chat-toast__text span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ui-muted);
+}
+
+/* cartão da pessoa */
+.kv-person-card {
+  position: fixed;
+  z-index: 47;
+  width: 300px;
+  padding: 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--ui-line-strong);
+  background: var(--ui-bg-solid);
+  box-shadow: 0 18px 50px rgba(5, 7, 12, 0.6);
+  color: var(--ui-text);
+  font: 13px/1.4 var(--font-ui);
+  animation: ui-dialog-in 0.2s var(--ease);
+}
+
+.kv-person-card[hidden] {
+  display: none;
+}
+
+.kv-person-card__top {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.kv-person-card__avatar {
+  display: flex;
+  flex: none;
+}
+
+.kv-person-card__who {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+}
+
+.kv-person-card__name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 700 16px/1.2 var(--font-ui);
+}
+
+.kv-person-card__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.kv-person-card__where {
+  font-size: 12px;
+  color: var(--ui-muted);
+}
+
+.kv-person-card__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.kv-person-card__action {
+  justify-content: center;
+  height: 32px;
+}
+
+.kv-person-card__action:first-child {
+  grid-column: 1 / -1;
+  background: #2f7fd1;
+  border-color: #58a6f2;
+  color: #fff;
+}
+
+.kv-person-card__icon {
+  font-size: 14px;
 }
 
 /* ---- fase 3: pessoa + agente ---- */

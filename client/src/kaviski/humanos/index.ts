@@ -14,12 +14,16 @@ import { KvPresenceClient } from './presence';
 import { kvStartMedia } from './media';
 import { KvBar } from './bar';
 import { KvChatPanel } from './chat';
+import { KvPersonCard, kvRegisterBasicActions } from './person-card';
+import { kvTopButton } from './topbar';
 import { kvStartAgentExtras } from './agent';
 import { kvPeople } from './world';
 import type { OfficeStore } from '../../net/store';
 import './humanos.css';
 
 const PEOPLE_ICON = pixelIcon(['..##....##..', '.####..####.', '.####..####.', '..##....##..', '............', '.####..####.', '######.#####', '######.#####', '######.#####']);
+
+const CHAT_TOP_ICON = pixelIcon(['.########.', '#........#', '#.##.##..#', '#........#', '#.#####..#', '#........#', '.###.####.', '...##.....', '...#......']);
 
 let me: KvMe | null = null;
 
@@ -57,6 +61,10 @@ export function kvStartHumanos(store: OfficeStore, root: ParentNode = document):
       let chat: KvChatPanel | null = null;
       const bar = new KvBar(store, () => chat?.toggle());
       chat = new KvChatPanel(client, bar, store);
+      // Conversas sempre à mão no topo (com as não lidas), o cartão de pessoa e as ações básicas dele.
+      chat.attachTopButton(kvTopButton(CHAT_TOP_ICON, tr('Conversas'), () => chat?.toggle(), 'kv-btn-chat', 15, root));
+      new KvPersonCard(client, store);
+      kvRegisterBasicActions(chat);
       // Fase 3: "Chamar até mim" na gaveta do agente e o agente andando até quem chamou.
       kvStartAgentExtras((text) => bar.warn(text));
       client.onEvent<{ agentId: string; to: string; name: string }>('summon', (e) => kvPeople.summon?.(e.agentId, e.to === client.state?.me ? null : e.to, e.name));

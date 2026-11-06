@@ -176,6 +176,26 @@ Liga com `HABBLAUD_HUMANOS=1` (e a porta remota configurada, como hoje). Sem a v
   mensagens, `kvHumanos.attachMessages`). Todo o resto continua fechado. `kvRemoteAllows(allowed, req, feature)`.
 - Código: `server/kaviski/humanos/{audit,index}.ts`, `client/src/kaviski/humanos/{agent,world,people}.ts`.
 
+### Conversas estilo Teams e cartão de pessoa (2026-11-06) ✅ (pedido do Vitor)
+- **Cartão da pessoa** (`person-card.ts`): clicar no boneco de alguém (andando ou não) ou na pessoa na lista de online
+  abre um cartão com boneco, nome, papel, status, onde está e os botões de **todas as ações registradas** em
+  `person-actions.ts` (registro comum com a sessão d553e49d). Daqui: **Mensagem**, **Cumprimentar** e **Ir até** (o meu
+  boneco anda até perto da pessoa).
+- **Conversas** (`chat.ts`): janela de duas colunas embaixo da barra do topo, com botão fixo no topo (com as não lidas),
+  na barra do boneco e no Enter. À esquerda: "Aqui" (a conversa da área, fase 2) e cada pessoa com quem posso falar
+  (online ou não), com bolinha de status, a última fala e quantas não li, e busca. À direita: a conversa (balões, meus à
+  direita, falas seguidas agrupadas). Celular: uma coluna, com voltar.
+- **Conversa 1:1** (`server/kaviski/humanos/direct.ts`): `GET /api/kaviski/humanos/contacts`,
+  `GET|POST /api/kaviski/humanos/dm` (`{to, text, urgent?}`), `POST /api/kaviski/humanos/dm/read`. Evento `dm`
+  (`KvDirectMessage`: `{id, at, from:{id,name,role}, to:{id,name}, text, urgent?}`) para quem manda e quem recebe.
+  Guardada em `<dataDir>/kaviski/dm.json` (600; 200 falas por conversa, 90 dias) com "lido até aqui". Quem fala com
+  quem: equipe/admin com todos; cliente com a equipe e com os clientes da mesma empresa (as pastas se cruzam), nunca
+  com outro cliente. Mensagem nova com a janela fechada: contador + aviso pequeno (clique abre; urgente fica até clicar).
+  `kvOpenDirect(id)` / `kvPeople.openDirect(id)` abrem a 1:1 (os avisos fora da aba da sessão d553e49d usam).
+- **Voz e vídeo**: ao trocar de área, microfone, câmera e tela **continuam** (as faixas passam para a chamada nova sem
+  desligar; antes a tela compartilhada caía ao andar); quem compartilha vê a própria tela com **Parar**; "Requested
+  device not found" virou "Nenhuma câmera encontrada neste aparelho" (e bloqueada / em uso por outro programa).
+
 ### Endereço público: https://escritorio.kaviski.com.br (2026-11-06)
 Decisão do Vitor: **sem VPS**. O nome só funciona na rede local e pela VPN (Tailscale, que roteia 192.168.1.0/24).
 Infraestrutura feita pela sessão `01.Geral` (rede/proxy: não mexer sem avisar):

@@ -22,6 +22,7 @@ import { kvFilterStream } from './stream-filter';
 import { KvPresence } from './presence';
 import { kvAreaAllowed, kvCallName, kvLiveKitConfig, kvLiveKitToken } from './livekit';
 import { KvChat } from './chat';
+import { KvDirect } from './direct';
 import { KvAudit, kvShort, kvTapBody, type KvAuditEntry } from './audit';
 import type { OutboxMessage } from '../../../shared/types';
 import { kvParseLook, type KvLook } from '../../../shared/kaviski-presence';
@@ -34,6 +35,9 @@ const PROFILE_PATH = `${HUMANOS_API}/profile`;
 const LIVEKIT_PATH = `${HUMANOS_API}/livekit`;
 const LIVEKIT_TOKEN_PATH = `${HUMANOS_API}/livekit-token`;
 const CHAT_PATH = `${HUMANOS_API}/chat`;
+const CONTACTS_PATH = `${HUMANOS_API}/contacts`;
+const DM_PATH = `${HUMANOS_API}/dm`;
+const DM_READ_PATH = `${HUMANOS_API}/dm/read`;
 const SUMMON_PATH = `${HUMANOS_API}/summon`;
 const AUDIT_PATH = `${HUMANOS_API}/audit`;
 const MESSAGE_ITEM = /^\/api\/messages\/([^/]+)$/;
@@ -121,6 +125,49 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
   const presence = new KvPresence({ snapshot: deps.snapshot, look: lookOf });
   const chat = new KvChat(presence, deps.snapshot, dir ? join(dir, 'chat.json') : null);
   const audit = new KvAudit(dir ? join(dir, 'audit.jsonl') : null);
+  const direct = new KvDirect({
+    people: () => people(),
+    online: () => new Map(presence.online().map((o) => [o.person.id, o.status])),
+    look: (id) => lookOf(id),
+    emit: (event, data, to) => presence.emit(event, data, (viewer) => to(viewer)),
+    file: dir ? join(dir, 'dm.json') : null,
+  });
+
+  /** Conversa 1:1 e contatos (direct.ts). */
+  const directRoute = (req: IncomingMessage, res: ServerResponse, path: string, url: URL): void => {
+    const method = req.method ?? 'GET';
+    const person = whoIs(req);
+    if (!person) {
+      req.resume();
+      return sendJson(res, 403, { error: tr('entre com a sua conta para aparecer no escritório') });
+    }
+    const isRead = method === 'GET' || method === 'HEAD';
+    if (path === CONTACTS_PATH) {
+      req.resume();
+      return isRead ? sendJson(res, 200, { contacts: direct.contacts(person) }) : sendJson(res, 405, { error: tr('método não permitido') });
+    }
+    if (path === DM_PATH && isRead) {
+      req.resume();
+      const list = direct.history(person, url.searchParams.get('with'));
+      return list ? sendJson(res, 200, { messages: list }) : sendJson(res, 404, { error: tr('pessoa não encontrada') });
+    }
+    if (method !== 'POST') {
+      req.resume();
+      res.setHeader('Allow', path === DM_PATH ? 'GET, POST' : 'POST');
+      return sendJson(res, 405, { error: tr('método não permitido') });
+    }
+    readJson(req, 8192)
+      .then((body) => {
+        if (path === DM_READ_PATH) {
+          if (!direct.read(person, (body as { with?: unknown })?.with)) throw new HttpError(404, tr('pessoa não encontrada'));
+          return sendJson(res, 200, { ok: true });
+        }
+        const r = direct.send(person, body);
+        if (!r.ok) throw new HttpError(r.status, r.error);
+        sendJson(res, 200, { message: r.message });
+      })
+      .catch((err) => fail(res, err));
+  };
   let messages: KvMessageSender | undefined;
   const summoned = new Map<string, number>();
 
@@ -519,6 +566,10 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
         req.resume();
         if (!isAdmin(req)) sendJson(res, 403, { error: tr('só quem é admin cuida das pessoas') });
         else sendJson(res, 200, { entries: audit.recent(300) });
+        return true;
+      }
+      if (path === CONTACTS_PATH || path === DM_PATH || path === DM_READ_PATH) {
+        directRoute(req, res, path, url);
         return true;
       }
       if (path === CHAT_PATH) {

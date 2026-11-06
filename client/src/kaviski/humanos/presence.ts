@@ -1,7 +1,7 @@
 // Fork Kaviski (KAVISKI-HUMANOS.md): presença ao vivo, lado da página. Abre o fluxo SSE de GET
 // /api/kaviski/humanos/presence (quem está online, já filtrado pelo servidor) e manda a minha posição e o meu status por
 // POST. A posição sai no máximo a cada SEND_MS enquanto ando, e uma última vez quando paro.
-import type { KvChatMessage, KvPos, KvPresencePerson, KvPresenceState, KvStatus } from '../../../../shared/kaviski-presence';
+import type { KvChatMessage, KvDirectMessage, KvPos, KvPresencePerson, KvPresenceState, KvStatus } from '../../../../shared/kaviski-presence';
 
 const URL_ = '/api/kaviski/humanos/presence';
 export const SEND_MS = 120;
@@ -38,7 +38,7 @@ export class KvPresenceClient {
       }
       for (const cb of this.listeners) cb(this.state);
     });
-    for (const name of ['chat', 'summon']) {
+    for (const name of ['chat', 'summon', 'dm']) {
       this.es.addEventListener(name, (ev) => {
         let data: unknown;
         try {
@@ -51,8 +51,8 @@ export class KvPresenceClient {
     }
   }
 
-  /** Ouve um evento do fluxo de presença (`chat`, `summon`). */
-  onEvent<T>(name: 'chat' | 'summon', cb: (data: T) => void): () => void {
+  /** Ouve um evento do fluxo de presença (`chat`, `summon`, `dm`). */
+  onEvent<T>(name: 'chat' | 'summon' | 'dm', cb: (data: T) => void): () => void {
     let set = this.events.get(name);
     if (!set) this.events.set(name, (set = new Set()));
     set.add(cb as (data: unknown) => void);
@@ -74,6 +74,43 @@ export class KvPresenceClient {
     } catch {
       return 'offline';
     }
+  }
+
+  /** Manda uma fala na conversa 1:1: o erro do servidor ou null. */
+  async direct(to: string, text: string, urgent = false): Promise<string | null> {
+    try {
+      const res = await fetch('/api/kaviski/humanos/dm', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, text, ...(urgent ? { urgent: true } : {}) }),
+      });
+      if (res.ok) return null;
+      return ((await res.json().catch(() => ({}))) as { error?: string }).error ?? String(res.status);
+    } catch {
+      return 'offline';
+    }
+  }
+
+  /** A conversa 1:1 com a pessoa. */
+  async directHistory(withId: string): Promise<KvDirectMessage[]> {
+    try {
+      const res = await fetch(`/api/kaviski/humanos/dm?with=${encodeURIComponent(withId)}`, { credentials: 'same-origin', cache: 'no-store' });
+      if (!res.ok) return [];
+      return ((await res.json()) as { messages?: KvDirectMessage[] }).messages ?? [];
+    } catch {
+      return [];
+    }
+  }
+
+  /** Li a conversa 1:1 até agora. */
+  async directRead(withId: string): Promise<void> {
+    await fetch('/api/kaviski/humanos/dm/read', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ with: withId }),
+    }).catch(() => {});
   }
 
   /** Histórico curto de uma sala. */

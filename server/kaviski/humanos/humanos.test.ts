@@ -461,3 +461,46 @@ describe('cliente que pode pedir tarefas (fase 3)', () => {
     tmp.cleanup();
   });
 });
+
+import { KvDirect, kvCanTalk } from './direct';
+
+describe('conversa 1:1 (estilo Teams)', () => {
+  const P = (id: string, role: 'admin' | 'equipe' | 'cliente', rooms: string[] = []) => ({ id, user: id, name: id.toUpperCase(), role, rooms });
+  const rarm = P('rarm', 'cliente', ['/proj/Clientes/12-Rarm']);
+  const rarm2 = P('rarm2', 'cliente', ['/proj/Clientes/12-Rarm/01.App']);
+  const outro = P('outro', 'cliente', ['/proj/Clientes/99-Outro']);
+  const bia = P('bia', 'equipe');
+  it('cliente fala com a equipe e com a mesma empresa; nunca com outro cliente', () => {
+    expect(kvCanTalk(rarm, bia)).toBe(true);
+    expect(kvCanTalk(rarm, rarm2)).toBe(true);
+    expect(kvCanTalk(rarm, outro)).toBe(false);
+    expect(kvCanTalk(bia, outro)).toBe(true);
+    expect(kvCanTalk(bia, bia)).toBe(false);
+  });
+  it('manda, entrega às duas pessoas, guarda, conta não lidas e marca lido', () => {
+    const sent: { to: string[]; data: { text: string } }[] = [];
+    const all = [rarm, rarm2, outro, bia];
+    let t = 1_000_000;
+    const dm = new KvDirect({
+      people: () => all,
+      online: () => new Map([['bia', 'ocupado' as const]]),
+      look: () => undefined,
+      emit: (_e, data, to) => sent.push({ to: all.filter((p) => to(p)).map((p) => p.id), data: data as { text: string } }),
+      file: null,
+      now: () => t,
+    });
+    expect(dm.send(rarm, { to: 'outro', text: 'oi' })).toMatchObject({ ok: false, status: 404 });
+    expect(dm.send(rarm, { to: 'bia', text: '  ' })).toMatchObject({ ok: false, status: 400 });
+    expect(dm.send(rarm, { to: 'bia', text: 'Pode olhar o deploy?', urgent: true })).toMatchObject({ ok: true, message: { urgent: true, to: { id: 'bia' } } });
+    expect(sent[0]!.to.sort()).toEqual(['bia', 'rarm']);
+    t += 1000;
+    const c = dm.contacts(bia).find((x) => x.id === 'rarm')!;
+    expect(c).toMatchObject({ unread: 1, last: { text: 'Pode olhar o deploy?', mine: false } });
+    expect(dm.contacts(rarm).map((x) => x.id)).not.toContain('outro');
+    expect(dm.contacts(rarm).find((x) => x.id === 'bia')).toMatchObject({ online: true, status: 'ocupado', unread: 0 });
+    expect(dm.history(bia, 'rarm')!.map((m) => m.text)).toEqual(['Pode olhar o deploy?']);
+    expect(dm.history(outro, 'rarm')).toBeUndefined();
+    dm.read(bia, 'rarm');
+    expect(dm.contacts(bia).find((x) => x.id === 'rarm')!.unread).toBe(0);
+  });
+});

@@ -98,10 +98,14 @@ export const kvPeople: {
   locate?: (id: string | null) => { x: number; y: number; sx: number; sy: number; zoom: number } | null;
   /** Balão sobre o boneco de uma pessoa (null = o meu): fala do chat, cumprimento (fase 2). */
   say?: (id: string | null, icon: string, text: string, ms: number) => void;
-  /** Clicaram numa pessoa no escritório (com o meu boneco dentro): abre a roda de cumprimentos. */
+  /** Clicaram numa pessoa no escritório: abre o cartão dela (person-card.ts). */
   onPersonClick?: (id: string, at: { x: number; y: number }) => void;
   /** Pessoas no escritório com boneco aqui (id e posição em px de mundo), para achar a mais perto. */
   around?: () => { id: string; x: number; y: number }[];
+  /** Abre a conversa 1:1 com a pessoa (chat.ts kvOpenDirect). */
+  openDirect?: (id: string) => void;
+  /** Leva o meu boneco até perto da pessoa (A*); false se não dá (fora do escritório, pessoa sem lugar aqui). */
+  goTo?: (id: string) => boolean;
   /** Um agente foi chamado por uma pessoa (fase 3): ele anda até ela e fica um pouco (null = a pessoa sou eu). */
   summon?: (agentId: string, personId: string | null, name: string) => void;
 } = { client: null, inside: false, area: null };
@@ -212,6 +216,15 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
       { t: 'until', cond: () => ag.info.status !== status, minMs: 1500, maxMs: SUMMON_MS, pose: 'stand', dir: dirOf(to.x - tile.x * TILE, to.y - tile.y * TILE, 'down') },
     );
     ag.showBubble('🏃', tr('Indo até {0}', [name]), 4_000, now);
+  };
+  kvPeople.goTo = (id) => {
+    const sim = ctx.sim();
+    const to = puppets.get(PUPPET_PREFIX + id)?.ch;
+    if (!active() || !to || !sim.visitor) return false;
+    const tile = freeTileNear(sim, Math.floor(to.x / TILE), Math.floor(to.y / TILE));
+    if (!tile || !sim.visitorWalkTo(tile.x, tile.y, true)) return false;
+    ctx.camera.follow = VISITOR_ID;
+    return true;
   };
   kvPeople.around = () => [...puppets.entries()].map(([id, p]) => ({ id: id.slice(PUPPET_PREFIX.length), x: p.ch.x, y: p.ch.y }));
   kvPeople.follow = (id) => {
@@ -344,12 +357,13 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
 
   return {
     click(hit, at) {
-      if (!active()) return false;
-      const sim = ctx.sim();
-      if (hit?.type === 'agent' && hit.id.startsWith(PUPPET_PREFIX)) {
+      // clicar numa pessoa abre o cartão dela (andando ou não)
+      if (kvPeople.client && hit?.type === 'agent' && hit.id.startsWith(PUPPET_PREFIX)) {
         kvPeople.onPersonClick?.(hit.id.slice(PUPPET_PREFIX.length), at);
         return true;
       }
+      if (!active()) return false;
+      const sim = ctx.sim();
       if (hit?.type === 'agent' && hit.id === VISITOR_ID) return true;
       if (hit?.type === 'agent') return false;
       const w = ctx.camera.screenToWorld(at.x, at.y);
