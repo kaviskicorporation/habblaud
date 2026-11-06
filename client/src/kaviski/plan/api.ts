@@ -73,6 +73,8 @@ export interface KvActionSpot {
   x: number;
   y: number;
   furnitureId?: string;
+  /** Caixa do item em px de mundo (contorno aceso ao passar o mouse, clique no item). */
+  box?: { x: number; y: number; w: number; h: number };
 }
 
 /**
