@@ -25,7 +25,7 @@
 //   atalhos       | TI → pôster das teclas                          | Atalhos
 //   voz           | TI → bancada de voz e vídeo                     | ajustes do microfone (com o LiveKit)
 //   config        | TI → rack                                       | Configurações
-//   ir-andando    | TI → engrenagem                                 | liga/desliga "ir andando até o lugar"
+//   ir-andando    | TI → engrenagem                                 | liga/desliga "abrir só quando o boneco chegar"
 //   planta        | Arquitetura → maquete, planta na parede         | editor da planta (frente B registra)
 //   salas         | Arquitetura → prancheta                         | Salas (as próprias)
 //   conversas     | Correio → caixa de correio, telefone            | Conversas
@@ -98,8 +98,8 @@ export function kvBypassing(): boolean {
   return bypass;
 }
 
-/** O liga/desliga do "ir andando até o lugar" (go-and-do.ts preenche). */
-export const kvWalkPref = { get: () => true, set: (_on: boolean) => {} };
+/** O liga/desliga do "abrir só quando o boneco chegar" (go-and-do.ts preenche; salvo na conta da pessoa). */
+export const kvWalkPref = { get: () => false, set: (_on: boolean) => {} };
 
 export const KV_ACTION_DEFS: KvActionDef[] = [
   { key: 'pessoas', label: () => tr('Pessoas'), icon: '👥', button: '.kv-btn-people', pose: 'read' },
@@ -138,7 +138,7 @@ export const KV_ACTION_DEFS: KvActionDef[] = [
   { key: 'config', label: () => tr('Configurações'), icon: '⚙️', button: '.ui-topbar button', match: (el) => label(el, tr('Configurações')), pose: 'use' },
   {
     key: 'ir-andando',
-    label: () => tr('Ir andando até o lugar'),
+    label: () => tr('Abrir só quando o boneco chegar'),
     icon: '🚶',
     open: () => kvWalkPref.set(!kvWalkPref.get()),
     pose: 'use',

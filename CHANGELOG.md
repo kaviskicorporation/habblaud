@@ -49,7 +49,12 @@ do meio (0.**3**.0).
   parede, caixa de correio, púlpito, maquete da empresa, espelho de camarim, rede...). Clicar num botão do topo leva o
   seu boneco andando até o item da função (o balcão do RH para Pessoas, o espelho do provador para Meu boneco, a TV da
   central para o Timelapse...) e a janela abre lá; Esc cancela, Shift+clique abre direto. Tecla E perto dos itens,
-  clique no item e contorno aceso ao passar o mouse. Opção "Ir andando até o lugar" na lista de quem está online.
+  clique no item e contorno aceso ao passar o mouse.
+- **"Ir e fazer" com a janela na hora, e a escolha salva na sua conta**: por padrão, clicar num botão do topo abre a
+  janela na hora (como antes) e o seu boneco vai andando até o item da função mesmo assim; fechar a janela antes de ele
+  chegar faz ele parar. Quem prefere o jeito antigo liga **Abrir só quando o boneco chegar** (o boneco anda e a janela
+  só abre quando ele chega) em Configurações › Ir e fazer, na lista de quem está online ou na engrenagem da sala de TI.
+  A escolha fica salva na conta de cada pessoa e vale em qualquer navegador (sem conta, fica no navegador).
 - **Organograma da empresa**: áreas com cor e ícone, cargo e gestor de cada pessoa (tela Pessoas) e agentes de IA no
   mesmo quadro. Árvore em pixel art com o boneco de cada um e o status ao vivo, por hierarquia ou por área, busca, zoom,
   recolher equipes e exportar como imagem; no celular, lista. Cliente vê só a equipe.

@@ -1,10 +1,14 @@
 // Fork Kaviski (KAVISKI-HUMANOS.md → "Planta livre", frente C): "ir e fazer". Com o meu boneco no escritório e a
 // planta ligada, cada função tem um item físico numa sala temática (themes.ts): clicar no botão do topo (ou no menu
 // Mais, ou a tecla que abre a janela) faz o boneco andar — correndo, se longe — até o item mais perto, virar para ele,
-// fazer a pose (mexer, ler, pentear no espelho, falar no púlpito), um brilho aparece no item e a janela abre ali.
-// Clicar de novo, Esc ou andar cancela (chip "Indo até o RH… · Esc cancela"). Sem boneco, no modo clássico, sem planta
-// ou sem o item: abre direto, como sempre. Shift+clique no botão também abre direto. Opção "Ir andando até o lugar"
-// (lembrada no navegador; na engrenagem da sala de TI e na lista de quem está online), ligada por padrão.
+// fazer a pose (mexer, ler, pentear no espelho, falar no púlpito) e um brilho aparece no item. Dois jeitos, pela
+// configuração "Abrir só quando o boneco chegar" (salva na conta da pessoa, humanos/prefs.ts; sem conta, no navegador):
+// - desligada (padrão): a janela abre NA HORA e o boneco vai andando até o lugar mesmo assim; fechar a janela antes de
+//   ele chegar para o boneco (go-and-do-model.ts); chegando com a janela aberta, só faz a pose.
+// - ligada: o boneco anda e a janela só abre quando ele chega (chip "Indo até o RH… · Esc cancela").
+// Clicar de novo, Esc ou andar cancela a ida. Sem boneco, no modo clássico, sem planta ou sem o item: abre direto, como
+// sempre. Shift+clique no botão também abre direto, sem andar. A opção fica em Configurações (grupo "Ir e fazer"), na
+// engrenagem da sala de TI e na lista de quem está online.
 // Perto de um item: tecla E (dica "E · Pessoas (RH)"); clicar no item (perto ou longe) também; passar o mouse acende
 // o contorno dele.
 import type { HeldItem, Pose } from '../../art/api';
@@ -14,15 +18,18 @@ import { TILE } from '../../world/constants';
 import type { Step } from '../../world/sim/steps';
 import { h } from '../../ui/dom';
 import { kvRegisterInteract } from '../humanos/interact';
+import { kvPrefs } from '../humanos/prefs';
+import { kvRegisterSettingsGroup } from '../settings-groups';
+import { switchRow } from '../../ui/settings';
+import { KvOpenWatch } from './go-and-do-model';
 import { kvPeople } from '../humanos/world';
 import { kvAction, kvActions, kvPlanWorld, type KvActionSpot } from './api';
-import { KV_ACTION_DEFS, kvActionButton, kvActionDef, kvBypassing, kvRegisterThemeActions, kvWalkPref } from './themes-actions';
+import { KV_ACTION_DEFS, kvActionButton, kvActionDef, kvBypassing, kvRegisterThemeActions, kvWalkPref, type KvActionDef } from './themes-actions';
 import { kvThemeInfo } from './themes-info';
 import { kvSpotFeet } from './themes-spots';
 import './themes'; // registra a mobília das salas temáticas
 import './themes.css';
 
-const PREF = 'habblaud.kv.irAndando';
 /** Até quantos px (dos pés ao lugar de uso) a tecla E alcança. */
 const REACH = 1.7 * TILE;
 /** Longe assim (tiles), o boneco corre. */
@@ -36,6 +43,9 @@ interface Pending {
   spot: KvActionSpot;
   finish: Step;
   done: boolean;
+  /** Modo "abre na hora": a janela já abriu; fechar ela para o boneco. */
+  watch?: KvOpenWatch<Element>;
+  button?: HTMLElement | null;
 }
 
 let pending: Pending | null = null;
@@ -43,26 +53,41 @@ let chip: HTMLElement | null = null;
 
 // ------------------------------------------------------------------ preferência
 
-function walkOn(): boolean {
-  try {
-    return localStorage.getItem(PREF) !== '0';
-  } catch {
-    return true;
-  }
+/** A janela só abre quando o boneco chega (configuração da pessoa; padrão: desligada, abre na hora). */
+function arriveFirst(): boolean {
+  return kvPrefs.get().abrirAoChegar;
 }
 
-function setWalk(on: boolean): void {
-  try {
-    localStorage.setItem(PREF, on ? '1' : '0');
-  } catch {
-    // sem localStorage
-  }
-  syncPrefButtons();
-  toastChip(on ? tr('Ir andando até o lugar: ligado') : tr('Ir andando até o lugar: desligado (as janelas abrem direto)'));
+function setArriveFirst(on: boolean): void {
+  void kvPrefs.set({ abrirAoChegar: on }).then((ok) => {
+    if (!ok) toastChip(tr('Não deu para salvar na sua conta; ficou só neste navegador'));
+  });
+  toastChip(on ? tr('Abrir só quando o boneco chegar: ligado') : tr('Abrir só quando o boneco chegar: desligado (a janela abre na hora e o boneco vai até lá)'));
 }
 
-kvWalkPref.get = walkOn;
-kvWalkPref.set = setWalk;
+kvWalkPref.get = arriveFirst;
+kvWalkPref.set = setArriveFirst;
+kvPrefs.on(() => syncPrefButtons());
+
+// Configurações › "Ir e fazer" (só aparece com o "ir e fazer" ligado: pessoas no escritório)
+kvRegisterSettingsGroup(() => {
+  const sw = switchRow(
+    tr('Abrir só quando o boneco chegar'),
+    tr('Ligado: ao clicar num botão do topo, o seu boneco anda até o lugar da função e a janela só abre quando ele chega. Desligado: a janela abre na hora e o boneco vai andando até lá; fechar a janela antes de ele chegar faz ele parar. Shift+clique abre sem andar.'),
+    () => setArriveFirst(!arriveFirst()),
+  );
+  const where = h('span', { class: 'ui-set__hint' });
+  sw.hint.after(where);
+  const el = h('div', { class: 'ui-set-group kv-gd-settings', hidden: true }, h('h3', { text: tr('Ir e fazer') }), sw.row);
+  const render = () => {
+    el.hidden = !started;
+    sw.btn.setAttribute('aria-checked', String(arriveFirst()));
+    where.textContent = kvPrefs.inAccount ? tr('Fica salvo na sua conta (vale em qualquer navegador).') : tr('Fica salvo neste navegador.');
+  };
+  settingsRender = render;
+  return { el, render };
+});
+let settingsRender: (() => void) | null = null;
 
 // ------------------------------------------------------------------ onde fica cada coisa
 
@@ -116,7 +141,7 @@ function nearest(spots: KvActionSpot[], at: { x: number; y: number }): KvActionS
 
 /** Vale andar até o item desta ação agora? */
 function canWalk(key: string): boolean {
-  if (!walkOn() || !me() || kvPeople.resting) return false;
+  if (!me() || kvPeople.resting) return false;
   const c = kvPeople.ctl?.();
   if (!c || c.sim.visitorBusy) return false;
   return spotsOf(key).length > 0;
@@ -150,8 +175,32 @@ function runNow(key: string): void {
   }
 }
 
+/** Janelas (diálogos, popovers, painéis) visíveis agora — para saber se a janela da ação continua aberta. */
+const WINDOWS = 'dialog, [popover], [role="dialog"], [role="alertdialog"], [aria-modal="true"]';
+function visibleWindows(): Element[] {
+  const out: Element[] = [];
+  for (const el of document.querySelectorAll<HTMLElement>(WINDOWS)) {
+    if (!el.isConnected || el.hidden || el.closest('[hidden]') || el.className.toString().includes('kv-gd-')) continue;
+    if (el.getClientRects().length > 0) out.push(el);
+  }
+  return out;
+}
+
+/** O botão da ação está ligado/aberto? null = o botão não diz (sem aria-expanded/aria-pressed). */
+function buttonOn(el: HTMLElement | null | undefined): boolean | null {
+  if (!el) return null;
+  const v = el.getAttribute('aria-expanded') ?? el.getAttribute('aria-pressed');
+  return v === null ? null : v === 'true';
+}
+
+function buttonOf(key: string): HTMLElement | null {
+  const d: KvActionDef | undefined = kvActionDef(key);
+  return d?.button ? kvActionButton(d) : null;
+}
+
 /**
- * "Ir e fazer": o boneco anda até o item da ação mais perto e, ao chegar, a ação acontece. Sem como andar: abre direto.
+ * "Ir e fazer": o boneco anda até o item da ação mais perto. Com "Abrir só quando o boneco chegar", a ação acontece
+ * quando ele chega; sem (padrão), abre na hora e ele vai andando até lá. Sem como andar: abre direto.
  * `spot` = um item escolhido (clique ou E nele).
  */
 export function kvGoAndDo(key: string, opts: { direct?: boolean; spot?: KvActionSpot } = {}): void {
@@ -161,16 +210,28 @@ export function kvGoAndDo(key: string, opts: { direct?: boolean; spot?: KvAction
     return;
   }
   if (opts.direct || (!opts.spot && !canWalk(key))) return runNow(key);
+  const at0 = me();
+  const c0 = kvPeople.ctl?.();
+  const spot = opts.spot ?? (at0 ? nearest(spotsOf(key), at0) : null);
+  if (!at0 || !c0 || !c0.sim.visitor || !spot || c0.sim.visitorBusy) return runNow(key);
+  cancel();
+  const late = arriveFirst();
+  let watch: KvOpenWatch<Element> | undefined;
+  let button: HTMLElement | null = null;
+  if (!late) {
+    // abre na hora; o boneco vai andando mesmo assim (se a ação não tirou ele do escritório: modo clássico)
+    button = buttonOf(key);
+    watch = new KvOpenWatch(new Set(visibleWindows()), performance.now());
+    runNow(key);
+  }
   const at = me();
   const c = kvPeople.ctl?.();
   const v = c?.sim.visitor;
-  const spot = opts.spot ?? (at ? nearest(spotsOf(key), at) : null);
-  if (!at || !c || !v || !spot || c.sim.visitorBusy) return runNow(key);
-  cancel();
+  if (!at || !c || !v || c.sim.visitorBusy || kvPeople.resting) return late ? runNow(key) : undefined;
   const feet = kvSpotFeet(spot);
   const near = Math.hypot(feet.x - at.x, feet.y - at.y) <= REACH;
   const p = pose(key);
-  const finish: Step = { t: 'do', fn: () => arrive(key, spot) };
+  const finish: Step = { t: 'do', fn: () => arrive(key, late) };
   const steps: Step[] = [
     { t: 'go', tx: spot.tx, ty: spot.ty, dir: spot.dir },
     { t: 'do', fn: () => sparkle(spot, kvAction(key)?.icon ?? '✨') },
@@ -182,18 +243,18 @@ export function kvGoAndDo(key: string, opts: { direct?: boolean; spot?: KvAction
     let dist = Math.hypot(feet.x - at.x, feet.y - at.y);
     if (dist > FAR_TILES * TILE && c.me.teleport(c.sim, feet.x, feet.y, Date.now())) dist = 0;
     const run = dist > RUN_TILES * TILE;
-    if (!kvPeople.walkTo?.(spot.tx, spot.ty, run)) return runNow(key);
+    if (!kvPeople.walkTo?.(spot.tx, spot.ty, run)) return late ? runNow(key) : undefined;
     v.queue.push(...steps);
-    showChip(tr('Indo até {0}…', [roomName(spot) || actionLabel(key)]), true);
+    if (late) showChip(tr('Indo até {0}…', [roomName(spot) || actionLabel(key)]), true);
   }
-  pending = { key, spot, finish, done: false };
+  pending = { key, spot, finish, done: false, ...(watch ? { watch, button } : {}) };
 }
 
-function arrive(key: string, _spot: KvActionSpot): void {
+function arrive(key: string, late: boolean): void {
   if (pending) pending.done = true;
   pending = null;
   hideChip();
-  runNow(key);
+  if (late) runNow(key);
 }
 
 /** Cancela a ida (Esc, clique de novo). */
@@ -327,6 +388,8 @@ function bindButtons(): void {
       'click',
       (e) => {
         if (kvBypassing() || (e as MouseEvent).shiftKey) return;
+        // modo "abre na hora": clicar de novo fecha a janela (o próprio botão) e o boneco para
+        if (pending?.watch && pending.key === d.key) return void cancel();
         // botão já ligado/aberto (conversa aberta, foco ligado...): o clique fecha, direto, sem andar
         const on = el.getAttribute('aria-expanded') === 'true' || el.getAttribute('aria-pressed') === 'true' || el.classList.contains('is-on');
         if ((on || !canWalk(d.key)) && !(pending && pending.key === d.key)) return;
@@ -339,15 +402,16 @@ function bindButtons(): void {
   }
 }
 
-/** O botão "Ir andando até o lugar" na lista de quem está online (ao lado de Meu boneco). */
+/** O botão "Abrir ao chegar" na lista de quem está online (ao lado de Meu boneco). */
 const prefButtons = new Set<HTMLButtonElement>();
 function syncPrefButtons(): void {
+  const on = arriveFirst();
   for (const b of prefButtons) {
-    const on = walkOn();
     b.setAttribute('aria-pressed', String(on));
     b.classList.toggle('is-on', on);
-    b.textContent = on ? tr('🚶 Ir andando: ligado') : tr('🚶 Ir andando: desligado');
+    b.textContent = on ? tr('🚶 Abrir ao chegar: ligado') : tr('🚶 Abrir ao chegar: desligado');
   }
+  settingsRender?.();
 }
 
 function injectPref(): void {
@@ -356,8 +420,8 @@ function injectPref(): void {
   const b = h('button', {
     class: 'ui-btn ui-btn--sm kv-gd-pref',
     type: 'button',
-    title: tr('Clicar num botão do topo leva o seu boneco andando até o lugar da função (Shift+clique abre direto)'),
-    on: { click: () => setWalk(!walkOn()) },
+    title: tr('Ligado: o seu boneco anda até o lugar da função e a janela só abre quando ele chega. Desligado: a janela abre na hora e o boneco vai junto (Shift+clique abre sem andar)'),
+    on: { click: () => setArriveFirst(!arriveFirst()) },
   });
   prefButtons.add(b);
   box.append(b);
@@ -370,6 +434,8 @@ let started = false;
 export function kvStartGoAndDo(): void {
   if (started) return;
   started = true;
+  void kvPrefs.load(); // a configuração da conta (sem conta: a do navegador)
+  settingsRender?.();
   kvRegisterThemeActions();
   // as frentes D e B registram 'organograma' e 'planta' depois: os botões aparecem aos poucos
   bindButtons();
@@ -391,7 +457,9 @@ export function kvStartGoAndDo(): void {
       const t = e.target as HTMLElement | null;
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.closest?.('dialog[open], [role="dialog"]'))) return;
       const d = KV_ACTION_DEFS.find((x) => x.keys?.includes(e.key));
-      if (!d || !allowed(d.key) || !canWalk(d.key)) return;
+      if (!d || !allowed(d.key)) return;
+      if (pending?.watch && pending.key === d.key) return void cancel(); // a tecla fecha a janela; o boneco para
+      if (!canWalk(d.key)) return;
       e.preventDefault();
       e.stopPropagation();
       kvGoAndDo(d.key);
@@ -458,7 +526,10 @@ export function kvStartGoAndDo(): void {
     if (!v || (v.step !== p.finish && !v.queue.includes(p.finish))) {
       pending = null;
       hideChip();
+      return;
     }
+    // modo "abre na hora": fecharam a janela antes de o boneco chegar → ele para
+    if (p.watch && p.watch.update(performance.now(), visibleWindows(), buttonOn(p.button)) === 'closed') cancel();
   });
   Object.assign((window as { habblaud?: object }).habblaud ?? {}, { kvGoAndDo, kvPlanWorld, kvActions });
 }

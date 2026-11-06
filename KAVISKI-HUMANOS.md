@@ -726,7 +726,7 @@ direto como sempre.
   | Cabines de foco | relógio de tomate → **Modo foco (pomodoro)**; cabines de mesa com vidro |
   | Auditório | púlpito → **Palco (megafone)**; telão; fileiras de banquetas com corredor |
   | Central dos agentes | terminal → **Novo agente**; TV grande → **Timelapse (L)**; painel → **Meu dia (M)**; estante → **Histórico**; impressora → **Feed** |
-  | TI e ajustes | sino → **Avisos**; pôster das teclas → **Atalhos**; bancada → **Ajustes de voz e vídeo**; rack → **Configurações**; engrenagem → liga/desliga **Ir andando até o lugar** |
+  | TI e ajustes | sino → **Avisos**; pôster das teclas → **Atalhos**; bancada → **Ajustes de voz e vídeo**; rack → **Configurações**; engrenagem → liga/desliga **Abrir só quando o boneco chegar** |
   | Arquitetura | maquete e planta emoldurada → **Planta da empresa** (frente B); prancheta → **Salas** |
   | Correio | caixa de correio e telefone → **Conversas**; escaninho → **Entregas** |
   | Sala de descanso | rede → **Modo clássico**; fliperama (E = jogar, da W1); TV com sofá, poltronas, puffs |
@@ -747,9 +747,18 @@ direto como sempre.
   `const art = kvArt(artModule)` em `client/src/world/index.ts` (`themes-art.ts`; `kvRegisterSprite` para outros).
 - **"Ir e fazer"** (`go-and-do.ts`, `kvGoAndDo(key, {direct?, spot?})`): o boneco anda (corre se longe) até o item da
   ação mais perto (`kvPlanWorld.actionSpots()`, calculado por `kvComputeActionSpots` em `themes-spots.ts`), vira para
-  ele, faz a pose (mexer, ler papéis, pentear no espelho, falar no púlpito), um brilho com o ícone sobe do item e a ação
-  abre ali. Chip "Indo até o RH… · Esc cancela"; clicar de novo, Esc ou andar cancela. Sem boneco, modo clássico,
-  boneco no elevador, sem planta ou sem item: abre direto.
+  ele, faz a pose (mexer, ler papéis, pentear no espelho, falar no púlpito) e um brilho com o ícone sobe do item. Dois
+  jeitos, pela configuração **"Abrir só quando o boneco chegar"** (por pessoa, ver abaixo):
+  - **desligada (padrão)**: a janela abre **na hora do clique**, como antes do "ir e fazer", e o boneco vai andando até
+    o item mesmo assim (pose e brilho ao chegar; não reabre nada). **Fechar a janela antes de ele chegar para o boneco**
+    (cancela o trajeto): `KvOpenWatch` (`go-and-do-model.ts`) olha as janelas novas (`dialog`, `[popover]`,
+    `[role=dialog]`...) que apareceram até 1,5 s depois do clique e o `aria-expanded`/`aria-pressed` do botão; clicar
+    de novo no botão (ou a tecla) fecha a janela e para o boneco. Ação sem janela visível (mini-mapa, Visão geral...):
+    o boneco só vai até lá.
+  - **ligada**: o boneco anda e a janela **só abre quando ele chega**. Chip "Indo até o RH… · Esc cancela"; clicar de
+    novo, Esc ou andar cancela.
+  Nos dois: Esc ou andar cancela a ida; Shift+clique abre direto, sem andar. Sem boneco, modo clássico, boneco no
+  elevador, sem planta ou sem item: abre direto.
   - **Botões ligados** sem reescrever os módulos das outras frentes (`themes-actions.ts`, `KV_ACTION_DEFS`): um
     listener de captura em cada botão (os do topo, os que foram para o menu **Mais** — continuam os mesmos — e o "?"
     do mini-mapa) desvia o clique para o "ir e fazer"; `run` clica o próprio botão sem desvio. **Shift+clique** abre
@@ -760,16 +769,24 @@ direto como sempre.
   - **Quem pode**: cada ação pergunta ao botão dela (escondido = não pode) e Timelapse, Meu dia, Histórico e Novo agente
     são só da equipe (cliente e visitante: o servidor já recusava). Item de ação que eu não posso não acende, não tem E
     nem clique.
-  - **Opção "Ir andando até o lugar"** (padrão ligada, `habblaud.kv.irAndando` no navegador): botão na lista de quem
-    está online (ao lado de Meu boneco) e a engrenagem da sala de TI.
+  - **Configuração "Abrir só quando o boneco chegar"** (padrão desligada), **salva por pessoa**: `profile.prefs`
+    (`{abrirAoChegar}`) no `users.json` da conta (`<dataDir>/kaviski/`; visitante: no perfil do convite), lida e gravada
+    só pela própria pessoa em `GET/POST /api/kaviski/humanos/prefs` (`server/kaviski/humanos/prefs.ts`; formato e
+    validação em `shared/kaviski-prefs.ts`: chave desconhecida some, valor de tipo errado = 400; acesso local sem login
+    = o admin embutido). Na página, `kvPrefs` (`client/src/kaviski/humanos/prefs.ts`) busca ao ligar o "ir e fazer";
+    sem conta ou sem resposta, fica no `localStorage` (`habblaud.kv.prefs`). A opção antiga `habblaud.kv.irAndando`
+    (que desligava a caminhada) é ignorada: o padrão novo já abre na hora. Onde mudar: **Configurações › Ir e fazer**
+    (grupo registrado em `client/src/kaviski/settings-groups.ts`), o botão "🚶 Abrir ao chegar" na lista de quem está
+    online (ao lado de Meu boneco) e a engrenagem da sala de TI.
 - Testes no navegador (Playwright, instância 4811/4812, planta `habblaud.kvPlan.example()` com as 12 salas, 38 itens):
   cada ação do topo leva o boneco ao item certo e abre a janela; Esc cancela; Shift abre direto; E e clique; contorno;
   pose no espelho; cliente sem Pessoas/Registro/Convites/Novo agente/Timelapse/Meu dia/Histórico e sem "E · Pessoas" no
   balcão; celular (menu Mais → anda até o RH; botão de toque "E · Registro (RH)"). Depuração: `habblaud.kvGoAndDo(key)`,
   `habblaud.kvActions()`, `habblaud.kvPlanWorld.actionSpots()`.
 - Código: `client/src/kaviski/plan/{themes,themes-place,themes-info,themes-sprites,themes-dims,themes-art,themes-spots,
-  themes-actions,themes-harness,go-and-do}.ts` + `themes.css` (+ `themes.test.ts`, `themes-spots.test.ts`,
-  `themes-sprites.test.ts`); traduções em `shared/locales/kaviski-temas.ts`. Mudanças pequenas em arquivos do fork:
+  themes-actions,themes-harness,go-and-do,go-and-do-model}.ts` + `themes.css` (+ `themes.test.ts`, `themes-spots.test.ts`,
+  `themes-sprites.test.ts`, `go-and-do-model.test.ts`); preferência por pessoa em `client/src/kaviski/humanos/prefs.ts`,
+  `server/kaviski/humanos/prefs.ts` (+ `prefs.test.ts`) e `shared/kaviski-prefs.ts`; traduções em `shared/locales/kaviski-temas.ts`. Mudanças pequenas em arquivos do fork:
   `humanos/index.ts` (`kvStartGoAndDo()`), `humanos/world.ts` (`kvPeople.onItemClick` no clique). Contrato: campo
   opcional `box` em `KvActionSpot` (`plan/api.ts`).
 - **Habblaud World**: nada disto entra no snapshot do `Office` — as salas e os itens existem só na página (mobília da

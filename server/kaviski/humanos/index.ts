@@ -38,6 +38,8 @@ import { KvObjects, kvObjectsRoute } from './objects';
 import { kvCanEditOwnRoom } from '../../../shared/kaviski-rooms';
 import { KvPlanStore, kvIsPlanPath, kvPlanRoute, kvUsePlan } from './plan';
 import { KvOrg, kvOrgRoute } from './org';
+import { kvPrefsRoute } from './prefs';
+import { KV_PREFS_PATH } from '../../../shared/kaviski-prefs';
 
 export const HUMANOS_API = '/api/kaviski/humanos';
 const USERS_PATH = `${HUMANOS_API}/users`;
@@ -691,6 +693,10 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
       if (kvStageRoute({ stage, whoIs, config: lk.config }, req, res, path)) return true;
       if (path === PROFILE_PATH) {
         profileRoute(req, res);
+        return true;
+      }
+      if (path === KV_PREFS_PATH) {
+        kvPrefsRoute(req, res, whoIs(req), { profile: (id) => users.profile(id), setProfile: (id, p) => users.setProfile(id, p) });
         return true;
       }
       if (path === AGENDA_PATH || path === AGENDA_ROOMS_PATH) {
