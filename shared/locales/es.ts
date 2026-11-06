@@ -7,6 +7,7 @@ import { KV_EXTRAS_ES } from './kaviski-extras'; // fork Kaviski (KAVISKI-HUMANO
 import { KV_W1_ES } from './kaviski-w1'; // fork Kaviski (KAVISKI-HUMANOS.md, W1)
 import { KV_SOCIAL_ES } from './kaviski-social'; // fork Kaviski (KAVISKI-HUMANOS.md, W2)
 import { KV_MEDIA_ES } from './kaviski-media'; // fork Kaviski (KAVISKI-HUMANOS.md, W3)
+import { KV_UI_ES } from './kaviski-ui'; // fork Kaviski (KAVISKI-HUMANOS.md, W6)
 import { KV_APROV_ES } from './kaviski-aprovacoes'; // fork Kaviski (KAVISKI.md)
 export const ES: Readonly<Record<string, string>> = {
   ...KV_HUMANOS_ES, // fork Kaviski (KAVISKI-HUMANOS.md)
@@ -16,6 +17,7 @@ export const ES: Readonly<Record<string, string>> = {
   ...KV_MEDIA_ES, // fork Kaviski (KAVISKI-HUMANOS.md, W3)
   ...KV_SALAS_ES, // fork Kaviski: salas próprias e objetos
   ...KV_APROV_ES, // fork Kaviski (aprovações do TwiCC)
+  ...KV_UI_ES, // fork Kaviski (KAVISKI-HUMANOS.md, W6)
   // fork Kaviski (KAVISKI.md): client/src/kaviski, server/kaviski
   "Abrir esta sessão no TwiCC": "Abrir esta sesión en TwiCC",
   "Abrir no TwiCC": "Abrir en TwiCC",

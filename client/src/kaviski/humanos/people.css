@@ -1,0 +1,456 @@
+/* Fork Kaviski (KAVISKI-HUMANOS.md): tela de Pessoas (people.ts) com o kit de interface (ui/kit.css). */
+
+.kv-pp.ui-dialog {
+  height: min(88vh, 760px);
+}
+
+.kv-pp__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.kv-pp__body > .kv-ui-tabs {
+  align-self: flex-start;
+  flex: none;
+}
+
+.kv-pp__pane {
+  flex: 1;
+  min-height: 0;
+}
+
+.kv-pp__accounts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+  gap: 16px;
+}
+
+.kv-pp__side,
+.kv-pp__editor {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: 12px;
+  border: 1px solid var(--ui-line);
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.kv-pp__side {
+  padding: 10px;
+  gap: 8px;
+}
+
+.kv-pp__tools {
+  display: flex;
+  gap: 8px;
+}
+
+.kv-pp__tools > .kv-ui-input {
+  flex: 1;
+}
+
+.kv-pp__filter > .kv-ui-select {
+  width: auto;
+  min-width: 170px;
+  height: 30px;
+}
+
+.kv-pp__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 -4px;
+  padding: 2px 4px 4px;
+}
+
+.kv-pp__card {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 10px 10px 10px 11px;
+  border-radius: 10px;
+  border: 1px solid var(--ui-line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015));
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+
+.kv-pp__card:hover {
+  border-color: var(--ui-line-strong);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025));
+}
+
+.kv-pp__card.is-on {
+  border-color: rgba(124, 200, 255, 0.6);
+  background: linear-gradient(180deg, rgba(124, 200, 255, 0.14), rgba(124, 200, 255, 0.05));
+  box-shadow:
+    inset 3px 0 0 var(--ui-accent),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.18);
+}
+
+.kv-pp__card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+}
+
+.kv-pp__card-top,
+.kv-pp__card-meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.kv-pp__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 700 13.5px/1.2 var(--font-ui);
+}
+
+.kv-pp__user {
+  font: 12px/1.2 var(--font-mono);
+  color: var(--ui-muted);
+}
+
+.kv-pp__tag {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  font: 10.5px/1.3 var(--font-mono);
+  color: var(--ui-faint);
+}
+
+.kv-pp__flag {
+  font-size: 11.5px;
+  color: var(--st-working);
+}
+
+.kv-pp__flag::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin: 0 6px 1px 0;
+  background: currentColor;
+}
+
+.kv-pp__rooms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.kv-pp__rooms .kv-ui-chip {
+  height: 22px;
+  font-size: 11px;
+}
+
+.kv-pp__more,
+.kv-pp__muted {
+  font-size: 12px;
+  color: var(--ui-faint);
+}
+
+.kv-pp__card-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+
+.kv-pp__card:hover .kv-pp__card-actions,
+.kv-pp__card:focus-within .kv-pp__card-actions,
+.kv-pp__card.is-on .kv-pp__card-actions {
+  opacity: 1;
+}
+
+.kv-pp__card-del:hover {
+  color: #ff8a8a !important;
+  background: rgba(255, 107, 107, 0.14) !important;
+}
+
+/* ---- formulário */
+
+.kv-pp__editor {
+  overflow: hidden;
+}
+
+.kv-pp__form-head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--ui-line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent);
+}
+
+.kv-pp__form-head > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.kv-pp__new-ico {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px dashed rgba(124, 200, 255, 0.55);
+  background: var(--ui-accent-soft);
+  color: var(--ui-accent);
+}
+
+.kv-pp__form-title {
+  font: 700 15px/1.2 var(--font-ui);
+}
+
+.kv-pp__form-title.kv-ui-px {
+  font-size: 16px !important;
+}
+
+.kv-pp__form-sub {
+  font-size: 12px;
+  color: var(--ui-muted);
+}
+
+.kv-pp__form {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 14px 14px 0;
+}
+
+.kv-pp__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.kv-pp__can {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  border: 1px solid var(--ui-line);
+  background: rgba(255, 255, 255, 0.03);
+  list-style: none;
+}
+
+.kv-pp__can li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #c9d1e2;
+}
+
+.kv-pp__can li::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  flex: none;
+  transform: translateY(-2px);
+  background: var(--role-c, var(--ui-accent));
+}
+
+.kv-pp__can[data-role='admin'] {
+  --role-c: var(--st-waiting);
+}
+
+.kv-pp__can[data-role='cliente'] {
+  --role-c: var(--st-working);
+}
+
+.kv-pp__client {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(79, 209, 139, 0.25);
+  background: rgba(79, 209, 139, 0.05);
+}
+
+.kv-pp__error {
+  padding: 9px 11px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 107, 107, 0.45);
+  background: rgba(255, 107, 107, 0.1);
+  color: #ffb0b0;
+  font-size: 12.5px;
+}
+
+.kv-pp__actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 -14px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--ui-line);
+  background: rgba(20, 24, 33, 0.96);
+}
+
+.kv-pp__spacer {
+  flex: 1;
+}
+
+.kv-pp__del {
+  color: #ff8a8a !important;
+}
+
+.kv-pp__del:hover {
+  background: rgba(255, 107, 107, 0.14) !important;
+}
+
+/* ---- convites e registro */
+
+.kv-pp__invites,
+.kv-pp__log {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.kv-pp__audit {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style: none;
+}
+
+.kv-pp__audit-day {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px 2px 4px;
+  background: rgba(22, 26, 35, 0.97);
+  font: 700 11px/1 var(--font-ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ui-faint);
+}
+
+.kv-pp__audit-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--ui-line);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.kv-pp__audit-item.is-fail {
+  border-color: rgba(255, 107, 107, 0.35);
+  box-shadow: inset 3px 0 0 var(--lv-crit);
+}
+
+.kv-pp__audit-item time {
+  flex: none;
+  width: 42px;
+  padding-top: 3px;
+  font: 12px/1 var(--font-mono);
+  color: var(--ui-faint);
+}
+
+.kv-pp__audit-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.kv-pp__audit-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+
+.kv-pp__audit-action {
+  color: #c9d1e2;
+}
+
+.is-fail .kv-pp__audit-action {
+  color: #ff9a9a;
+}
+
+.kv-pp__audit-sub {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  color: var(--ui-muted);
+}
+
+.kv-pp__loading {
+  padding: 12px;
+}
+
+@media (max-width: 760px) {
+  .kv-pp.ui-dialog {
+    height: calc(100dvh - 16px);
+    max-height: none;
+    width: calc(100vw - 12px) !important;
+  }
+
+  .kv-pp__body {
+    overflow-y: auto;
+  }
+
+  .kv-pp__accounts {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .kv-pp__list {
+    max-height: 44vh;
+  }
+
+  .kv-pp__editor {
+    overflow: visible;
+  }
+
+  .kv-pp__form {
+    overflow: visible;
+  }
+
+  .kv-pp__row {
+    grid-template-columns: 1fr;
+  }
+
+  .kv-pp__card-actions {
+    opacity: 1;
+  }
+}
+
+.kv-pp__role-dot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  background: currentColor;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.3);
+}
