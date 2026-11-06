@@ -27,6 +27,21 @@ const T: readonly (readonly [string, string, string, string])[] = [
   ['Caixa de correio das conversas e o escaninho das entregas', 'Mailbox for conversations and the deliveries pigeonholes', 'Buzón de las conversaciones y el casillero de las entregas', 'Boîte aux lettres des conversations et casiers des livraisons'],
   ['Sala de descanso', 'Break room', 'Sala de descanso', 'Salle de repos'],
   ['Rede para o modo clássico, fliperama e sofás', 'Hammock for classic mode, arcade and sofas', 'Hamaca para el modo clásico, máquina recreativa y sofás', 'Hamac pour le mode classique, borne d’arcade et canapés'],
+  // ---- "ir e fazer" (go-and-do.ts, themes-actions.ts)
+  ['Ir andando até o lugar: ligado', 'Walk to the place: on', 'Ir caminando hasta el lugar: activado', 'Aller à pied jusqu’à l’endroit : activé'],
+  ['Ir andando até o lugar: desligado (as janelas abrem direto)', 'Walk to the place: off (windows open right away)', 'Ir caminando hasta el lugar: desactivado (las ventanas se abren directamente)', 'Aller à pied jusqu’à l’endroit : désactivé (les fenêtres s’ouvrent directement)'],
+  ['Indo até {0}…', 'Going to {0}…', 'Yendo a {0}…', 'En route vers {0}…'],
+  ['Esc cancela', 'Esc cancels', 'Esc cancela', 'Échap annule'],
+  ['🚶 Ir andando: ligado', '🚶 Walk there: on', '🚶 Ir caminando: activado', '🚶 Y aller à pied : activé'],
+  ['🚶 Ir andando: desligado', '🚶 Walk there: off', '🚶 Ir caminando: desactivado', '🚶 Y aller à pied : désactivé'],
+  ['Clicar num botão do topo leva o seu boneco andando até o lugar da função (Shift+clique abre direto)', 'Clicking a top button walks your character to that feature’s place (Shift+click opens right away)', 'Hacer clic en un botón de arriba lleva a tu muñeco caminando hasta el lugar de la función (Mayús+clic abre directamente)', 'Cliquer sur un bouton du haut emmène votre personnage à l’endroit de la fonction (Maj+clic ouvre directement)'],
+  ['Mini-mapa', 'Mini-map', 'Minimapa', 'Mini-carte'],
+  ['Ajuda', 'Help', 'Ayuda', 'Aide'],
+  ['Palco (megafone)', 'Stage (megaphone)', 'Escenario (megáfono)', 'Scène (mégaphone)'],
+  ['Atalhos', 'Shortcuts', 'Atajos', 'Raccourcis'],
+  ['Ajustes de voz e vídeo', 'Voice and video settings', 'Ajustes de voz y vídeo', 'Réglages voix et vidéo'],
+  ['Ir andando até o lugar', 'Walk to the place', 'Ir caminando hasta el lugar', 'Aller à pied jusqu’à l’endroit'],
+  ['Modo clássico (descansar)', 'Classic mode (rest)', 'Modo clásico (descansar)', 'Mode classique (se reposer)'],
 ];
 
 function dict(i: 1 | 2 | 3): Readonly<Record<string, string>> {

@@ -26,6 +26,7 @@ import type { OfficeStore } from '../../net/store';
 import { kvStartExtras } from './extras';
 import { kvAutoEnhance } from './ui/enhance';
 import { kvTopFit } from './ui/topfit';
+import { kvStartGoAndDo } from '../plan/go-and-do';
 import './humanos.css';
 
 const PEOPLE_ICON = pixelIcon(['..##....##..', '.####..####.', '.####..####.', '..##....##..', '............', '.####..####.', '######.#####', '######.#####', '######.#####']);
@@ -115,5 +116,6 @@ export function kvStartHumanos(store: OfficeStore, root: ParentNode = document):
     // Convites por link, agenda, modo foco, mini-mapa, atalhos e boas-vindas (extras.ts).
     kvStartExtras(m, store, root);
     kvTopFit(); // W6: o que não cabe no topo vai para o menu "Mais"
+    if (m.person) kvStartGoAndDo(); // planta livre: cada função tem um lugar no escritório e o boneco vai até lá
   });
 }

@@ -152,6 +152,8 @@ export const kvPeople: {
   ctl?: () => { sim: Sim; me: KvMeCtl } | null;
   /** Clicaram num assento (com o meu boneco ativo): furniture.ts abre o menu dele. */
   onSeatClick?: (spot: SpotDef, at: { x: number; y: number }) => void;
+  /** Planta livre (frente C): clicaram no mundo em (x, y) px; true = era um item interativo (go-and-do.ts). */
+  onItemClick?: (x: number, y: number) => boolean;
   /** W2: a área de voz e chat que vale para mim — `b:<id>` numa roda privada; undefined = a de `area` (bubble.ts). */
   callArea?: string | null;
 } = { client: null, inside: false, area: null, resting: false, myDesk: null, following: null, onFrame: new Set() };
@@ -601,6 +603,8 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
       const sim = ctx.sim();
       if (hit?.type === 'agent' && hit.id !== VISITOR_ID) return false;
       const w = ctx.camera.screenToWorld(at.x, at.y);
+      // planta livre: clique num item interativo (RH, espelho...) = ir até ele e usar (go-and-do.ts)
+      if (kvPeople.onItemClick?.(w.x, w.y)) return true;
       const tx = Math.floor(w.x / TILE);
       const ty = Math.floor(w.y / TILE);
       // clique num assento (mesmo atrás do meu boneco): o menu dele (sentar, minha mesa) — W1

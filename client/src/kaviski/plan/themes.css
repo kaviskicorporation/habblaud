@@ -1,0 +1,208 @@
+/* Fork Kaviski (KAVISKI-HUMANOS.md → "Planta livre", frente C): "ir e fazer" — o chip "Indo até o RH… · Esc cancela",
+   o brilho no item ao usar e o contorno aceso do item interativo sob o mouse. Tema do Habblaud: painel escuro, borda
+   fina, luz em cima e sombra embaixo, detalhes em pixel. */
+
+.kv-gd-chip {
+  position: fixed;
+  z-index: 45;
+  left: 50%;
+  top: 64px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 12px 7px 10px;
+  border-radius: 9px;
+  border: 1px solid var(--ui-line-strong, rgba(255, 255, 255, 0.18));
+  background: var(--kv-ui-panel, rgba(24, 28, 40, 0.96));
+  box-shadow: var(--kv-ui-raise, 0 2px 0 rgba(0, 0, 0, 0.3)), 0 8px 22px rgba(0, 0, 0, 0.35);
+  color: var(--ui-text, #fff);
+  font: 600 12.5px/1.2 var(--font-ui, system-ui, sans-serif);
+  cursor: pointer;
+  white-space: nowrap;
+  animation: kv-gd-in 0.18s ease-out;
+}
+
+.kv-gd-chip[hidden] {
+  display: none;
+}
+
+.kv-gd-chip.is-note {
+  cursor: default;
+}
+
+.kv-gd-chip__walk {
+  width: 12px;
+  height: 14px;
+  background:
+    linear-gradient(#ffd23f, #ffd23f) 4px 0 / 4px 4px no-repeat,
+    linear-gradient(#5aa9e6, #5aa9e6) 3px 5px / 6px 5px no-repeat,
+    linear-gradient(#2b2540, #2b2540) 3px 10px / 2px 4px no-repeat,
+    linear-gradient(#2b2540, #2b2540) 7px 10px / 2px 4px no-repeat;
+  image-rendering: pixelated;
+  animation: kv-gd-step 0.42s steps(2) infinite;
+}
+
+.kv-gd-chip.is-note .kv-gd-chip__walk {
+  animation: none;
+}
+
+.kv-gd-chip__esc {
+  padding: 2px 6px;
+  border-radius: 5px;
+  border: 1px solid var(--ui-line, rgba(255, 255, 255, 0.12));
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--ui-text-dim, #aab);
+  font-size: 11px;
+}
+
+@keyframes kv-gd-step {
+  to {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes kv-gd-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -6px);
+  }
+}
+
+/* ---- brilho ao usar o item */
+.kv-gd-spark {
+  position: fixed;
+  z-index: 44;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.kv-gd-spark::before,
+.kv-gd-spark::after {
+  content: '';
+  position: absolute;
+  left: -18px;
+  top: -18px;
+  width: 36px;
+  height: 36px;
+  background:
+    linear-gradient(#fff6b0, #fff6b0) 16px 0 / 4px 36px no-repeat,
+    linear-gradient(#fff6b0, #fff6b0) 0 16px / 36px 4px no-repeat;
+  image-rendering: pixelated;
+  animation: kv-gd-twinkle 0.9s ease-out forwards;
+}
+
+.kv-gd-spark::after {
+  transform: rotate(45deg) scale(0.6);
+  animation-delay: 0.12s;
+  opacity: 0;
+}
+
+.kv-gd-spark__icon {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -50%);
+  font-size: 20px;
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.45));
+  animation: kv-gd-rise 1.3s ease-out forwards;
+}
+
+@keyframes kv-gd-twinkle {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+
+@keyframes kv-gd-rise {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -30%) scale(0.6);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-50%, -110%) scale(1.15);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -260%) scale(1);
+  }
+}
+
+/* ---- contorno do item sob o mouse */
+.kv-gd-outline {
+  position: fixed;
+  z-index: 30;
+  pointer-events: none;
+  border: 2px solid #ffd23f;
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 1px rgba(43, 37, 64, 0.9),
+    0 0 14px rgba(255, 210, 63, 0.55),
+    inset 0 0 10px rgba(255, 210, 63, 0.25);
+  animation: kv-gd-pulse 1.1s ease-in-out infinite;
+}
+
+.kv-gd-outline[hidden] {
+  display: none;
+}
+
+.kv-gd-outline__label {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 210, 63, 0.6);
+  background: rgba(16, 20, 32, 0.92);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font: 600 12px/1.3 var(--font-ui, system-ui, sans-serif);
+  white-space: nowrap;
+}
+
+@keyframes kv-gd-pulse {
+  50% {
+    border-color: #fff3a3;
+    box-shadow:
+      0 0 0 1px rgba(43, 37, 64, 0.9),
+      0 0 20px rgba(255, 210, 63, 0.8),
+      inset 0 0 12px rgba(255, 210, 63, 0.35);
+  }
+}
+
+canvas.kv-gd-hover,
+#world.kv-gd-hover {
+  cursor: pointer;
+}
+
+/* ---- "Ir andando" na lista de quem está online */
+.kv-gd-pref.is-on {
+  border-color: rgba(255, 210, 63, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kv-gd-chip__walk,
+  .kv-gd-outline,
+  .kv-gd-spark::before,
+  .kv-gd-spark::after {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .kv-gd-chip {
+    top: auto;
+    bottom: 96px;
+  }
+}
