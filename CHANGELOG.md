@@ -15,7 +15,7 @@ do meio (0.**3**.0).
 - **Novo nome: Voxtrin.** O escritório passa a se chamar Voxtrin em toda a interface (topo, título da aba, abertura,
   Sobre, avisos, tela de login, convites, plugins do Claude Code e os quatro idiomas), com a logo do site voxtrin.com:
   o logotipo no topo e na abertura, o "V" no favicon, nos ícones do app e no ícone do projeto no TwiCC, a placa da
-  recepção e a prévia do link refeitas (`scripts/kaviski/marca.py`). A tela de login ganhou o logotipo e as cores do
+  recepção e a prévia do link refeitas a partir dos arquivos oficiais do Voxtrin (`scripts/kaviski/marca.py`). A tela de login ganhou o logotipo e as cores do
   site. O "Habblaud World" mantém o nome (serviço de terceiros).
 - **Nome da empresa pela tela** (Configurações › Empresa, só admin): vai no título da aba ("<empresa> · Voxtrin"), na
   tela de login, nos convites e nas notificações do navegador. `HABBLAUD_BRAND` continua como valor inicial. A linha

@@ -1,13 +1,14 @@
 """Fork Kaviski (KAVISKI.md): gera a marca Voxtrin (https://voxtrin.com) a partir das duas imagens mestre do site.
 
-Entradas (PNG com alfa), guardadas em client/public/assets/brand/:
-- voxtrin-mark.png: o "V" (símbolo, quadrado);
-- voxtrin-wordmark.png: o logotipo inteiro (o "V" + "OXTRIN").
+Entradas: os arquivos oficiais do Voxtrin (PNG com alfa), guardados como vieram em client/public/assets/brand/:
+- voxtrin-icon.png / voxtrin-icon-space.png: o "V" (símbolo), justo e com margem;
+- voxtrin-full.png / voxtrin-full-space.png: o logotipo inteiro (o "V" + "OXTRIN"), justo e com margem.
+O favicon.ico oficial fica em client/public/favicon.ico (copiado como veio).
 Saída: os arquivos de client/public/assets/brand/ que o original usa (favicon, ícones do app, mark do topo), o
 logotipo do topo (wordmark.png), a placa da recepção (fonte bitmap do pixelart.py) e o og-image.
 
 Uso (precisa de Pillow e numpy):
-    python3 scripts/kaviski/marca.py [mark.png wordmark.png]
+    python3 scripts/kaviski/marca.py
 """
 
 from __future__ import annotations
@@ -103,23 +104,20 @@ def og_image(mark: Image.Image, wordmark: Image.Image) -> Image.Image:
 
 
 def main() -> None:
-    src_mark = Path(sys.argv[1]) if len(sys.argv) > 2 else BRAND / "voxtrin-mark.png"
-    src_word = Path(sys.argv[2]) if len(sys.argv) > 2 else BRAND / "voxtrin-wordmark.png"
-    mark = recortar(Image.open(src_mark), quadrado=True)
-    word = recortar(Image.open(src_word), quadrado=False)
-    if len(sys.argv) > 2:  # guarda as mestres no repositório, num tamanho que basta
-        reduzir(mark, 512).save(BRAND / "voxtrin-mark.png", optimize=True)
-        altura(word, 237).save(BRAND / "voxtrin-wordmark.png", optimize=True)
+    mark = recortar(Image.open(BRAND / "voxtrin-icon.png"), quadrado=True)
+    mark_space = Image.open(BRAND / "voxtrin-icon-space.png").convert("RGBA")
+    word = recortar(Image.open(BRAND / "voxtrin-full.png"), quadrado=False)
     saidas = {
         "favicon-16.png": reduzir(mark, 16),
         "favicon-32.png": reduzir(mark, 32),
         "logo-mark.png": reduzir(mark, 32),
         "logo-mark@4x.png": reduzir(mark, 128),
         "logo-detailed.png": reduzir(mark, 86),
-        "icon-192.png": reduzir(mark, 192, fundo=FUNDO, margem=0.1),
-        "icon-512.png": reduzir(mark, 512, fundo=FUNDO, margem=0.1),
-        # iPhone: ícone opaco (o sistema arredonda os cantos), com respiro em volta.
-        "apple-touch-icon.png": reduzir(mark, 180, fundo=FUNDO, margem=0.12),
+        # Ícones do app (e do TwiCC): o "V" com margem do arquivo oficial, sobre o preto do site.
+        "icon-192.png": reduzir(mark_space, 192, fundo=FUNDO),
+        "icon-512.png": reduzir(mark_space, 512, fundo=FUNDO),
+        # iPhone: ícone opaco (o sistema arredonda os cantos).
+        "apple-touch-icon.png": reduzir(mark_space, 180, fundo=FUNDO),
         # Logotipo do topo e da abertura: 3x da altura em que aparece (32 px), nítido em telas densas.
         "wordmark.png": altura(word, 96),
         "signage.png": signage(),
