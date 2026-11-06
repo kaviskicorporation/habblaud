@@ -138,20 +138,27 @@ Liga com `HABBLAUD_HUMANOS=1` (e a porta remota configurada, como hoje). Sem a v
   microfone/câmera falsos): mesma chamada, áudio e vídeo dos dois lados.
 - Código: `server/kaviski/humanos/livekit.ts`, `client/src/kaviski/humanos/media.ts`.
 
-### Endereço público (decisão do Vitor, 2026-11-06: "já quero o endereço público")
-DNS, túnel e firewall são do Vitor. O que fica pronto no repositório: `deploy/kaviski/` (`livekit-compose.yml`,
-`livekit.yaml.example`, `nginx-escritorio.conf.example`). Passo a passo:
-1. **Nomes** (DNS → VPS 31.97.27.13): um para o escritório (ex.: `escritorio.<dominio>`) e um para o LiveKit
-   (ex.: `lk.<dominio>`); certificados com o `certbot`.
-2. **Túnel** do VPS até a porta remota do Habblaud na VM (`4748`, HTTP; o HTTPS fica no nginx do VPS).
-3. **LiveKit no VPS** (recomendado: o VPS tem IP público, a mídia vai direto): pasta
-   `~/Projetos/KaviskiCorporation/Docker_Projects/habblaud-livekit/` com o `livekit-compose.yml` e um `livekit.yaml`
-   (chave/segredo novos), `docker compose up -d`; **liberar no firewall do VPS 7881/TCP e 50000-50100/UDP**.
-4. **nginx do VPS**: `nginx-escritorio.conf.example` (o SSE precisa de `proxy_buffering off`; o LiveKit de `Upgrade`).
-5. **`.env` do Habblaud na VM**: o nome do escritório em `HABBLAUD_ALLOWED_HOSTS` (senão o guard recusa o Host),
-   `HABBLAUD_LIVEKIT_URL=wss://lk.<dominio>`, `HABBLAUD_LIVEKIT_KEY` e `HABBLAUD_LIVEKIT_SECRET` iguais aos do
-   `livekit.yaml` do VPS; depois `python3 ~/base/scripts/kc-habblaud.py subir`.
-6. Com o LiveKit no VPS, o container `habblaud-livekit` da VM pode sair (`docker rm -f habblaud-livekit`).
+### Endereço público: https://escritorio.kaviski.com.br (2026-11-06)
+Decisão do Vitor: **sem VPS**. O nome só funciona na rede local e pela VPN (Tailscale, que roteia 192.168.1.0/24).
+Infraestrutura feita pela sessão `01.Geral` (rede/proxy: não mexer sem avisar):
+- **DNS** A `escritorio.kaviski.com.br` → `192.168.1.220`.
+- **Caddy** na VM (`/usr/local/bin/caddy` com módulo cloudflare, `/etc/caddy/Caddyfile`, serviço do sistema
+  `caddy-escritorio`) em `192.168.1.220:443`, certificado Let's Encrypt pelo DNS da Cloudflare (token em
+  `~/.config/caddy/cloudflare.token`, gravado pelo Vitor). Rotas: `/` → `127.0.0.1:4748` (porta remota, HTTP) e
+  `/livekit/*` (prefixo removido) → `127.0.0.1:7880` (LiveKit da VM, `node_ip` 192.168.1.220).
+- **`.env`**: `escritorio.kaviski.com.br` em `HABBLAUD_ALLOWED_HOSTS`; `HABBLAUD_LIVEKIT_URL=wss://escritorio.kaviski.com.br/livekit`;
+  o `habblaud.service` carrega também `~/.config/habblaud/livekit.env` (chave/segredo; `kc-habblaud.py` ajustado).
+- **URL com caminho no LiveKit: funciona.** O `livekit-client` 2.23 mantém o caminho e acrescenta `/rtc/v1` (com volta
+  para `/rtc`) e `/rtc/v1/validate`: `wss://.../livekit` vira `wss://.../livekit/rtc/v1`, que o Caddy entrega como
+  `/rtc/v1`. Conferido com um proxy de teste que tira o prefixo `/livekit` como o Caddy: dois navegadores na mesma
+  chamada, áudio e vídeo dos dois lados.
+- A mídia vai direto do navegador ao LiveKit da VM (`7881/TCP` e `50000-50100/UDP` em 192.168.1.220), alcançável na
+  rede local e pela VPN.
+
+**Alternativa (não usada): VPS 31.97.27.13**, para quem estiver fora da VPN. Arquivos em `deploy/kaviski/`
+(`livekit-compose.yml`, `livekit.yaml.example`, `nginx-escritorio.conf.example`): nomes no DNS com certbot, túnel do
+VPS até a `4748` da VM, LiveKit no VPS (IP público) com `7881/TCP` e `50000-50100/UDP` liberados no firewall do VPS, e no
+`.env` o nome em `HABBLAUD_ALLOWED_HOSTS` e `HABBLAUD_LIVEKIT_*` iguais aos do `livekit.yaml` do VPS.
 
 ## Como desenvolver sem derrubar o escritório
 - Desenvolver numa **segunda instância** (`HABBLAUD_PORT=4757`, `HABBLAUD_REMOTE_PORT=4758`,
