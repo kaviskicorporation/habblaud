@@ -32,6 +32,7 @@ import { KvInvites } from './invites';
 import { kvInvitesRoute, INVITES_PATH } from './invites-route';
 import { AGENDA_PATH, AGENDA_ROOMS_PATH, KvAgenda, kvAgendaAllowPrivate, kvAgendaRoute, type KvAgendaRoom } from './agenda';
 import { kvDeskOf, kvDeskRoute } from './desk';
+import { KvStage, kvStageRoute } from './stage';
 
 export const HUMANOS_API = '/api/kaviski/humanos';
 const USERS_PATH = `${HUMANOS_API}/users`;
@@ -208,6 +209,8 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
   };
   const social = new KvSocial({ presence, snapshot: deps.snapshot, audit });
   if (enabled) kvSetAreaGuard((area, p) => social.areaGuard(area, p));
+  // Palco (megafone, stage.ts): a equipe fala para o andar inteiro; todos ouvem.
+  const stage = new KvStage({ emit: (e, d, to) => presence.emit(e, d, to), online: (id) => !!presence.personOf(id), audit: (p, a) => audit.add(p, a, { ok: true }) });
   let messages: KvMessageSender | undefined;
   const summoned = new Map<string, number>();
   // Visitante cujo convite venceu (ou foi revogado) sai do escritório mesmo com a página aberta.
@@ -513,6 +516,7 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
       if (id === BUILTIN_ID) return sendJson(res, 400, { error: tr('a conta do .env (HABBLAUD_REMOTE_USER) não se apaga por aqui') });
       if (!users.remove(id)) return sendJson(res, 404, { error: tr('pessoa não encontrada') });
       presence.refresh(undefined, id);
+      stage.refresh(undefined, id);
       log.info(tr('Pessoas: conta {0} apagada.', [id]));
       return sendJson(res, 200, { ok: true });
     }
@@ -533,6 +537,7 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
         const r = await users.update(id, body);
         if (!r.ok) throw new HttpError(r.status, r.error);
         presence.refresh(r.person, id);
+        stage.refresh(r.person, id);
         sendJson(res, 200, { person: r.person });
       })
       .catch((err) => fail(res, err));
@@ -629,6 +634,7 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
         liveKitRoute(req, res, path);
         return true;
       }
+      if (kvStageRoute({ stage, whoIs, config: lk.config }, req, res, path)) return true;
       if (path === PROFILE_PATH) {
         profileRoute(req, res);
         return true;

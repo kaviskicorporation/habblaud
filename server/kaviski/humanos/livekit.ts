@@ -62,8 +62,16 @@ export function kvAreaAllowed(area: unknown, person: KvPerson, snap: OfficeSnaps
 
 const b64 = (v: unknown) => Buffer.from(JSON.stringify(v), 'utf8').toString('base64url');
 
+/** O que o token deixa fazer na chamada (padrão: tudo; o palco dá só ouvir a quem não está nele). */
+export interface KvLiveKitGrant {
+  canPublish: boolean;
+  canSubscribe: boolean;
+  canPublishData: boolean;
+}
+const FULL: KvLiveKitGrant = { canPublish: true, canSubscribe: true, canPublishData: true };
+
 /** Token de acesso do LiveKit (JWT HS256) para entrar em `room` como `person`. */
-export function kvLiveKitToken(cfg: KvLiveKitConfig, person: Pick<KvPerson, 'id' | 'name'>, room: string, nowS = Math.floor(Date.now() / 1000)): string {
+export function kvLiveKitToken(cfg: KvLiveKitConfig, person: Pick<KvPerson, 'id' | 'name'>, room: string, nowS = Math.floor(Date.now() / 1000), grant: KvLiveKitGrant = FULL): string {
   const header = b64({ alg: 'HS256', typ: 'JWT' });
   const payload = b64({
     iss: cfg.key,
@@ -71,7 +79,7 @@ export function kvLiveKitToken(cfg: KvLiveKitConfig, person: Pick<KvPerson, 'id'
     name: person.name,
     nbf: nowS - 10,
     exp: nowS + TOKEN_TTL_S,
-    video: { room, roomJoin: true, canPublish: true, canSubscribe: true, canPublishData: true },
+    video: { room, roomJoin: true, canPublish: grant.canPublish, canSubscribe: grant.canSubscribe, canPublishData: grant.canPublishData },
   });
   const sig = createHmac('sha256', cfg.secret).update(`${header}.${payload}`).digest('base64url');
   return `${header}.${payload}.${sig}`;
