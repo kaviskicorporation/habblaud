@@ -16,34 +16,34 @@ do meio (0.**3**.0).
   no TwiCC aparecem no cartão "pede permissão" do agente e são respondidas no Habblaud (aprovar, recusar com motivo,
   "sempre permitir", responder), sem abrir o TwiCC. Precisa da senha do TwiCC em `~/.habblaud/twicc-senha`.
 
-### Adicionado (fork Kaviski, `HABBLAUD_HUMANOS=1`)
+### Adicionado (fork Kaviski, `HABBLAUD_HUMANOS=1`): recursos do Gather
 
-- **Convite por link para visitantes sem conta** (1 h, 1 dia ou 7 dias; uso único ou várias pessoas; salas
-  liberadas), com selo VISITANTE e revogação na hora.
-- **Agenda pelo endereço iCal** (Google, Outlook, iCloud): reuniões de hoje, status "📅 Em reunião até…" e "Ir para a
-  reunião" quando o local cita uma sala.
-- **Mini-mapa** (tecla N), **modo foco** (pomodoro de 25/50 min), **atalhos** das pessoas na Ajuda, **boas-vindas** na
-  primeira entrada e a dica de quem está na sala.
-- **Boneco, mesa fixa e móveis.** Botão **Modo clássico** no
-  topo (o Habblaud como o original; o boneco descansa no lounge com o selo DESCANSANDO). **Minha mesa**: clique numa
-  cadeira de uma sala → "Definir como minha mesa" (ou em Meu boneco); o boneco nasce nela, os outros veem "mesa de
-  Fulano" e o agente chamado vai até ela. **Tecla E** perto dos móveis: sentar, levantar, tomar café, beber água,
-  jogar fliperama, pegar um livro — os outros veem a pose. No cartão da pessoa: **Seguir**, **Teleportar** e **Ir até a
-  mesa**. Duplo clique no chão corre. No celular: joystick e botão E na tela.
-- **Chamar** uma pessoa (toque, notificação do navegador e aviso com "Ir até" / "Responder"), **avisos fora da aba**
-  (título piscando, contador no ícone, sons e notificações para chamada, 1:1, @menção, batida na porta e alguém
-  entrando na sua sala) e o sino de **Avisos** no topo.
+- **Boneco, mesa fixa e móveis**: botão **Modo clássico** no topo (o Habblaud como o original; o boneco descansa no
+  lounge com o selo DESCANSANDO). **Minha mesa** numa cadeira de sala (ou da sua sala pessoal): o boneco nasce nela, os
+  outros veem "mesa de Fulano" e o agente chamado vai até ela. **Tecla E** perto dos móveis: sentar, levantar, tomar
+  café, beber água, jogar fliperama, pegar um livro — os outros veem a pose. No cartão da pessoa: **Seguir**,
+  **Teleportar** e **Ir até a mesa**. Duplo clique no chão corre. No celular: joystick e botão E na tela.
 - **Status com nota e "até"** ("🍽️ Almoçando até 13h"), **não perturbe** e **ausente automático** com a aba parada.
+- **Chamar** uma pessoa (toque, notificação do navegador e aviso com "Ir até" / "Responder") e **avisos fora da aba**
+  (título piscando, contador no ícone, sons e notificações para chamada, 1:1, @menção, batida na porta e alguém
+  entrando na sua sala), com o sino de **Avisos** no topo.
 - **Reações rápidas** (👍 ❤️ 😂 🎉 👏 ☕ ✋ 😮 🙏, teclas 1–9) sobre o boneco; ✋ fica levantada até baixar.
 - **Trancar a sala** (cadeado na porta, quem está fora bate com E e quem está dentro deixa entrar) e **conversa
   privada** nas áreas abertas (voz e chat só do grupo).
-- **Voz e vídeo estilo Gather** (com o LiveKit): desfoque e troca do fundo da câmera, filtro de ruído forte (RNNoise) e escolha de microfone, câmera e alto-falante (setinha ao lado dos botões);
-  **palco** para a equipe falar com o andar inteiro (todos ouvem, dá para silenciar); **grade de vídeo** em tela cheia
-  (fixar um quadro, Esc fecha); anel aceso em quem está falando e 🔇 em quem está mudo; em **não perturbe** não entra
-  em chamada; ao trocar de área ninguém mais ouve a sala que ficou para trás; reconecta sozinho.
-- **Salas próprias** (sala pessoal, de reunião e de descanso, sempre no prédio; botão Salas no topo, com paleta e
-  decoração simples), **quadro branco** ao vivo por sala, **mural de avisos** na recepção e nas salas e **links presos
-  na parede** (tecla E).
+- **Voz e vídeo** (com o LiveKit): desfoque e troca do fundo da câmera, filtro de ruído forte (RNNoise), escolha de
+  microfone, câmera e alto-falante (setinha ao lado dos botões); **palco** para a equipe falar com o andar inteiro
+  (todos ouvem, dá para silenciar); **grade de vídeo** em tela cheia (fixar um quadro, Esc fecha); anel aceso em quem
+  está falando e 🔇 em quem está mudo; em não perturbe e no modo clássico não entra em chamada; ao trocar de área
+  ninguém mais ouve a sala que ficou para trás; reconecta sozinho.
+- **Salas próprias** (pessoal, de reunião e de descanso, sempre no prédio; botão Salas no topo, com paleta e decoração
+  simples), **quadro branco** ao vivo por sala, **mural de avisos** na recepção e nas salas e **links presos na
+  parede** (tecla E).
+- **Convite por link para visitantes sem conta** (1 h, 1 dia ou 7 dias; uso único ou várias pessoas; salas
+  liberadas), com selo VISITANTE e revogação na hora.
+- **Agenda pelo endereço iCal** (Google, Outlook, iCloud): reuniões de hoje, status "📅 Em reunião até…" e "Ir para a
+  reunião" quando o local cita uma sala (de projeto ou sala de reunião própria).
+- **Mini-mapa** (tecla N), **modo foco** (pomodoro de 25/50 min, "🎧 Focado até…"), **atalhos** das pessoas na Ajuda,
+  **boas-vindas** na primeira entrada e a dica de quem está na sala.
 
 ## [1.0.3] - 2026-10-16
 

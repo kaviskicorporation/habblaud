@@ -62,7 +62,7 @@ Chegar perto de um agente abre o painel dele (conversa, aprovar, terminal confor
 mesa"; registro de quem aprovou/pediu o quê; cliente pode pedir tarefa ao agente da sala dele (se o admin liberar).
 
 ### 4. Produto
-Permissões finas por sala e por ação, auditoria, convites por link (✅ feito: ver "4 — convites por link" abaixo),
+Permissões finas por sala e por ação, auditoria, convites por link (✅ feito: ver "Onda Gather" abaixo),
 várias empresas no mesmo servidor (se for vender).
 
 ## Estado (o que já funciona)
@@ -139,49 +139,6 @@ Liga com `HABBLAUD_HUMANOS=1` (e a porta remota configurada, como hoje). Sem a v
   microfone/câmera falsos): mesma chamada, áudio e vídeo dos dois lados.
 - Código: `server/kaviski/humanos/livekit.ts`, `client/src/kaviski/humanos/media.ts`.
 
-### Voz e vídeo — onda Gather (2026-11-06) ✅
-Tudo só com `HABBLAUD_HUMANOS=1` e o LiveKit configurado (sem ele, nada disto aparece, como antes).
-- **Ajustes (setinha ▾ ao lado do microfone e da câmera, ou botão direito neles)**, lembrados neste navegador
-  (`habblaud.kv.media.fx`): microfone, câmera e alto-falante (este só no Chrome/Edge: `setSinkId`); **redução de ruído e
-  eco do navegador** (`noiseSuppression`/`echoCancellation`/`autoGainControl`, ligada por padrão; mudar recaptura o
-  microfone); **filtro de ruído forte RNNoise** (opcional; `@sapphi-red/web-noise-suppressor` MIT + RNNoise BSD-3, em
-  WebAssembly num AudioWorklet a 48 kHz). O Krisp do LiveKit é só do LiveKit Cloud (não usamos).
-- **Fundo da câmera**: sem efeito, desfocar, três fundos em pixel art desenhados na hora (escritório, jardim, cidade à
-  noite) ou uma imagem própria (reduzida a 640×480 e guardada no navegador). `@livekit/track-processors` (Apache 2.0)
-  com a segmentação do MediaPipe (Apache 2.0). **Nada vem de CDN**: o wasm do MediaPipe (~9 MB, só baixa ao ligar o
-  efeito) e o modelo `selfie_segmenter.tflite` (250 kB, em `client/src/kaviski/humanos/assets/`) saem do próprio
-  Habblaud (`/bundle/`); o `FilesetResolver.forVisionTasks` é trocado em tempo de execução para apontar para eles.
-- **Palco (megafone)**: admin e equipe têm o botão 📢 na barra; cliente e visitante não (`kvRestricted`). Quem sobe
-  fala para o andar inteiro: todo mundo online (com ou sem boneco; cliente também) vê "📢 Fulano no palco" e ouve numa
-  chamada à parte do LiveKit. Servidor (`server/kaviski/humanos/stage.ts`): `GET/POST /api/kaviski/humanos/stage`
-  (`{on}`; um palco por vez; quem abriu ou um admin fecha) e `POST .../stage/token` — **só quem está no palco recebe
-  `canPublish`**, os outros só `canSubscribe` (o LiveKit recusa se o ouvinte tentar publicar). Evento `stage` do fluxo
-  de presença para todas as páginas (e uma consulta a cada 30 s de garantia). Cada palco aberto é uma chamada nova
-  (token velho não serve; o nome leva a pasta de dados, como as chamadas de área: teste e produção nunca se misturam); fecha sozinho quando quem abriu sai (fechou a página) ou depois de 2 h; conta rebaixada a
-  cliente sai do palco. Registro: "palco aberto"/"palco fechado". Cada um pode **silenciar o palco** no navegador;
-  **não perturbe não corta o palco** (é aviso para todos). Enquanto alguém está no palco, a voz dele na chamada da área
-  fica muda para quem ouve o palco (não chega em dobro).
-- **Grade de vídeo** (botão na barra): todos da chamada em tela cheia — câmera ou a inicial, nome, 🔇, borda verde em
-  quem fala, telas compartilhadas (a primeira vai grande sozinha). 📌 (ou duplo clique) fixa um quadro grande com os
-  outros numa faixa. Esc fecha. Nas áreas abertas só aparece quem eu ouço (mesma proximidade das bolinhas).
-- **Quem está falando**: anel verde aceso no chão, embaixo do boneco de quem fala (o meu também, e o de quem está no
-  palco), desenhado num DOM nosso por cima do mundo (`kvPeople.locate`), sem gancho no renderer; 🔇 na pilha ao lado da
-  cabeça (`kvHeads`, ordem 5) de quem está na minha chamada com o microfone desligado. A bolinha de vídeo ganha a borda
-  verde. Com a grade aberta, bolinhas, anéis e pilhas somem (não ficam por cima dela).
-- **Não perturbe** (status `naoperturbe`, do W2): não entro em chamada de área nem toco o áudio de ninguém (só o palco,
-  se não estiver silenciado). **Modo clássico** (`kvPeople.resting`, do W1): também fora da chamada (microfone e câmera
-  desligados; a preferência fica). **Roda privada** (`kvPeople.callArea`, do W2): `b:<id>` vale no lugar da área, com
-  volume cheio como numa sala.
-- **Robustez**: ao sair de uma área, **antes mesmo de a chamada trocar** (os 0,7 s de espera e a conexão), o meu
-  microfone fica mudo e o volume de todos vai a zero — nada vaza para a sala que deixei. Reconecta sozinho (aviso na
-  barra); se a chamada cai de vez, o tick entra de novo. Sem HTTPS os botões ficam apagados com a explicação. Bolinhas de
-  vídeo diminuem com a distância nas áreas abertas.
-- Código: `client/src/kaviski/humanos/media-{fx,menu,stage,grid,speak,rules,extras}.ts`, `media.css`, ganchos no
-  `media.ts`; `server/kaviski/humanos/stage.ts` (+ `stage.test.ts`), `shared/kaviski-media.ts`,
-  `shared/locales/kaviski-media.ts`; `media-rules.test.ts`. Depuração: `habblaud.kvMedia` no console.
-- **Limite conhecido**: quem perde acesso a uma sala (tela de Pessoas) continua na chamada dela até sair da área (o
-  token do LiveKit já emitido vale até 2 h; o servidor não expulsa pela API do LiveKit).
-
 ### Ajustes da fase 1 (2026-11-06) ✅
 - **Freio de login por endereço e por usuário** (`KvLoginLimiter` em `gate.ts`): cada chave tem o seu freio (5 falhas,
   depois a espera dobra até 5 min); quem erra muito trava só a si mesmo (o do original era um só para todos). Atrás do
@@ -209,8 +166,8 @@ Tudo só com `HABBLAUD_HUMANOS=1` e o LiveKit configurado (sem ele, nada disto a
   `kvAttachWorld` (`client/src/world/index.ts`).
 - **"Chamar até mim"** (botão na gaveta, entra pelo `KvTwiccButton` — nenhum gancho novo no `drawer.ts`):
   `POST /api/kaviski/humanos/summon {agentId}` manda o evento `summon` a toda página que vê aquele agente; ele levanta,
-  anda até o boneco de quem chamou, fica até 45 s (ou até o status mudar) e volta sozinho. Por enquanto vai até onde o
-  boneco está (a "mesa fixa" `profile.desk` é da sessão d553e49d, que vai ligar depois). 1 chamada a cada 15 s por pessoa.
+  anda até o boneco de quem chamou, fica até 45 s (ou até o status mudar) e volta sozinho. Vai até a mesa fixa de quem
+  chamou (`profile.desk`, onda Gather) ou, sem mesa, até onde o boneco está. 1 chamada a cada 15 s por pessoa.
 - **Registro** (`audit.ts`, `<dataDir>/kaviski/audit.jsonl`, 600, gira em 5 MB): mensagem, permissão (aprovar/recusar,
   com o título do pedido), novo agente, terminal aberto/fechado, encerrar/assumir, personagem, renomear sala, chamar
   agente — quem, quando, qual agente/sala, o quê e se deu certo. O corpo é copiado enquanto a rota original o lê
@@ -251,65 +208,62 @@ Tudo só com `HABBLAUD_HUMANOS=1` e o LiveKit configurado (sem ele, nada disto a
   (`HABBLAUD_DATA_DIR`). Antes, a instância de teste (4757/4758) e a produção, no mesmo LiveKit, caíam na mesma chamada
   da mesma área.
 
-### 4 — convites por link, agenda e extras do dia a dia (2026-11-06) ✅
-**Convite por link (visitante sem conta).** Quem é admin ou equipe abre **Convidar visitantes** (botão do envelope no
-topo) e gera um link: vale **1 h, 1 dia ou 7 dias**, **uso único ou várias pessoas** (até 50) e as **salas que o
-visitante vê** (como as do cliente; nenhuma = só recepção e áreas comuns). O link (`/convite/<id>.<assinatura>`) abre
-uma página que pede só o nome; o visitante entra com o papel **`visitante`** (selo VISITANTE), escolhe o boneco no tour
-de boas-vindas e fica até o convite vencer.
-- Regras no servidor: `visitante` é `kvRestricted` como o cliente (snapshot, fluxo, presença, chat, voz: só as salas do
-  convite; lista fechada de rotas) e mais: não pede tarefa, não chama agente, não convida, não tem agenda.
-- Assinatura: HMAC com uma chave tirada do `remote-secret` (nenhum segredo novo). Cookie do visitante
-  `g1.<visitante>.<fim do convite>.<assinatura>`, conferido a cada requisição contra o convite: **revogar** (lista de
-  convites → Revogar) ou **vencer** derruba na hora (o fluxo de presença fecha; a API responde 401 e a página mostra
-  "a sua visita terminou").
-- Freio de tentativas por endereço no link e na entrada (`KvLoginLimiter`). Registro: "convite criado", "visitante
-  entrou", "convite revogado" (`KvAudit`).
-- Dados: `<dataDir>/kaviski/invites.json` (600): convites, visitantes e o perfil deles (boneco). Convite vencido ou
-  revogado há mais de 7 dias é esquecido.
-- `HABBLAUD_PUBLIC_URL` (opcional, ex.: `https://escritorio.kaviski.com.br`): o link sai com esse endereço mesmo quando a
-  tela é aberta pela porta local.
-- Rotas: `GET|POST /api/kaviski/humanos/invites`, `DELETE /api/kaviski/humanos/invites/:id`, `GET /convite/<token>`,
-  `POST /api/kaviski/humanos/invite/join {token, name}`.
+### Endereço público: https://escritorio.kaviski.com.br (2026-11-06)
+Decisão do Vitor: **sem VPS**. O nome só funciona na rede local e pela VPN (Tailscale, que roteia 192.168.1.0/24).
+Infraestrutura feita pela sessão `01.Geral` (rede/proxy: não mexer sem avisar):
+- **DNS** A `escritorio.kaviski.com.br` → `192.168.1.220`.
+- **Caddy** na VM (`/usr/local/bin/caddy` com módulo cloudflare, `/etc/caddy/Caddyfile`, serviço do sistema
+  `caddy-escritorio`) em `192.168.1.220:443`, certificado Let's Encrypt pelo DNS da Cloudflare (token em
+  `~/.config/caddy/cloudflare.token`, gravado pelo Vitor). Rotas: `/` → `127.0.0.1:4748` (porta remota, HTTP) e
+  `/livekit/*` (prefixo removido) → `127.0.0.1:7880` (LiveKit da VM, `node_ip` 192.168.1.220).
+- **`.env`**: `escritorio.kaviski.com.br` em `HABBLAUD_ALLOWED_HOSTS`; `HABBLAUD_LIVEKIT_URL=wss://escritorio.kaviski.com.br/livekit`;
+  o `habblaud.service` carrega também `~/.config/habblaud/livekit.env` (chave/segredo; `kc-habblaud.py` ajustado).
+- **URL com caminho no LiveKit: funciona.** O `livekit-client` 2.23 mantém o caminho e acrescenta `/rtc/v1` (com volta
+  para `/rtc`) e `/rtc/v1/validate`: `wss://.../livekit` vira `wss://.../livekit/rtc/v1`, que o Caddy entrega como
+  `/rtc/v1`. Conferido com um proxy de teste que tira o prefixo `/livekit` como o Caddy: dois navegadores na mesma
+  chamada, áudio e vídeo dos dois lados.
+- A mídia vai direto do navegador ao LiveKit da VM (`7881/TCP` e `50000-50100/UDP` em 192.168.1.220), alcançável na
+  rede local e pela VPN.
 
-**Agenda (Google Agenda, Outlook, iCloud) por ICS.** Botão do calendário no topo → **Minha agenda**: a pessoa cola o
-"endereço secreto no formato iCal" (OAuth do Google: não — não temos credenciais; fica como opção futura, com o mesmo
-lugar de guardar).
-- O servidor guarda o endereço em `<dataDir>/kaviski/agenda.json` (600, fora do `users.json`) e **nunca o devolve** ao
-  navegador (só "calendar.google.com · …/basic.ics") nem o escreve em log.
-- Busca a cada 5 min: só `https` (`webcal://` vira `https://`), até 3 redirecionamentos, 10 s, 2 MB, e nunca endereço
-  interno (conferido no IP resolvido: barra DNS rebinding). `HABBLAUD_AGENDA_PRIVATE=1` libera a rede local (agenda num
-  servidor próprio, ex.: Nextcloud).
-- Leitor ICS próprio (`shared/kaviski-ics.ts`, testado): VEVENT, DTSTART/DTEND/DURATION com UTC, TZID (IANA e nomes do
-  Windows), flutuante e dia inteiro; RRULE diária/semanal (BYDAY, INTERVAL, COUNT, UNTIL)/mensal/anual simples,
-  EXDATE, RECURRENCE-ID, CANCELLED e TRANSPARENT (livre). Regra que não sabe ler vira um evento só (não inventa).
-- Durante uma reunião "ocupada": status automático **"📅 Em reunião até 15h"** (fonte `agenda`; o manual vence).
-  1 min antes de uma reunião, um aviso no topo.
-- **Sala da reunião**: se o local (ou a descrição) cita o nome de uma sala do escritório que a pessoa vê, a reunião
-  ganha "📍 sala" e **Ir para a reunião** (o boneco anda até a porta). Reservas de sala (de todas as agendas, **sem título
-  nem dono**, só as salas que quem pede vê) aparecem na dica da sala ("Reunião às 15h nesta sala") e no mini-mapa
-  (ponto vermelho). Salas próprias (de reunião) entram ao ligar `agendaRooms` em `humanos/index.ts` às salas próprias.
-- Rotas: `GET|POST /api/kaviski/humanos/agenda`, `GET /api/kaviski/humanos/agenda/rooms`.
+**Alternativa (não usada): VPS 31.97.27.13**, para quem estiver fora da VPN. Arquivos em `deploy/kaviski/`
+(`livekit-compose.yml`, `livekit.yaml.example`, `nginx-escritorio.conf.example`): nomes no DNS com certbot, túnel do
+VPS até a `4748` da VM, LiveKit no VPS (IP público) com `7881/TCP` e `50000-50100/UDP` liberados no firewall do VPS, e no
+`.env` o nome em `HABBLAUD_ALLOWED_HOSTS` e `HABBLAUD_LIVEKIT_*` iguais aos do `livekit.yaml` do VPS.
 
-**Extras.**
-- **Mini-mapa** (canto de baixo à direita da área livre; **N** recolhe/abre, lembrado): prédio, salas acesas/apagadas,
-  agentes, pessoas na cor do crachá, eu piscando e o retângulo da câmera. Clicar anda até lá (longe: correndo) ou leva
-  a câmera.
-- **Atalhos**: botão **?** do mini-mapa e, na Ajuda do Habblaud (tecla **?**), uma seção "Pessoas no escritório:
-  teclas" posta em tempo de execução. Lista em `client/src/kaviski/humanos/shortcuts-list.ts` (fácil de editar).
-- **Modo foco (pomodoro)**: botão dos fones no topo, 25 ou 50 min, status **"🎧 Focado até 15h"** (fonte `foco`),
-  minutos restantes no botão, som suave no fim (Web Audio; só uma aba toca), "Mais 25 min". Lembrado no navegador.
-- **Boas-vindas**: tour de 3–4 passos na primeira entrada (visitante: escolher o boneco; andar; conversar; E para usar
-  as coisas; modo foco e agenda), lembrado por pessoa no navegador; "Ver o tour de novo" na janela de Atalhos.
-- **Quem está na sala**: parar o mouse sobre uma sala ou área comum mostra as pessoas, quantos agentes e a reunião
-  marcada.
-- Status automático: `client/src/kaviski/humanos/auto-status.ts` é o ponto de troca para o `status.ts`
-  (`kvSetStatus`/`kvClearStatus`, manual vence); enquanto ele não existe, só mexe se a pessoa está "disponível".
-- Código: `server/kaviski/humanos/{invites,invites-route,agenda,test-harness}.ts` (+ `invites.test.ts`,
-  `agenda.test.ts`), `shared/{kaviski-invites,kaviski-ics,kaviski-agenda}.ts` (+ `kaviski-ics.test.ts`),
-  `shared/locales/kaviski-extras.ts`, `client/src/kaviski/humanos/{extras,invites,agenda,focus,minimap,shortcuts,
-  shortcuts-list,welcome,room-hover,walk,auto-status}.ts` + `extras.css`.
-### Boneco, mesa fixa e móveis (onda Gather, W1) (2026-11-06) ✅
+## Onda Gather (2026-11-06) ✅
+Pacote "recursos do Gather" pedido pelo Vitor, feito em frentes paralelas (worktrees da sessão d553e49d) e juntado na
+`main` por cherry-pick pela sessão integradora (03d3677e). Tudo só com `HABBLAUD_HUMANOS=1`. Base comum, feita antes
+pelo líder: `interact.ts` (tecla **E** + dica "E · Sentar"; cada frente registra os seus provedores), `topbar.ts`
+(`kvTopButton`, botões do topo em ordem) e `person-actions.ts` (ações sobre outra pessoa, desenhadas pelo cartão e pela
+lista de online; ordens: Mensagem 10, Cumprimentar 20, Ir até 30, Seguir 40, Teleportar 45, Ir até a mesa 46,
+Chamar 50).
+
+**Botões do topo** (da esquerda para a direita pela ordem): Modo clássico (lua, 12), Agenda (25), Modo foco/pomodoro
+(fones, 30), Convidar visitantes (envelope, 35), Salas (60), Avisos (sino, 60). **Teclas**: setas/WASD (Shift corre),
+clique anda, duplo clique corre, **E** usa o que está perto (sentar, café, quadro, mural, link, bater na porta), Esc para
+de seguir / fecha, Enter abre a conversa, G cumprimenta, 1–9 reações, N mini-mapa, ? ajuda (lista em
+`shortcuts-list.ts`).
+
+### Como as frentes se ligam
+- **Status**: agenda ("📅 Em reunião até…") e pomodoro ("🎧 Focado até…") entram pelo `auto-status.ts` no `status.ts`
+  (camadas por fonte; o manual vence). Não perturbe silencia avisos (W2) e tira da chamada de voz (W3), mas não do palco.
+- **Modo clássico** (W1: `kvPeople.inside = false`, `resting = true`): sai da chamada de voz (W3) e o boneco descansa no
+  lounge com o selo DESCANSANDO; o pomodoro (W5) é outra coisa e pode estar ligado junto.
+- **Mesa fixa** (W1, `profile.desk`): vale em sala de projeto e na **sala pessoal** (W4) — o servidor confere pelo mesmo
+  `kvAreaAllowed`; "Chamar até mim" leva o agente até ela; "alguém entrou na minha sala" (W2) usa a sala da mesa, senão a
+  sala própria (`kvPeople.myRoom()`, W4), senão a sala em que estou.
+- **Área `r:<id>`** é a mesma para projeto e sala própria: chat, voz, **tranca** (W2) e quadro/mural (W4) valem nas duas.
+  O `kvAreaAllowed` (livekit.ts) consulta, nesta ordem, a guarda do W2 (tranca e roda privada), a sala própria (W4) e as
+  salas do cliente.
+- **Andar até**: mini-mapa e "Ir para a reunião" (W5, `walk.ts`) usam `kvPeople.walkTo`/`goArea` do W1 (que levantam o
+  boneco antes); sala trancada (W2) desfaz o passo pelo `kvPeople.onFrame`/`stopMe` do W1.
+- **Visitante** (W5, papel `visitante`): `kvRestricted` como o cliente; sem mesa fixa (403), sem convidar, sem agenda,
+  sem palco, sem trancar.
+- **Janelas e teclado**: o `modalOpen()` do mundo conta qualquer `dialog[open]`/`[aria-modal="true"]`/popover aberto e
+  trava as setas. Janela nossa escondida não pode ficar com `aria-modal` (a grade de vídeo travava o boneco com o
+  LiveKit ligado; corrigido em 8354545).
+
+### Boneco, mesa fixa e móveis (frente W1)
 - **Modo clássico** (botão da lua no topo, lembrado em `habblaud.kv.classico`; quem tinha `habblaud.kv.andar` = '0' começa nele):
   substitui o "Andar/Sair do escritório". Ligado: `kvPeople.inside = false` (teclado, câmera, cliques, barra, conversa e
   chamada de voz como fora do escritório) e `kvPeople.resting = true`: o boneco anda sozinho até o lounge, senta (sofá,
@@ -339,7 +293,7 @@ lugar de guardar).
   `client/src/kaviski/humanos/{w1,me,seats,furniture,goto,classic,touch,stick,desk-labels}.ts` + `w1.css` (+ `seats.test.ts`),
   traduções em `shared/locales/kaviski-w1.ts`.
 
-### Chamar, avisos, status com nota, reações, sala trancada e roda privada (2026-11-06) ✅ (pacote Gather, W2)
+### Chamar, avisos, status com nota, reações, sala trancada e roda privada (frente W2)
 - **Status com nota** (`client/src/kaviski/humanos/status.ts`): disponível, ocupado, ausente e **não perturbe**
   (`KvStatus` ganhou `'naoperturbe'`), nota livre de até 60 caracteres (sugestões 🍽️ Almoçando, 📅 Em reunião, 🎧 Focado,
   🏠 Home office, ☕ Pausa, 🚗 A caminho) e "até" (30 min, 1 h, 2 h, 4 h, hoje). O servidor guarda `note`/`until` na
@@ -385,7 +339,51 @@ lugar de guardar).
   reactions,locks,bubble,overlay}.ts` + `social.css`; mudanças pequenas em `presence.ts` (servidor e página),
   `livekit.ts`, `chat.ts` (servidor e página), `index.ts` (servidor e página), `world.ts` (rótulo e selo), `online.ts`,
   `person-card.ts`, `bar.ts` e `auto-status.ts` (agora repassa ao `status.ts`).
-### Salas próprias, quadro branco, mural e links na parede (2026-11-06) ✅ (onda Gather, W4)
+
+### Voz e vídeo (frente W3)
+Tudo só com `HABBLAUD_HUMANOS=1` e o LiveKit configurado (sem ele, nada disto aparece, como antes).
+- **Ajustes (setinha ▾ ao lado do microfone e da câmera, ou botão direito neles)**, lembrados neste navegador
+  (`habblaud.kv.media.fx`): microfone, câmera e alto-falante (este só no Chrome/Edge: `setSinkId`); **redução de ruído e
+  eco do navegador** (`noiseSuppression`/`echoCancellation`/`autoGainControl`, ligada por padrão; mudar recaptura o
+  microfone); **filtro de ruído forte RNNoise** (opcional; `@sapphi-red/web-noise-suppressor` MIT + RNNoise BSD-3, em
+  WebAssembly num AudioWorklet a 48 kHz). O Krisp do LiveKit é só do LiveKit Cloud (não usamos).
+- **Fundo da câmera**: sem efeito, desfocar, três fundos em pixel art desenhados na hora (escritório, jardim, cidade à
+  noite) ou uma imagem própria (reduzida a 640×480 e guardada no navegador). `@livekit/track-processors` (Apache 2.0)
+  com a segmentação do MediaPipe (Apache 2.0). **Nada vem de CDN**: o wasm do MediaPipe (~9 MB, só baixa ao ligar o
+  efeito) e o modelo `selfie_segmenter.tflite` (250 kB, em `client/src/kaviski/humanos/assets/`) saem do próprio
+  Habblaud (`/bundle/`); o `FilesetResolver.forVisionTasks` é trocado em tempo de execução para apontar para eles.
+- **Palco (megafone)**: admin e equipe têm o botão 📢 na barra; cliente e visitante não (`kvRestricted`). Quem sobe
+  fala para o andar inteiro: todo mundo online (com ou sem boneco; cliente também) vê "📢 Fulano no palco" e ouve numa
+  chamada à parte do LiveKit. Servidor (`server/kaviski/humanos/stage.ts`): `GET/POST /api/kaviski/humanos/stage`
+  (`{on}`; um palco por vez; quem abriu ou um admin fecha) e `POST .../stage/token` — **só quem está no palco recebe
+  `canPublish`**, os outros só `canSubscribe` (o LiveKit recusa se o ouvinte tentar publicar). Evento `stage` do fluxo
+  de presença para todas as páginas (e uma consulta a cada 30 s de garantia). Cada palco aberto é uma chamada nova
+  (token velho não serve; o nome leva a pasta de dados, como as chamadas de área: teste e produção nunca se misturam); fecha sozinho quando quem abriu sai (fechou a página) ou depois de 2 h; conta rebaixada a
+  cliente sai do palco. Registro: "palco aberto"/"palco fechado". Cada um pode **silenciar o palco** no navegador;
+  **não perturbe não corta o palco** (é aviso para todos). Enquanto alguém está no palco, a voz dele na chamada da área
+  fica muda para quem ouve o palco (não chega em dobro).
+- **Grade de vídeo** (botão na barra): todos da chamada em tela cheia — câmera ou a inicial, nome, 🔇, borda verde em
+  quem fala, telas compartilhadas (a primeira vai grande sozinha). 📌 (ou duplo clique) fixa um quadro grande com os
+  outros numa faixa. Esc fecha. Nas áreas abertas só aparece quem eu ouço (mesma proximidade das bolinhas).
+- **Quem está falando**: anel verde aceso no chão, embaixo do boneco de quem fala (o meu também, e o de quem está no
+  palco), desenhado num DOM nosso por cima do mundo (`kvPeople.locate`), sem gancho no renderer; 🔇 na pilha ao lado da
+  cabeça (`kvHeads`, ordem 5) de quem está na minha chamada com o microfone desligado. A bolinha de vídeo ganha a borda
+  verde. Com a grade aberta, bolinhas, anéis e pilhas somem (não ficam por cima dela).
+- **Não perturbe** (status `naoperturbe`, do W2): não entro em chamada de área nem toco o áudio de ninguém (só o palco,
+  se não estiver silenciado). **Modo clássico** (`kvPeople.resting`, do W1): também fora da chamada (microfone e câmera
+  desligados; a preferência fica). **Roda privada** (`kvPeople.callArea`, do W2): `b:<id>` vale no lugar da área, com
+  volume cheio como numa sala.
+- **Robustez**: ao sair de uma área, **antes mesmo de a chamada trocar** (os 0,7 s de espera e a conexão), o meu
+  microfone fica mudo e o volume de todos vai a zero — nada vaza para a sala que deixei. Reconecta sozinho (aviso na
+  barra); se a chamada cai de vez, o tick entra de novo. Sem HTTPS os botões ficam apagados com a explicação. Bolinhas de
+  vídeo diminuem com a distância nas áreas abertas.
+- Código: `client/src/kaviski/humanos/media-{fx,menu,stage,grid,speak,rules,extras}.ts`, `media.css`, ganchos no
+  `media.ts`; `server/kaviski/humanos/stage.ts` (+ `stage.test.ts`), `shared/kaviski-media.ts`,
+  `shared/locales/kaviski-media.ts`; `media-rules.test.ts`. Depuração: `habblaud.kvMedia` no console.
+- **Limite conhecido**: quem perde acesso a uma sala (tela de Pessoas) continua na chamada dela até sair da área (o
+  token do LiveKit já emitido vale até 2 h; o servidor não expulsa pela API do LiveKit).
+
+### Salas próprias, quadro branco, mural e links na parede (frente W4)
 - **Salas que não são projetos** em `<dataDir>/kaviski/rooms.json` (600): `pessoal` (a sala/canto fixo de uma pessoa,
   "Sala de Ana" — uma por pessoa), `reuniao`, `descanso`, `outra`. Id `kvsala-<10 caracteres>` (nunca começa com `/`,
   não colide com pasta de projeto); a área de conversa/voz é `r:<id>`, como nas salas de projeto.
@@ -428,27 +426,75 @@ lugar de guardar).
   wall-draw,board-draw,whiteboard}.ts` + `salas.css`. Para os irmãos: `kvOwnRooms()`, `kvMeetingRooms()`, `kvMyRoom()`
   e `kvOnOwnRooms(cb)` em `rooms.ts`; `kvPeople.myRoom()` em tempo de execução.
 
-### Endereço público: https://escritorio.kaviski.com.br (2026-11-06)
-Decisão do Vitor: **sem VPS**. O nome só funciona na rede local e pela VPN (Tailscale, que roteia 192.168.1.0/24).
-Infraestrutura feita pela sessão `01.Geral` (rede/proxy: não mexer sem avisar):
-- **DNS** A `escritorio.kaviski.com.br` → `192.168.1.220`.
-- **Caddy** na VM (`/usr/local/bin/caddy` com módulo cloudflare, `/etc/caddy/Caddyfile`, serviço do sistema
-  `caddy-escritorio`) em `192.168.1.220:443`, certificado Let's Encrypt pelo DNS da Cloudflare (token em
-  `~/.config/caddy/cloudflare.token`, gravado pelo Vitor). Rotas: `/` → `127.0.0.1:4748` (porta remota, HTTP) e
-  `/livekit/*` (prefixo removido) → `127.0.0.1:7880` (LiveKit da VM, `node_ip` 192.168.1.220).
-- **`.env`**: `escritorio.kaviski.com.br` em `HABBLAUD_ALLOWED_HOSTS`; `HABBLAUD_LIVEKIT_URL=wss://escritorio.kaviski.com.br/livekit`;
-  o `habblaud.service` carrega também `~/.config/habblaud/livekit.env` (chave/segredo; `kc-habblaud.py` ajustado).
-- **URL com caminho no LiveKit: funciona.** O `livekit-client` 2.23 mantém o caminho e acrescenta `/rtc/v1` (com volta
-  para `/rtc`) e `/rtc/v1/validate`: `wss://.../livekit` vira `wss://.../livekit/rtc/v1`, que o Caddy entrega como
-  `/rtc/v1`. Conferido com um proxy de teste que tira o prefixo `/livekit` como o Caddy: dois navegadores na mesma
-  chamada, áudio e vídeo dos dois lados.
-- A mídia vai direto do navegador ao LiveKit da VM (`7881/TCP` e `50000-50100/UDP` em 192.168.1.220), alcançável na
-  rede local e pela VPN.
+### Convites por link, agenda e extras do dia a dia (frente W5)
+**Convite por link (visitante sem conta).** Quem é admin ou equipe abre **Convidar visitantes** (botão do envelope no
+topo) e gera um link: vale **1 h, 1 dia ou 7 dias**, **uso único ou várias pessoas** (até 50) e as **salas que o
+visitante vê** (como as do cliente; nenhuma = só recepção e áreas comuns). O link (`/convite/<id>.<assinatura>`) abre
+uma página que pede só o nome; o visitante entra com o papel **`visitante`** (selo VISITANTE), escolhe o boneco no tour
+de boas-vindas e fica até o convite vencer.
+- Regras no servidor: `visitante` é `kvRestricted` como o cliente (snapshot, fluxo, presença, chat, voz: só as salas do
+  convite; lista fechada de rotas) e mais: não pede tarefa, não chama agente, não convida, não tem agenda.
+- Assinatura: HMAC com uma chave tirada do `remote-secret` (nenhum segredo novo). Cookie do visitante
+  `g1.<visitante>.<fim do convite>.<assinatura>`, conferido a cada requisição contra o convite: **revogar** (lista de
+  convites → Revogar) ou **vencer** derruba na hora (o fluxo de presença fecha; a API responde 401 e a página mostra
+  "a sua visita terminou").
+- Freio de tentativas por endereço no link e na entrada (`KvLoginLimiter`). Registro: "convite criado", "visitante
+  entrou", "convite revogado" (`KvAudit`).
+- Dados: `<dataDir>/kaviski/invites.json` (600): convites, visitantes e o perfil deles (boneco). Convite vencido ou
+  revogado há mais de 7 dias é esquecido.
+- `HABBLAUD_PUBLIC_URL` (opcional, ex.: `https://escritorio.kaviski.com.br`): o link sai com esse endereço mesmo quando a
+  tela é aberta pela porta local.
+- Rotas: `GET|POST /api/kaviski/humanos/invites`, `DELETE /api/kaviski/humanos/invites/:id`, `GET /convite/<token>`,
+  `POST /api/kaviski/humanos/invite/join {token, name}`.
 
-**Alternativa (não usada): VPS 31.97.27.13**, para quem estiver fora da VPN. Arquivos em `deploy/kaviski/`
-(`livekit-compose.yml`, `livekit.yaml.example`, `nginx-escritorio.conf.example`): nomes no DNS com certbot, túnel do
-VPS até a `4748` da VM, LiveKit no VPS (IP público) com `7881/TCP` e `50000-50100/UDP` liberados no firewall do VPS, e no
-`.env` o nome em `HABBLAUD_ALLOWED_HOSTS` e `HABBLAUD_LIVEKIT_*` iguais aos do `livekit.yaml` do VPS.
+**Agenda (Google Agenda, Outlook, iCloud) por ICS.** Botão do calendário no topo → **Minha agenda**: a pessoa cola o
+"endereço secreto no formato iCal" (OAuth do Google: não — não temos credenciais; fica como opção futura, com o mesmo
+lugar de guardar).
+- O servidor guarda o endereço em `<dataDir>/kaviski/agenda.json` (600, fora do `users.json`) e **nunca o devolve** ao
+  navegador (só "calendar.google.com · …/basic.ics") nem o escreve em log.
+- Busca a cada 5 min: só `https` (`webcal://` vira `https://`), até 3 redirecionamentos, 10 s, 2 MB, e nunca endereço
+  interno (conferido no IP resolvido: barra DNS rebinding). `HABBLAUD_AGENDA_PRIVATE=1` libera a rede local (agenda num
+  servidor próprio, ex.: Nextcloud).
+- Leitor ICS próprio (`shared/kaviski-ics.ts`, testado): VEVENT, DTSTART/DTEND/DURATION com UTC, TZID (IANA e nomes do
+  Windows), flutuante e dia inteiro; RRULE diária/semanal (BYDAY, INTERVAL, COUNT, UNTIL)/mensal/anual simples,
+  EXDATE, RECURRENCE-ID, CANCELLED e TRANSPARENT (livre). Regra que não sabe ler vira um evento só (não inventa).
+- Durante uma reunião "ocupada": status automático **"📅 Em reunião até 15h"** (fonte `agenda`; o manual vence).
+  1 min antes de uma reunião, um aviso no topo.
+- **Sala da reunião**: se o local (ou a descrição) cita o nome de uma sala do escritório que a pessoa vê, a reunião
+  ganha "📍 sala" e **Ir para a reunião** (o boneco anda até a porta). Reservas de sala (de todas as agendas, **sem título
+  nem dono**, só as salas que quem pede vê) aparecem na dica da sala ("Reunião às 15h nesta sala") e no mini-mapa
+  (ponto vermelho). As **salas próprias** (frente W4) também valem, as de reunião primeiro: "Sala Azul" no local acha a
+  sala de reunião "Sala Azul" (`agendaRooms` em `humanos/index.ts`).
+- Rotas: `GET|POST /api/kaviski/humanos/agenda`, `GET /api/kaviski/humanos/agenda/rooms`.
+
+**Extras.**
+- **Mini-mapa** (canto de baixo à direita da área livre; **N** recolhe/abre, lembrado): prédio, salas acesas/apagadas,
+  agentes, pessoas na cor do crachá, eu piscando e o retângulo da câmera. Clicar anda até lá (longe: correndo) ou leva
+  a câmera.
+- **Atalhos**: botão **?** do mini-mapa e, na Ajuda do Habblaud (tecla **?**), uma seção "Pessoas no escritório:
+  teclas" posta em tempo de execução. Lista em `client/src/kaviski/humanos/shortcuts-list.ts` (fácil de editar).
+- **Modo foco (pomodoro)** — não confundir com o **Modo clássico** da frente W1 (lua): botão dos fones no topo, 25 ou 50 min, status **"🎧 Focado até 15h"** (fonte `foco`),
+  minutos restantes no botão, som suave no fim (Web Audio; só uma aba toca), "Mais 25 min". Lembrado no navegador.
+- **Boas-vindas**: tour de 3–4 passos na primeira entrada (visitante: escolher o boneco; andar; conversar; E para usar
+  as coisas; modo foco e agenda), lembrado por pessoa no navegador; "Ver o tour de novo" na janela de Atalhos.
+- **Quem está na sala**: parar o mouse sobre uma sala ou área comum mostra as pessoas, quantos agentes e a reunião
+  marcada.
+- Status automático: `client/src/kaviski/humanos/auto-status.ts` repassa ao `status.ts` da frente W2
+  (`kvSetStatus`/`kvClearStatus` com a fonte `agenda` ou `foco`; o manual vence).
+- Código: `server/kaviski/humanos/{invites,invites-route,agenda,test-harness}.ts` (+ `invites.test.ts`,
+  `agenda.test.ts`), `shared/{kaviski-invites,kaviski-ics,kaviski-agenda}.ts` (+ `kaviski-ics.test.ts`),
+  `shared/locales/kaviski-extras.ts`, `client/src/kaviski/humanos/{extras,invites,agenda,focus,minimap,shortcuts,
+  shortcuts-list,welcome,room-hover,walk,auto-status}.ts` + `extras.css`.
+
+### Testes da integração (2026-11-06)
+Instância própria da integradora (build de produção, `HABBLAUD_PORT=4771`/`4772`, `~/.habblaud-dev-int`, LiveKit local
+`ws://127.0.0.1:7880`), Chromium headless (Playwright) com 2 a 4 pessoas ao mesmo tempo (admin, equipe, cliente,
+visitante). Roteiros em `<scratch da 03d3677e>/e2e/` (os das frentes adaptados + os de integração). Passaram: boas-vindas,
+mini-mapa, convite e visitante; pomodoro e modo clássico juntos; sentar com E (o outro vê a pose), mesa fixa pelo 📌,
+nascer na mesa, DESCANSANDO; cartão com Seguir/Teleportar/Ir até a mesa; status com nota, chamar com a aba escondida,
+não perturbe, reações, mão, @menção, 1:1; roda privada (voz e chat só do grupo); sala trancada (voz recusada, porta,
+bater, deixar entrar); voz: RNNoise, fundos, grade, palco (cliente só ouve), não perturbe e modo clássico fora da
+chamada, troca de área sem vazar áudio, reconexão, nada de CDN; Sala Azul trancada; mesa na sala pessoal.
 
 ## Como desenvolver sem derrubar o escritório
 - Desenvolver numa **segunda instância** (`HABBLAUD_PORT=4757`, `HABBLAUD_REMOTE_PORT=4758`,
