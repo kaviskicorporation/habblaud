@@ -11,6 +11,7 @@ import { BUILDING_H, COL_W } from './constants';
 import { RECEPTION_ID } from './layout/core';
 import { inRect } from './layout/geometry';
 import { attachInput, type Hit } from './input';
+import { kvAttachWorld } from '../kaviski/humanos/world'; // fork Kaviski (KAVISKI-HUMANOS.md)
 import type { AgentInfo } from '../../../shared/types';
 import { rebaseSnapshot } from './playback';
 import { Overlay } from './render/overlay';
@@ -220,9 +221,10 @@ export function createWorld(canvas: HTMLCanvasElement, store: OfficeStore, o: Cr
     camera.follow = VISITOR_ID;
   };
 
+  const kv = kvAttachWorld({ sim: () => sim, camera, office: !visitMode }); // fork Kaviski: pessoas no escritório
   const detachInput = attachInput(canvas, camera, {
     pick,
-    click: (hit, at) => (visitMode ? visitClick(hit, at) : setSelection(hit)),
+    click: (hit, at) => (visitMode ? visitClick(hit, at) : kv.click(hit, at) ? undefined : setSelection(hit)), // fork Kaviski: kv.click
     doubleClick: (hit) => {
       if (hit?.type === 'agent') {
         setSelection(hit);
@@ -241,7 +243,7 @@ export function createWorld(canvas: HTMLCanvasElement, store: OfficeStore, o: Cr
     overview: () => overview(true),
     zoomStep,
     active: () => !suspended,
-    keys: () => !visitMode,
+    keys: () => !visitMode && !kv.walking(), // fork Kaviski: as teclas andam com o meu boneco
   });
 
   // ------------------------------------------------------------------ dados
@@ -285,6 +287,7 @@ export function createWorld(canvas: HTMLCanvasElement, store: OfficeStore, o: Cr
       const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
       if (canvas.clientWidth !== camera.viewW || canvas.clientHeight !== camera.viewH || dpr !== camera.dpr) resize();
       sim.update(dt, now);
+      kv.frame(dt, now, !!playback); // fork Kaviski: pessoas no escritório
       // partidas e apostas resolvidas: para o feed (as do timelapse são encenação do passado: ficam fora)
       const events = sim.social.events;
       if (events.length) {

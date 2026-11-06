@@ -19,10 +19,14 @@ import { log } from '../../log';
 import { builtinPerson, createPeopleGate, KvPersonSessions } from './gate';
 import { kvPersonOf } from './request';
 import { kvFilterStream } from './stream-filter';
+import { KvPresence } from './presence';
+import { kvParseLook, type KvLook } from '../../../shared/kaviski-presence';
 import { BUILTIN_ID, KvUsers, publicPerson } from './users';
 
 export const HUMANOS_API = '/api/kaviski/humanos';
 const USERS_PATH = `${HUMANOS_API}/users`;
+const PRESENCE_PATH = `${HUMANOS_API}/presence`;
+const PROFILE_PATH = `${HUMANOS_API}/profile`;
 const AGENT_DETAIL = /^\/api\/agents\/([^/]+)$/;
 
 type Gate = (req: IncomingMessage, res: ServerResponse, url: URL) => boolean;
@@ -30,6 +34,7 @@ type Gate = (req: IncomingMessage, res: ServerResponse, url: URL) => boolean;
 export interface KvHumanos {
   readonly enabled: boolean;
   readonly users: KvUsers;
+  readonly presence: KvPresence;
   /** Põe o login por pessoa na frente do gate original (sem HABBLAUD_HUMANOS=1, devolve o original). */
   gate(original: Gate, builtin: RemoteSessions, cfg: RemoteConfig): Gate;
   /** Antes da API (porta local e remota): rotas próprias e a trava do cliente. true = já respondeu. */
@@ -55,6 +60,68 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
   const users = new KvUsers(dir ? join(dir, 'users.json') : null, builtinUser);
   if (enabled) users.load();
   const builtinName = () => kvPersonName(users.profile(BUILTIN_ID).name) ?? builtinUser ?? 'admin';
+
+  const lookOf = (id: string): KvLook | undefined => kvParseLook(users.profile(id).look);
+  const presence = new KvPresence({ snapshot: deps.snapshot, look: lookOf });
+
+  /** Quem é: a pessoa do login ou, pela porta local aberta no próprio computador, a conta do .env. */
+  const whoIs = (req: IncomingMessage): KvPerson | undefined => {
+    const p = kvPersonOf(req);
+    if (p) return p;
+    if (!isRemoteRequest(req) && isLoopbackHost(req.headers.host)) return builtinPerson(builtinUser ?? 'admin', builtinName());
+    return undefined;
+  };
+
+  const presenceRoute = (req: IncomingMessage, res: ServerResponse): void => {
+    const method = req.method ?? 'GET';
+    const person = whoIs(req);
+    if (!person) {
+      req.resume();
+      return sendJson(res, 403, { error: tr('entre com a sua conta para aparecer no escritório') });
+    }
+    if (method === 'GET') return presence.attach(req, res, person);
+    if (method !== 'POST') {
+      req.resume();
+      res.setHeader('Allow', 'GET, POST');
+      return sendJson(res, 405, { error: tr('método não permitido') });
+    }
+    readJson(req, 4096)
+      .then((body) => {
+        const err = presence.update(person, body);
+        if (err === 'offline') throw new HttpError(409, tr('abra o fluxo de presença antes'));
+        if (err === 'rate') throw new HttpError(429, tr('devagar'));
+        if (err) throw new HttpError(400, tr('presença inválida ({0})', [err]));
+        sendJson(res, 200, { ok: true });
+      })
+      .catch((err) => fail(res, err));
+  };
+
+  const profileRoute = (req: IncomingMessage, res: ServerResponse): void => {
+    const method = req.method ?? 'GET';
+    const person = whoIs(req);
+    if (!person) {
+      req.resume();
+      return sendJson(res, 403, { error: tr('entre com a sua conta para ter um boneco') });
+    }
+    if (method === 'GET' || method === 'HEAD') {
+      req.resume();
+      return sendJson(res, 200, { look: lookOf(person.id) ?? null, name: person.name });
+    }
+    if (method !== 'POST') {
+      req.resume();
+      res.setHeader('Allow', 'GET, POST');
+      return sendJson(res, 405, { error: tr('método não permitido') });
+    }
+    readJson(req, 8192)
+      .then((body) => {
+        const look = kvParseLook((body as { look?: unknown })?.look);
+        if (!look) throw new HttpError(400, tr('boneco inválido'));
+        if (!users.setProfile(person.id, { ...users.profile(person.id), look })) throw new HttpError(404, tr('pessoa não encontrada'));
+        presence.touch();
+        sendJson(res, 200, { look });
+      })
+      .catch((err) => fail(res, err));
+  };
 
   const isAdmin = (req: IncomingMessage): boolean => {
     const p = kvPersonOf(req);
@@ -113,6 +180,7 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
       req.resume();
       if (id === BUILTIN_ID) return sendJson(res, 400, { error: tr('a conta do .env (HABBLAUD_REMOTE_USER) não se apaga por aqui') });
       if (!users.remove(id)) return sendJson(res, 404, { error: tr('pessoa não encontrada') });
+      presence.refresh(undefined, id);
       log.info(tr('Pessoas: conta {0} apagada.', [id]));
       return sendJson(res, 200, { ok: true });
     }
@@ -132,6 +200,7 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
         }
         const r = await users.update(id, body);
         if (!r.ok) throw new HttpError(r.status, r.error);
+        presence.refresh(r.person, id);
         sendJson(res, 200, { person: r.person });
       })
       .catch((err) => fail(res, err));
@@ -175,6 +244,7 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
   return {
     enabled,
     users,
+    presence,
     gate(original, builtin, cfg) {
       if (!enabled) return original;
       const secret = loadSecret(join(deps.dataDir ?? '', 'remote-secret'));
@@ -190,8 +260,17 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
       if (path === `${HUMANOS_API}/me`) {
         req.resume();
         const local = !isRemoteRequest(req) && isLoopbackHost(req.headers.host);
-        const me: KvMe = { enabled: true, ...(person ? { person } : {}), ...(local ? { local: true } : {}) };
+        const who = person ?? (local ? whoIs(req) : undefined);
+        const me: KvMe = { enabled: true, ...(who ? { person: who } : {}), ...(local ? { local: true } : {}) };
         sendJson(res, 200, me);
+        return true;
+      }
+      if (path === PRESENCE_PATH) {
+        presenceRoute(req, res);
+        return true;
+      }
+      if (path === PROFILE_PATH) {
+        profileRoute(req, res);
         return true;
       }
       if (path === USERS_PATH || path.startsWith(`${USERS_PATH}/`)) {

@@ -34,7 +34,7 @@ export function start(): void {
   kvStartRoomLink(location.search, store, world); // fork Kaviski: ?sala=<pasta>
   kvStartBrand(store); // fork Kaviski: HABBLAUD_BRAND no topo
   kvStartCompanion(store); // fork Kaviski: companion do painel Browser do TwiCC
-  kvStartHumanos(); // fork Kaviski: pessoas no escritório (HABBLAUD_HUMANOS)
+  kvStartHumanos(store); // fork Kaviski: pessoas no escritório (HABBLAUD_HUMANOS)
   // O que esta página pode fazer (porta local ou remota com login) chega antes do primeiro snapshot (ou desiste em
   // poucos segundos e fica a regra de antes).
   if (store.mock) store.connect();

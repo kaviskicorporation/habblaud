@@ -1,13 +1,18 @@
 // Fork Kaviski (KAVISKI-HUMANOS.md): pessoas no escritório, lado da página. Pergunta ao servidor quem está aqui
 // (GET /api/kaviski/humanos/me; 404 = HABBLAUD_HUMANOS desligado e nada muda) e:
-// - mostra "Nome · papel" na linha de status do topo;
+// - mostra "Nome · papel" na linha de status do topo, que abre quem está online (online.ts) e liga a presença ao vivo
+//   (presence.ts) e o meu boneco andando no escritório (world.ts);
 // - para quem é admin (ou pela porta local, no próprio computador), o botão Pessoas no grupo de painéis.
 // O filtro das salas é do servidor: a página só mostra o que recebe.
 import type { KvMe } from '../../../../shared/kaviski-humanos';
 import { tr } from '../../../../shared/i18n';
-import { h, iconButton } from '../../ui/dom';
+import { iconButton } from '../../ui/dom';
 import { pixelIcon } from '../../ui/icons';
-import { PeopleDialog, ROLE_LABEL } from './people';
+import { PeopleDialog } from './people';
+import { KvOnline } from './online';
+import { KvPresenceClient } from './presence';
+import { kvPeople } from './world';
+import type { OfficeStore } from '../../net/store';
 import './humanos.css';
 
 const PEOPLE_ICON = pixelIcon(['..##....##..', '.####..####.', '.####..####.', '..##....##..', '............', '.####..####.', '######.#####', '######.#####', '######.#####']);
@@ -30,15 +35,20 @@ export async function kvLoadMe(fetchImpl: typeof fetch = fetch): Promise<KvMe | 
   }
 }
 
-export function kvStartHumanos(root: ParentNode = document): void {
+export function kvStartHumanos(store: OfficeStore, root: ParentNode = document): void {
   void kvLoadMe().then((m) => {
     me = m;
     if (!m) return;
     const status = root.querySelector('.ui-topbar__status');
     if (m.person && status) {
-      status.append(
-        h('span', { class: `kv-me kv-role--${m.person.role}`, title: tr('Você: {0} ({1})', [m.person.name, m.person.user]) }, h('span', { class: 'kv-me__name', text: m.person.name }), h('span', { class: 'kv-me__role', text: ROLE_LABEL[m.person.role] })),
-      );
+      // Presença ao vivo (fase 1b): o chip do topo abre a lista de quem está online.
+      const client = new KvPresenceClient();
+      kvPeople.client = client;
+      Object.assign((window as { habblaud?: object }).habblaud ?? {}, { kvPeople });
+      const online = new KvOnline(m, store);
+      status.append(online.chip);
+      client.on((s) => online.setState(s));
+      client.start();
     }
     if (m.person?.role === 'cliente') {
       // O servidor recusa o timelapse e o Meu dia ao cliente (são da empresa toda): os botões somem.

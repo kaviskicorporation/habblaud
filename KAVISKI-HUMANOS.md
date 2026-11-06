@@ -91,6 +91,32 @@ Liga com `HABBLAUD_HUMANOS=1` (e a porta remota configurada, como hoje). Sem a v
   `shared/kaviski-humanos.ts`, `shared/locales/kaviski-humanos.ts` (traduções), `client/src/kaviski/humanos/{index,people}.ts`
   + `humanos.css`. Ganchos listados no `KAVISKI.md`.
 
+### 1b — boneco, andar e presença ao vivo (2026-11-06) ✅
+- **Meu boneco**: o "visitante" que o `Sim` já tem (`client/src/world/sim/visitor.ts`, o da cena Visita do Habblaud World)
+  — chega pelo elevador da recepção, anda com setas/WASD (Shift corre, com colisão) ou clique (A*), a câmera segue. Com o
+  boneco no escritório as teclas são dele (a câmera continua no arrastar/roda). Botão **Andar/Sair do escritório** na
+  lista de online (lembrado no navegador; padrão: entra).
+- **Aparência na conta**: "Meu boneco" abre as mesmas peças do editor de personagem (`AppearanceFields`) + cor do crachá;
+  `GET|POST /api/kaviski/humanos/profile` guarda `{seed, look, parts, color}` no perfil (`users.json`; a conta do `.env`
+  em `builtinProfile`). Quem nunca escolheu ganha um boneco sorteado pelo id.
+- **Os outros**: "bonecos de corda" (`Character` do Sim) desenhados pelo mesmo renderer (o `people()` do `Sim` é
+  embrulhado em tempo de execução) e indo suavemente até a última posição recebida. Etiqueta sempre com o nome e um selo
+  (EQUIPE / CLIENTE, ou OCUPADO / AUSENTE).
+- **Presença ao vivo: SSE + POST, não WebSocket** (decisão técnica): o servidor não tem biblioteca de WebSocket e, com
+  HTTPS na porta remota, o servidor TLS fica escondido dentro do `remote.ts` (precisaria de mais ganchos no original); o
+  SSE já passa pelo login e pelo iframe do TwiCC. `GET /api/kaviski/humanos/presence` (evento `people`, ~10/s no máximo,
+  só quando muda) e `POST` `{pos, status}` (~8/s andando; limite 25/s). Fechou a última página: some depois de 8 s.
+- **Posição independente do prédio** (`shared/kaviski-presence.ts`, `client/src/kaviski/humanos/pos.ts`): o cliente vê
+  menos salas e as colunas mudam de lugar, então a posição vai relativa à sala (espelhada se ela está do outro lado do
+  corredor), à coluna da sala no corredor, ou absoluta no núcleo (igual em todo prédio).
+- **Quem vê quem (no servidor)**: equipe/admin veem todos; cliente vê equipe/admin e só os clientes que dividem uma sala
+  com ele; posição dentro de sala que ele não vê não chega (a pessoa aparece na lista "fora do escritório"). Cliente não
+  consegue dizer que está numa sala que não é dele.
+- **Quem está online**: o chip "Nome · papel" do topo abre a lista (status disponível/ocupado/ausente, onde cada um está;
+  clicar leva a câmera até a pessoa).
+- Código: `server/kaviski/humanos/presence.ts`, `shared/kaviski-presence.ts`,
+  `client/src/kaviski/humanos/{presence,world,online,pos}.ts` (+ `pos.test.ts`). Depuração: `habblaud.kvPeople` no console.
+
 ## Como desenvolver sem derrubar o escritório
 - Desenvolver numa **segunda instância** (`HABBLAUD_PORT=4757`, `HABBLAUD_REMOTE_PORT=4758`,
   `HABBLAUD_DATA_DIR=~/.habblaud-dev`), sem mexer no serviço `habblaud` em produção.

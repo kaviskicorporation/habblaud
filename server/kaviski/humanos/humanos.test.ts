@@ -280,7 +280,7 @@ describe('porta remota com HABBLAUD_HUMANOS=1', () => {
   it('pela porta local (o próprio computador) a tela de Pessoas funciona sem login', async () => {
     const h = await start();
     const me = await (await fetch(`${h.localBase}/api/kaviski/humanos/me`)).json();
-    expect(me).toEqual({ enabled: true, local: true });
+    expect(me).toMatchObject({ enabled: true, local: true, person: { user: 'kavisvi', role: 'admin' } });
     expect((await fetch(`${h.localBase}/api/kaviski/humanos/users`)).status).toBe(200);
   });
 
@@ -290,5 +290,38 @@ describe('porta remota com HABBLAUD_HUMANOS=1', () => {
     expect((await fetch(`${h.base}/api/kaviski/humanos/me`, { headers: { cookie: admin } })).status).toBe(404);
     const snap = (await (await fetch(`${h.base}/api/snapshot`, { headers: { cookie: admin } })).json()) as OfficeSnapshot;
     expect(snap.rooms).toHaveLength(2);
+  });
+});
+
+import { KvPresence } from './presence';
+
+describe('presença (quem vê quem)', () => {
+  const person = (id: string, role: 'admin' | 'equipe' | 'cliente', rooms: string[] = []) => ({ id, user: id, name: id, role, rooms });
+  const snap = () => snapshot();
+  it('cliente vê a equipe e só os clientes das salas dele; posição em sala alheia não vai', () => {
+    const pres = new KvPresence({ snapshot: snap, look: () => undefined });
+    const fake = () => {
+      const res = { writeHead() {}, write: () => true, on() {}, end() {}, destroyed: false, writableEnded: false };
+      const req = { socket: { setTimeout() {}, setNoDelay() {} }, on() {} };
+      return { req: req as unknown as http.IncomingMessage, res: res as unknown as http.ServerResponse };
+    };
+    const rarm = person('rarm', 'cliente', ['/proj/Clientes/12-Rarm']);
+    const outro = person('outro', 'cliente', ['/proj/Clientes/99-Outro']);
+    const bia = person('bia', 'equipe');
+    for (const p of [rarm, outro, bia]) {
+      const f = fake();
+      pres.attach(f.req, f.res, p);
+    }
+    expect(pres.update(rarm, { pos: { k: 'r', r: 'r2', x: 1, y: 1, d: 'down', m: 0 } })).toBe('room');
+    expect(pres.update(bia, { pos: { k: 'r', r: 'r2', x: 1, y: 1, d: 'down', m: 0 }, status: 'ocupado' })).toBeNull();
+    const seenByRarm = pres.visibleTo(rarm, snapshot());
+    expect(seenByRarm.map((p) => p.id).sort()).toEqual(['bia', 'rarm']);
+    expect(seenByRarm.find((p) => p.id === 'bia')).toMatchObject({ status: 'ocupado' });
+    expect(seenByRarm.find((p) => p.id === 'bia')!.pos).toBeUndefined();
+    const seenByBia = pres.visibleTo(bia, snapshot());
+    expect(seenByBia.map((p) => p.id).sort()).toEqual(['bia', 'outro', 'rarm']);
+    expect(seenByBia.find((p) => p.id === 'bia')!.pos).toMatchObject({ r: 'r2' });
+    expect(pres.update(rarm, { pos: { k: 'r', r: 'r1', x: 1, y: 1, d: 'down', m: 0 } })).toBeNull();
+    pres.stop();
   });
 });

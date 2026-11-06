@@ -16,6 +16,7 @@ import { drawFxBanner } from './github-fx';
 import type { HeadInfo, Renderer } from './renderer';
 import { tr } from '../../../../shared/i18n';
 import { kvAccent, kvDrawPillBadge, kvDrawSignStyle } from '../../kaviski/room-style'; // fork Kaviski (KAVISKI.md)
+import { kvPersonBadge } from '../../kaviski/humanos/world'; // fork Kaviski (KAVISKI-HUMANOS.md)
 
 // A Pixelify Sans tem o "C" maiúsculo quase fechado (lê-se "Oopa" em vez de "Copa") em qualquer
 // peso/tamanho usado no canvas; os textos do mundo usam a fonte do sistema, sempre legível.
@@ -322,7 +323,7 @@ export class Overlay {
       const selected = sel.agent === ch.id;
       const hovered = sel.hover === ch.id;
       // o visitante (cena Visita) sempre com o nome e o crachá
-      const visitor = ch === this.sim.visitor;
+      const visitor = ch === this.sim.visitor || !!kvPersonBadge(ch); // fork Kaviski: pessoa com nome sempre à mostra
       const labeled = selected || hovered || ch.mode === 'wait' || showAll || visitor;
       const above = labeled && this.labelAbove(ch);
       const b = this.bubbleFor(ch, head, now, opts, selected, hovered);
@@ -877,8 +878,8 @@ export class Overlay {
     const acc = this.sim.accounts.get(ch.info.account);
     const nameW = this.measure(LABEL_FONT, ch.info.name);
     const chipW = acc ? 13 : 0;
-    const visitor = ch === this.sim.visitor;
-    const badgeW = visitor ? this.measure(BADGE_FONT, visitorBadge()) + 7 : ch.info.kind === 'sub' && !l.compact ? this.measure(BADGE_FONT, 'SUB') + 7 : 0;
+    const visitor = ch === this.sim.visitor || !!kvPersonBadge(ch); // fork Kaviski
+    const badgeW = visitor ? this.measure(BADGE_FONT, kvPersonBadge(ch) ?? visitorBadge()) + 7 : ch.info.kind === 'sub' && !l.compact ? this.measure(BADGE_FONT, 'SUB') + 7 : 0; // fork Kaviski: kvPersonBadge
     const codexW = ch.info.provider === 'codex' && !l.compact ? this.measure(BADGE_FONT, CODEX_BADGE) + 7 : 0;
     return { nameW, chipW, badgeW, codexW };
   }
@@ -957,7 +958,7 @@ export class Overlay {
       ctx.fill();
       ctx.font = BADGE_FONT;
       ctx.fillStyle = '#2a2000';
-      ctx.fillText(ch === this.sim.visitor ? visitorBadge() : 'SUB', cx + 3.5, y + h / 2 + 0.5);
+      ctx.fillText(ch === this.sim.visitor || kvPersonBadge(ch) ? (kvPersonBadge(ch) ?? visitorBadge()) : 'SUB', cx + 3.5, y + h / 2 + 0.5); // fork Kaviski: kvPersonBadge
       cx += badgeW + 3;
     } else if (sub) {
       // selo compacto: pontinho na cor do crachá
