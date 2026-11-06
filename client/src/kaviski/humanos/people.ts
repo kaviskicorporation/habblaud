@@ -236,7 +236,7 @@ export class PeopleDialog {
     if (tab === 'registro') void this.loadAudit();
     if (tab === 'convites' && !this.invitesMounted) {
       this.invitesMounted = true;
-      void import('./invites').then((m) => (m as { kvMountInvites?: (el: HTMLElement) => void }).kvMountInvites?.(this.panes.convites));
+      void import('./invites').then((m) => m.kvMountInvites(this.panes.convites));
     }
   }
 

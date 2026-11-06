@@ -317,3 +317,47 @@
   border: 1px solid var(--ui-line);
   background: rgba(0, 0, 0, 0.18);
 }
+
+/* ---- barra do boneco (bar.ts): área, conversa, voz e vídeo, reações */
+.ui-root .kv-dock {
+  gap: 4px;
+  padding: 4px 6px 4px 12px;
+  border-radius: 12px;
+  background: var(--kv-ui-panel);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 3px 0 rgba(0, 0, 0, 0.35),
+    0 12px 30px rgba(5, 7, 12, 0.5);
+}
+
+.ui-root .kv-dock__where {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-right: 4px;
+  font: 600 12px/1 var(--font-ui);
+  color: var(--ui-text);
+}
+
+.ui-root .kv-dock__where::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  flex: none;
+  background: var(--st-working);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--st-working) 60%, transparent);
+}
+
+.ui-root .kv-dock .ui-icon-btn {
+  border-radius: 8px;
+}
+
+/* o risco de "desligado" é do microfone/câmera/tela; a conversa não liga nem desliga */
+.ui-root .kv-dock__chat::after {
+  content: none !important;
+}
+
+.ui-root .kv-dock__chat.is-on {
+  color: var(--ui-accent);
+  background: var(--ui-accent-soft);
+}

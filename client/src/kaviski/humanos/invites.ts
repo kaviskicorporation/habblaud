@@ -91,6 +91,11 @@ export class InvitesDialog {
     await this.reload();
   }
 
+  /** Busca de novo os convites e as salas (usado também na aba Convites da tela de Pessoas). */
+  refresh(): Promise<void> {
+    return this.reload();
+  }
+
   private async reload(): Promise<void> {
     try {
       const res = await fetch(API, { credentials: 'same-origin', cache: 'no-store' });
@@ -226,4 +231,15 @@ export class InvitesDialog {
       this.error.textContent = tr('Sem conexão com o Habblaud.');
     }
   }
+}
+
+/** Fork Kaviski W6: os convites dentro de outra janela — a aba Convites da tela de Pessoas (people.ts). */
+export function kvMountInvites(host: HTMLElement): void {
+  const d = new InvitesDialog();
+  const body = d.el.querySelector('.ui-dialog__body');
+  if (!body) return;
+  host.classList.add('kv-people', 'kv-inv');
+  host.append(body);
+  d.el.remove();
+  void d.refresh();
 }
