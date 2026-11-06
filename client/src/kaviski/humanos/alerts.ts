@@ -272,8 +272,8 @@ export function kvToast(o: { key: string; icon: string; title: string; text?: st
 
 /** A "minha sala": a da minha mesa fixa, a minha sala própria ou, sem elas, a sala em que estou. */
 function homeRoom(): string | null {
-  const k = kvPeople as { myDesk?: { roomId: string } | null; myRoom?: () => string | null };
-  const desk = k.myDesk?.roomId;
+  const k = kvPeople as { myRoom?: () => string | null };
+  const desk = kvPeople.myDesk?.roomId;
   if (desk) return desk;
   const own = typeof k.myRoom === 'function' ? k.myRoom() : null;
   if (own) return own;

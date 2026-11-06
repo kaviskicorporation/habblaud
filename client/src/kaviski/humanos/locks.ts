@@ -76,13 +76,9 @@ export class KvLocks {
     client.onEvent<KvKnockEvent>('knock', (e) => this.onKnock(e));
     client.onEvent<KvKnockAnswer>('knock-answer', (a) => this.onAnswer(a));
     kvRegisterInteract((me) => this.knockTarget(me));
-    // o "desfazer o passo" roda logo depois da simulação, antes do desenho, quando o mundo tiver o gancho (W1)
-    const onFrame = (kvPeople as { onFrame?: Set<(dt: number, now: number) => void> }).onFrame;
-    if (onFrame) onFrame.add(() => this.block());
-    kvEachFrame(() => {
-      if (!onFrame) this.block();
-      this.placePads();
-    });
+    // o "desfazer o passo" roda logo depois da simulação, antes do desenho (gancho por quadro do W1)
+    kvPeople.onFrame.add(() => this.block());
+    kvEachFrame(() => this.placePads());
     setInterval(() => this.paint(), 500);
   }
 
@@ -182,7 +178,7 @@ export class KvLocks {
       const g = geomOf(sim, id);
       if (!g || !inRect(g.rect, tx, ty)) continue;
       // entrou: volta para onde estava (ou para a frente da porta) e para de andar
-      (kvPeople as { stopMe?: () => void }).stopMe?.();
+      kvPeople.stopMe?.();
       v.queue.length = 0;
       v.step = null;
       const back = this.lastGood && !inRect(g.rect, Math.floor(this.lastGood.x / TILE), Math.floor(this.lastGood.y / TILE)) ? this.lastGood : g.out;
