@@ -169,7 +169,7 @@ Tudo só com `HABBLAUD_HUMANOS=1` e o LiveKit configurado (sem ele, nada disto a
   cabeça (`kvHeads`, ordem 5) de quem está na minha chamada com o microfone desligado. A bolinha de vídeo ganha a borda
   verde. Com a grade aberta, bolinhas, anéis e pilhas somem (não ficam por cima dela).
 - **Não perturbe** (status `naoperturbe`, do W2): não entro em chamada de área nem toco o áudio de ninguém (só o palco,
-  se não estiver silenciado). **Modo foco** (`kvPeople.resting`, do W1): também fora da chamada (microfone e câmera
+  se não estiver silenciado). **Modo clássico** (`kvPeople.resting`, do W1): também fora da chamada (microfone e câmera
   desligados; a preferência fica). **Roda privada** (`kvPeople.callArea`, do W2): `b:<id>` vale no lugar da área, com
   volume cheio como numa sala.
 - **Robustez**: ao sair de uma área, **antes mesmo de a chamada trocar** (os 0,7 s de espera e a conexão), o meu

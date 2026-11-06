@@ -11,7 +11,7 @@ describe('em que chamada eu entro', () => {
     expect(kvCallWanted({ inside: false, area: 'r:1' })).toBeNull();
     expect(kvCallWanted({ inside: true, area: null })).toBeNull();
   });
-  it('não perturbe e modo foco: nenhuma', () => {
+  it('não perturbe e modo clássico: nenhuma', () => {
     expect(kvCallWanted({ inside: true, area: 'c', client: me('naoperturbe') })).toBeNull();
     expect(kvCallWanted({ inside: true, area: 'c', client: me('ocupado') })).toBe('c');
     expect(kvCallWanted({ inside: true, area: 'c', resting: true })).toBeNull();

@@ -12,11 +12,11 @@ export function proximityVolume(dist: number): number {
   return 1 - (dist - NEAR) / (FAR - NEAR);
 }
 
-/** O pedaço do kvPeople (world.ts) que decide a chamada. `resting` vem do modo foco; `callArea`, da roda privada. */
+/** O pedaço do kvPeople (world.ts) que decide a chamada. `resting` vem do modo clássico (W1); `callArea`, da roda privada (W2). */
 export interface KvCallInputs {
   inside: boolean;
   area: string | null;
-  /** Modo foco / descansando: fora de chamada, microfone e câmera desligados (a preferência fica). */
+  /** Modo clássico / descansando: fora de chamada, microfone e câmera desligados (a preferência fica). */
   resting?: boolean;
   /** Área de chamada que vale para mim (`b:<id>` numa roda privada; null = nenhuma; undefined = a da área). */
   callArea?: string | null;
@@ -31,7 +31,7 @@ export function kvCallWanted(p: KvCallInputs): string | null {
 }
 
 export function kvDoNotDisturb(p: Pick<KvCallInputs, 'client'>): boolean {
-  return (p.client?.me()?.status as string | undefined) === 'naoperturbe';
+  return p.client?.me()?.status === 'naoperturbe';
 }
 
 /** Áreas em que todos se ouvem por igual: sala de projeto (`r:`) e roda privada (`b:`). O resto vai pela distância. */

@@ -9,7 +9,7 @@
 // - O servidor só dá o token das chamadas que a pessoa pode ouvir (cliente: as salas dele e as áreas comuns).
 // - Onda Gather (KAVISKI-HUMANOS.md, "Voz e vídeo — onda Gather"): ajustes e efeitos (media-fx.ts, menus em
 //   media-menu.ts), palco (media-stage.ts), grade ampliada (media-grid.ts), anel de quem fala (media-speak.ts) e as
-//   regras de quando entrar na chamada e do volume (media-rules.ts: não perturbe, modo foco, roda privada).
+//   regras de quando entrar na chamada e do volume (media-rules.ts: não perturbe, modo clássico, roda privada).
 import type { LocalAudioTrack, LocalVideoTrack, Participant, RemoteParticipant, RemoteTrack, Room, Track, TrackPublication } from 'livekit-client';
 import { tr } from '../../../../shared/i18n';
 import { h } from '../../ui/dom';
