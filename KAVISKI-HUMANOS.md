@@ -385,6 +385,48 @@ lugar de guardar).
   reactions,locks,bubble,overlay}.ts` + `social.css`; mudanças pequenas em `presence.ts` (servidor e página),
   `livekit.ts`, `chat.ts` (servidor e página), `index.ts` (servidor e página), `world.ts` (rótulo e selo), `online.ts`,
   `person-card.ts`, `bar.ts` e `auto-status.ts` (agora repassa ao `status.ts`).
+### Salas próprias, quadro branco, mural e links na parede (2026-11-06) ✅ (onda Gather, W4)
+- **Salas que não são projetos** em `<dataDir>/kaviski/rooms.json` (600): `pessoal` (a sala/canto fixo de uma pessoa,
+  "Sala de Ana" — uma por pessoa), `reuniao`, `descanso`, `outra`. Id `kvsala-<10 caracteres>` (nunca começa com `/`,
+  não colide com pasta de projeto); a área de conversa/voz é `r:<id>`, como nas salas de projeto.
+- **Quem cria**: admin, qualquer tipo e para qualquer dono; equipe, a própria sala pessoal e salas de reunião; cliente e
+  visitante, nada. **Quem edita/apaga**: o dono (da equipe) ou um admin. **Quem vê**: `equipe` (a equipe toda + os
+  clientes marcados) ou `escolhidos` (só as pessoas marcadas); admin e dono sempre. Tudo conferido no servidor
+  (`shared/kaviski-rooms.ts` `kvCanSeeOwnRoom`/`kvCanEditOwnRoom`/`kvCanCreateOwnRoom`).
+- **No prédio**: a página pede a lista já filtrada (`GET /api/kaviski/humanos/rooms`) e injeta as salas no Sim
+  (`sim.injected.rooms`, o mesmo mecanismo da depuração): ficam sempre, com a luz acesa, depois das salas de projeto.
+  Layout por tipo (`client/src/kaviski/humanos/rooms-layout.ts`, gancho `kvLayoutRoom` no `sim.ts`): reunião = mesa
+  grande com banquetas e quadro branco; descanso = sofá e poltronas de frente para a TV, puffs; pessoal = mesa de
+  trabalho, estante e cantinho com poltronas; outra = duas mesas + mesa de reunião. Placa com selo do tipo
+  ("Reunião"...). Quadro, placa e mural ficam no mesmo lugar dos dois lados do corredor. Os assentos são só de
+  tipos "da sala" (agentes não vêm descansar aqui). O evento `rooms` do fluxo de presença avisa as páginas.
+- **Voz, conversa e presença**: `kvAreaAllowed` (livekit.ts) pergunta a `kvOwnRoomArea` (rooms.ts) quando o id é de sala
+  própria; a presença usa `kvRoomIdsFor` (salas de projeto liberadas + salas próprias que vê): cliente não diz que está
+  numa sala própria que não vê, e a posição de quem está numa sala "só escolhidos" não vai a quem não a vê.
+- **Habblaud World**: as salas próprias **não** entram no snapshot do Office; o uplink monta o prédio só com os agentes
+  reais (`server/world/uplink.ts`), então nunca as vê (teste em `salas.test.ts`).
+- **Tela Salas** (botão no topo, só equipe/admin; `rooms-dialog.ts`): criar, editar, apagar; tipo, nome, dono (admin),
+  quem vê, paleta (as 10 do tema), cor da placa e **decoração**: grade da sala (14×9) e faixa da parede; escolhe o item
+  (planta, planta alta, luminária, estante, arquivo, puff, quadro, pôster, relógio, tapete) e clica num lugar livre
+  (clique no item tira). Até 16 itens. Lugar ocupado/porta/frente do quadro, placa e mural ficam bloqueados.
+- **Objetos de parede** (tecla **E** perto, via `interact.ts`, ou clique com o boneco na mesma área):
+  - **Quadro branco** de cada sala (de projeto ou própria): caneta, 6 cores, 3 espessuras, borracha, texto, desfazer o
+    meu último, limpar (só a equipe). Ao vivo: o traço sai em pedaços (~12/s, `POST /api/kaviski/humanos/board`) e
+    chega pelo evento `board` só a quem pode ver a sala; gravado em `boards.json` (até 3000 traços). Nas salas próprias
+    a miniatura do desenho aparece no quadro da parede; nas de projeto o quadro de tarefas continua (só um pontinho).
+  - **Mural de avisos** na recepção (no lugar do quadro) e em cada sala (no lugar do pôster): notas curtas (280);
+    sala = quem entra nela escreve; recepção = só a equipe escreve (cliente lê). Apaga o autor, um admin ou o dono da
+    sala própria. Bolinha vermelha piscando e "(1 novo)" na dica quando há nota de outra pessoa que eu não vi.
+  - **Links na parede**: título + endereço (só `http`/`https`, sem usuário/senha embutidos), presos no trecho livre da
+    parede mais perto do boneco (fora de placa, quadro, mural, janela, porta e móveis encostados). Só a equipe prende;
+    abre em aba nova com `noopener,noreferrer`. Ícone de folha com tachinha desenhado na parede.
+  - Rotas: `GET /objects`, `POST /notes`, `DELETE /notes/:id`, `POST /links`, `DELETE /links/:id`, `GET|POST /board`
+    (todas em `/api/kaviski/humanos/`); evento `objects` (a página relê). Gravados em `objects.json` (600). Registro
+    (`audit.ts`): criar/apagar sala, nota, link, limpar quadro.
+- Código: `server/kaviski/humanos/{rooms,objects}.ts` (+ `salas.test.ts`), `shared/kaviski-rooms.ts`,
+  `shared/locales/kaviski-salas.ts`, `client/src/kaviski/humanos/{salas,rooms,rooms-layout,rooms-dialog,objects,
+  wall-draw,board-draw,whiteboard}.ts` + `salas.css`. Para os irmãos: `kvOwnRooms()`, `kvMeetingRooms()`, `kvMyRoom()`
+  e `kvOnOwnRooms(cb)` em `rooms.ts`; `kvPeople.myRoom()` em tempo de execução.
 
 ### Endereço público: https://escritorio.kaviski.com.br (2026-11-06)
 Decisão do Vitor: **sem VPS**. O nome só funciona na rede local e pela VPN (Tailscale, que roteia 192.168.1.0/24).

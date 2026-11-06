@@ -35,6 +35,9 @@ do meio (0.**3**.0).
   **palco** para a equipe falar com o andar inteiro (todos ouvem, dá para silenciar); **grade de vídeo** em tela cheia
   (fixar um quadro, Esc fecha); anel aceso em quem está falando e 🔇 em quem está mudo; em **não perturbe** não entra
   em chamada; ao trocar de área ninguém mais ouve a sala que ficou para trás; reconecta sozinho.
+- **Salas próprias** (sala pessoal, de reunião e de descanso, sempre no prédio; botão Salas no topo, com paleta e
+  decoração simples), **quadro branco** ao vivo por sala, **mural de avisos** na recepção e nas salas e **links presos
+  na parede** (tecla E).
 
 ## [1.0.3] - 2026-10-16
 

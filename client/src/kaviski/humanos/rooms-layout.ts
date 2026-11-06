@@ -149,7 +149,7 @@ export function layoutOwnRoom(room: RoomInput, theme: RoomTheme, mark: KvOwnRoom
       b.block(sx + 2, 4, 1, 1);
       seat('armchair', sx + 3, 4, 'left', 'left');
       b.rug(9.6, 5.6, 4.8, 3.6, theme.carpet2, room.seed + 3);
-      (['red', 'blue', 'yellow'] as const).forEach((c, i) => seat('beanbag', 10 + i * 2, 8, 'up', c, { order: 0.62 + i * 0.01 }));
+      (['red', 'blue', 'yellow'] as const).forEach((c, i) => seat('beanbag', 9 + i * 2, 8, 'up', c, { order: 0.62 + i * 0.01 }));
       b.furn('cafe_table', 11, 6, undefined, { order: 0.44 });
       b.furn('binder_shelf', 14, 4, undefined, { order: 0.3 });
       b.furn('plant_tall', 14, 10, pick(PLANTS_TALL), { order: 0.2 });
