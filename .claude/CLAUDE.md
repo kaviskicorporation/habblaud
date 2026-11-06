@@ -14,7 +14,9 @@ que roda **em produção nesta VM**: serviço `habblaud` do systemd do usuário,
   nunca rebase/force) continua fácil.
 - Desenvolver numa segunda instância (`HABBLAUD_PORT=4757 HABBLAUD_REMOTE_PORT=4758 HABBLAUD_DATA_DIR=~/.habblaud-dev`) e
   só publicar com `python3 ~/base/scripts/kc-habblaud.py subir --build` depois de testar.
-- Antes do commit: `npm run typecheck && npm test && npm run i18n:check && npm run build`
+- Antes do commit: `npm run typecheck && npm test && npm run i18n:check && npm run build` — **numa worktree própria**
+  (`git worktree add --detach <pasta> HEAD` + `npm ci` nela), nunca na pasta principal: o serviço de produção serve o
+  `dist/` daqui e o build troca a página na hora. Instância de teste: parar só pelo PID (nunca `pkill` por nome).
   (Node: `export NVM_DIR=~/.nvm; . ~/.nvm/nvm.sh`). Falha antiga conhecida: `server/world/uplink.test.ts`.
 - Commit e push direto na `main`. `.env` e dados (`~/.habblaud`) nunca no git.
 - Mudança na VM (serviços, containers, portas): anotar em `/home/hostadmin/projetos/Server/01-Server/01.Geral/mudancas.md`.

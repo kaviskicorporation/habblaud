@@ -501,5 +501,7 @@ chamada, troca de área sem vazar áudio, reconexão, nada de CDN; Sala Azul tra
   `HABBLAUD_DATA_DIR=~/.habblaud-dev`), sem mexer no serviço `habblaud` em produção.
 - Antes de cada commit: `npm run typecheck && npm test && npm run i18n:check && npm run build` (pt-BR primeiro; os
   outros idiomas pelo `i18n:check`).
+  **Sempre numa worktree própria** (com `npm ci` dela): o serviço de produção serve o `dist/` da pasta principal e um build
+  ali troca a página na hora. Parar instância de teste só pelo PID (a linha de comando é igual à da produção).
 - Só depois de testado: `python3 ~/base/scripts/kc-habblaud.py subir --build`.
 - Commit e push direto na `main` do fork, mudanças pequenas.
