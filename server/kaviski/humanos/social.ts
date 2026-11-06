@@ -8,9 +8,12 @@
 // POST /api/kaviski/humanos/react   {emoji}         reação rápida sobre o meu boneco (evento `react`, só a quem vê o
 //                                                   meu boneco); ✋ levanta/baixa a mão (fica no `people`). Também
 //                                   {hand: bool}    8 a cada 5 s.
-// POST /api/kaviski/humanos/lock    {on, area?}     tranca (on) a sala em que estou: a lista de quem pode entrar é quem
-//                                                   está dentro agora. Só equipe/admin trancam; qualquer um da lista
+// POST /api/kaviski/humanos/lock    {on, area?, veil?} tranca (on) a sala em que estou: a lista de quem pode entrar é
+//                                                   quem está dentro agora. Só equipe/admin trancam; qualquer um da lista
 //                                                   destranca. Destranca sozinha quando ninguém da lista está dentro.
+//                                                   `veil` (sala privada): quem está fora também não vê quem está dentro.
+//                                                   Reunião privada (meetings.ts) tranca e cobre a sala sozinha enquanto
+//                                                   acontece, com a lista = organizador + convidados (+ quem deixarem entrar).
 // POST /api/kaviski/humanos/knock   {area}          bate na porta (evento `knock` a quem está dentro). 1 a cada 8 s.
 // POST /api/kaviski/humanos/knock/answer {area, who, allow}  quem está dentro deixa entrar (entra na lista) ou recusa.
 // POST /api/kaviski/humanos/bubble  {action: 'start', near: [ids]}  abre uma roda privada com quem está perto (mesma
@@ -60,6 +63,21 @@ interface Lock {
   /** Quem bateu e ainda não teve resposta. */
   knocks: Map<string, number>;
   at: number;
+  /** Sala privada: a posição de quem está dentro não vai a quem está fora (presença). */
+  veil?: boolean;
+  /** Reunião privada dona da tranca (meetings.ts): não destranca quando a sala esvazia, só quando a reunião acaba. */
+  meeting?: { id: string; until: number; title: string; people: Set<string> };
+}
+
+/** Reunião privada acontecendo (meetings.ts → syncMeetingLocks). */
+export interface KvMeetingLock {
+  id: string;
+  area: string;
+  by: { id: string; name: string };
+  /** Organizador + convidados. */
+  members: string[];
+  until: number;
+  title: string;
 }
 
 interface Bubble {
@@ -78,6 +96,8 @@ export interface KvSocialDeps {
   snapshot: () => OfficeSnapshot;
   audit?: KvAudit;
   now?: () => number;
+  /** Alguém da lista destrancou a sala de uma reunião privada: a reunião deixa de ser privada (meetings.ts). */
+  unlockMeeting?: (id: string, person: KvPerson) => void;
 }
 
 export class KvSocial {
@@ -128,9 +148,53 @@ export class KvSocial {
   }
 
   /** Campos a mais de cada pessoa no `people`. */
-  extra(_viewer: KvPerson, id: string): Partial<KvPresencePerson> {
+  extra(viewer: KvPerson, id: string): Partial<KvPresencePerson> {
     const bubble = this.memberOf.get(id);
-    return { ...(this.hands.has(id) ? { hand: true } : {}), ...(bubble ? { bubble } : {}) };
+    const hidden = viewer.id !== id && this.veiled(this.presence.areaOf(id), viewer.id);
+    return { ...(this.hands.has(id) && !hidden ? { hand: true } : {}), ...(bubble ? { bubble } : {}), ...(hidden ? { meet: true } : {}) };
+  }
+
+  /** `area` é uma sala privada (coberta) e `viewerId` não está na lista: não vê quem está lá dentro. */
+  veiled(area: string | undefined, viewerId: string): boolean {
+    if (!area) return false;
+    const l = this.locks.get(area);
+    return !!l?.veil && !l.members.has(viewerId);
+  }
+
+  /**
+   * As reuniões privadas acontecendo agora (meetings.ts, a cada mudança e a cada poucos segundos): cada uma tranca e
+   * cobre a sala dela. Uma tranca comum que já estava lá vira a da reunião (quem estava na lista continua). Reunião que
+   * acabou (ou deixou de ser privada) destranca a sala.
+   */
+  syncMeetingLocks(list: readonly KvMeetingLock[]): void {
+    let changed = false;
+    const want = new Map(list.map((m) => [m.area, m]));
+    for (const l of [...this.locks.values()]) {
+      if (!l.meeting) continue;
+      const m = want.get(l.area);
+      if (!m || m.id !== l.meeting.id) {
+        this.locks.delete(l.area);
+        changed = true;
+      }
+    }
+    for (const m of list) {
+      let l = this.locks.get(m.area);
+      if (!l) {
+        l = { area: m.area, by: m.by, members: new Set(), knocks: new Map(), at: this.now() };
+        this.locks.set(m.area, l);
+        changed = true;
+      }
+      const people = new Set(m.members);
+      const before = `${l.veil}|${l.meeting?.id}|${l.meeting?.until}|${l.meeting?.title}|${[...l.members].sort().join(',')}`;
+      // quem saiu da lista de convidados (edição da reunião) sai da lista, a não ser que tenham deixado entrar
+      if (l.meeting) for (const id of l.meeting.people) if (!people.has(id)) l.members.delete(id);
+      for (const id of people) l.members.add(id);
+      l.veil = true;
+      l.by = m.by;
+      l.meeting = { id: m.id, until: m.until, title: m.title, people };
+      if (before !== `${l.veil}|${l.meeting.id}|${l.meeting.until}|${l.meeting.title}|${[...l.members].sort().join(',')}`) changed = true;
+    }
+    if (changed) this.presence.touch();
   }
 
   /** Salas trancadas que esta página vê. */
@@ -139,7 +203,15 @@ export class KvSocial {
     const locks: KvLockInfo[] = [];
     for (const l of this.locks.values()) {
       if (!this.baseAllowed(l.area, viewer, snap)) continue;
-      locks.push({ area: l.area, by: l.by.name, n: l.members.size, in: l.members.has(viewer.id) });
+      const inside = l.members.has(viewer.id);
+      locks.push({
+        area: l.area,
+        by: l.by.name,
+        n: l.members.size,
+        in: inside,
+        ...(l.veil ? { veil: true } : {}),
+        ...(l.meeting ? { meeting: l.meeting.id, until: l.meeting.until, ...(inside ? { title: l.meeting.title } : {}) } : {}),
+      });
     }
     return locks.length ? { locks } : {};
   }
@@ -158,6 +230,7 @@ export class KvSocial {
       if (!b || !online || this.presence.areaOf(id) !== b.area) this.leaveBubble(id);
     }
     for (const l of [...this.locks.values()]) {
+      if (l.meeting) continue; // a da reunião só acaba com a reunião
       if (l.members.has(id) && ![...l.members].some((m) => this.presence.areaOf(m) === l.area)) {
         this.locks.delete(l.area);
         this.presence.touch();
@@ -211,16 +284,26 @@ export class KvSocial {
       if (!l) return { ok: true };
       if (!l.members.has(person.id)) return bad(403, tr('só quem está na sala destranca'));
       this.locks.delete(l.area);
+      if (l.meeting) this.deps.unlockMeeting?.(l.meeting.id, person);
       this.deps.audit?.add(person, 'destrancar sala', { detail: kvAreaAllowed(l.area, person, snap), ok: true });
       this.presence.touch();
       return { ok: true };
     }
     if (kvRestricted(person)) return bad(403, tr('só a equipe tranca salas'));
     if (!here || !here.startsWith('r:')) return bad(409, tr('entre numa sala para trancá-la'));
-    if (this.locks.has(here)) return { ok: true };
+    const veil = b.veil === true;
+    const had = this.locks.get(here);
+    if (had) {
+      // já trancada: pode passar a privada (cobrir), nunca deixar de ser por aqui
+      if (veil && !had.veil && had.members.has(person.id)) {
+        had.veil = true;
+        this.presence.touch();
+      }
+      return { ok: true };
+    }
     const members = new Set(this.presence.online().filter((o) => o.area === here).map((o) => o.person.id));
     members.add(person.id);
-    this.locks.set(here, { area: here, by: { id: person.id, name: person.name }, members, knocks: new Map(), at: this.now() });
+    this.locks.set(here, { area: here, by: { id: person.id, name: person.name }, members, knocks: new Map(), at: this.now(), ...(veil ? { veil: true } : {}) });
     this.deps.audit?.add(person, 'trancar sala', { detail: kvAreaAllowed(here, person, snap), ok: true });
     this.presence.touch();
     return { ok: true };

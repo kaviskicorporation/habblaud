@@ -17,6 +17,7 @@ import {
   type KvDecorKind,
   type KvOwnRoomKind,
 } from '../../../../shared/kaviski-rooms';
+import { KV_MEET_CAPACITY_MAX, KV_MEET_EQUIPS, KV_MEET_LAYOUT_INFO, KV_MEET_LAYOUTS, kvDefaultMeet, type KvMeetConfig, type KvMeetLayout } from '../../../../shared/kaviski-meetings';
 import { tr } from '../../../../shared/i18n';
 import { roomTheme } from '../../art';
 import { h } from '../../ui/dom';
@@ -27,6 +28,8 @@ import { kvPeople } from './world';
 import { KV_ICONS, kvBtn, kvEmpty, kvField, kvIconBtn, kvInput, kvTitle, kvToggle, type KvInput, type KvToggle } from './ui/kit';
 import { KvModal, kvConfirm } from './ui/modal';
 import { KvSelect } from './ui/select';
+import { EQUIP_PIX, equipName, kvLayoutBadge, LAYOUT_COLOR, layoutDesc, layoutName, MEET_ICON } from './meetings-ui'; // reuniões e reservas
+import { kvPick } from './ui/section';
 import './rooms-dialog.css';
 
 const DECOR_LABEL: Record<KvDecorKind, string> = {
@@ -148,6 +151,16 @@ export class KvRoomsDialog {
   private style = 0;
   private decor: KvDecorItem[] = [];
   private chosen = new Set<string>();
+  // ---- sala de reunião (kind 'reuniao'): tipo, lugares, equipamentos e reservas
+  private meet: KvMeetConfig = kvDefaultMeet();
+  private meetSec!: HTMLElement;
+  private readonly meetLayouts: HTMLElement = h('div', { class: 'kv-meet-cfg__layouts', role: 'radiogroup', attrs: { 'aria-label': tr('Tipo de sala de reunião') } });
+  private readonly meetCap: KvInput = kvInput({ type: 'number', name: 'capacity' });
+  private readonly meetCapField = kvField(tr('Lugares'), this.meetCap.el, { hint: tr('Até {0}.', [KV_MEET_CAPACITY_MAX]) });
+  private readonly meetEquip: HTMLElement = h('div', { class: 'kv-meet-cfg__equips' });
+  private readonly meetBookable: KvToggle = kvToggle(tr('Aceita reservas'), { hint: tr('Desligado, a sala é de uso livre e não aparece em Reuniões.'), onChange: (v) => (this.meet.bookable = v) });
+  private readonly meetRelease: KvToggle = kvToggle(tr('Liberar se ninguém aparecer em 10 min'), { hint: tr('Reserva sem ninguém na sala nem check-in volta a ficar livre.'), onChange: (v) => (this.meet.autoRelease = v) });
+  private readonly meetPrivate: KvToggle = kvToggle(tr('Reuniões privadas por padrão'), { hint: tr('Reservas novas já vêm privadas: ninguém de fora entra, vê ou ouve.'), onChange: (v) => (this.meet.privateDefault = v) });
 
   constructor(private readonly me: KvPerson) {
     this.newBtn = kvBtn(tr('Nova sala'), { variant: 'primary', size: 'sm', icon: KV_ICONS.plus, onClick: () => this.edit(null) });
@@ -231,10 +244,36 @@ export class KvRoomsDialog {
     this.save = kvBtn(tr('Criar sala'), { variant: 'primary', icon: KV_ICONS.check, type: 'submit' });
     this.formTitle = kvTitle('h3', tr('Nova sala'), 'kv-salas2__form-title');
 
+    // ---- sala de reunião
+    this.meetCap.input.min = '1';
+    this.meetCap.input.max = String(KV_MEET_CAPACITY_MAX);
+    this.meetCap.input.addEventListener('input', () => this.meetCapField.setError(''));
+    for (const l of KV_MEET_LAYOUTS) {
+      const b = h(
+        'button',
+        { class: 'kv-meet-cfgl', type: 'button', role: 'radio', style: `--lay:${LAYOUT_COLOR[l]}`, attrs: { 'data-l': l }, on: { click: () => this.setMeetLayout(l) } },
+        kvLayoutBadge(l, 'md'),
+        h('span', { class: 'kv-meet-cfgl__name', text: layoutName(l) }),
+        h('span', { class: 'kv-meet-cfgl__desc', text: layoutDesc(l) }),
+        h('span', { class: 'kv-meet-cfgl__seats', text: tr('{0} lugares', [KV_MEET_LAYOUT_INFO[l].capacity]) }),
+      );
+      this.meetLayouts.append(b);
+    }
+    this.meetSec = section(
+      MEET_ICON,
+      tr('Sala de reunião'),
+      tr('O tipo muda os móveis da sala e sugere os lugares e o que ela tem. As reservas ficam na janela Reuniões.'),
+      this.meetLayouts,
+      h('div', { class: 'kv-meet-cfg__row' }, this.meetCapField.el),
+      h('div', {}, h('span', { class: 'kv-ui-field__label', text: tr('O que a sala tem') }), this.meetEquip),
+      h('div', { class: 'kv-meet-cfg__toggles' }, this.meetBookable.el, this.meetRelease.el, this.meetPrivate.el),
+    );
+
     const form = h(
       'form',
       { class: 'kv-salas2__form', on: { submit: (e: Event) => void this.submit(e) } },
       section(KIND_ICON.pessoal, tr('Tipo'), null, this.kindGrid, this.kindHint),
+      this.meetSec,
       section(KV_ICONS.edit, tr('Nome e dono'), null, h('div', { class: 'kv-salas2__row' }, kvField(tr('Nome'), this.name.el).el, this.ownerField)),
       section(KV_ICONS.door, tr('Quem entra'), null, this.accessSeg, this.peopleHint, this.peopleBox),
       section(PALETTE_ICON, tr('Aparência'), tr('A paleta pinta as paredes, o chão e o tapete da sala.'), this.styles, h('div', { class: 'kv-salas2__color-row' }, this.useColor.el, this.color)),
@@ -295,7 +334,13 @@ export class KvRoomsDialog {
             'div',
             { class: 'kv-salas2__card-text' },
             h('span', { class: 'kv-salas2__card-top' }, h('strong', { text: r.name }), s.mine === r.id ? h('span', { class: 'kv-salas2__mine', text: tr('minha') }) : null),
-            h('span', { class: 'kv-salas2__card-meta' }, h('span', { class: 'kv-salas2__kind-tag', text: KIND_LABEL[r.kind] }), h('span', { text: meta })),
+            h(
+              'span',
+              { class: 'kv-salas2__card-meta' },
+              h('span', { class: 'kv-salas2__kind-tag', text: KIND_LABEL[r.kind] }),
+              r.kind === 'reuniao' && r.meet ? h('span', { class: 'kv-meet-cfg__tag', text: `${layoutName(r.meet.layout)} · ${tr('{0} lugares', [r.meet.capacity])}` }) : null,
+              h('span', { text: meta }),
+            ),
           ),
           h(
             'div',
@@ -362,6 +407,8 @@ export class KvRoomsDialog {
     this.color.disabled = !r?.color;
     this.color.value = r?.color ?? '#3f7fd8';
     this.decor = [...(r?.decor ?? [])];
+    this.meet = r?.meet ? { ...r.meet, equipment: [...r.meet.equipment] } : kvDefaultMeet();
+    this.paintMeet();
     this.setKind(this.kind, true);
     this.setAccess(this.access);
     this.setStyle(this.style);
@@ -376,7 +423,8 @@ export class KvRoomsDialog {
       b.classList.toggle('is-on', on);
       b.setAttribute('aria-checked', String(on));
     });
-    this.kindHint.textContent = KIND_HINT[k] ?? '';
+    this.kindHint.textContent = k === 'reuniao' ? layoutDesc(this.meet.layout) : (KIND_HINT[k] ?? '');
+    this.meetSec.hidden = k !== 'reuniao';
     if (!this.editing) {
       const ph = k === 'pessoal' ? tr('Sala de {0}', [this.me.name]) : (KIND_LABEL[k] ?? '');
       this.name.input.placeholder = ph;
@@ -460,7 +508,8 @@ export class KvRoomsDialog {
   private renderDecor(): void {
     const kind = this.kind;
     if (!kind) return;
-    const free = kvDecorFree(kind, roomTheme(this.style));
+    // o layout da sala de reunião muda os móveis
+    const free = kvDecorFree(kind, roomTheme(this.style), kind === 'reuniao' ? this.meet.layout : undefined);
     const at = (x: number, y: number) => this.decor.findIndex((d) => !KV_DECOR_WALL.includes(d.kind) && d.kind !== 'tapete' && d.x === x && d.y === y);
     const rugAt = (x: number, y: number) => this.decor.findIndex((d) => d.kind === 'tapete' && x >= d.x && x < d.x + (d.w ?? 0) && y >= d.y && y < d.y + (d.h ?? 0));
     const cells: HTMLElement[] = [];
@@ -548,6 +597,49 @@ export class KvRoomsDialog {
     this.renderDecor();
   }
 
+  // ------------------------------------------------------------------ sala de reunião
+
+  /** Trocar o tipo traz os lugares, os equipamentos e o "privada por padrão" dele (como o servidor faz). */
+  private setMeetLayout(l: KvMeetLayout): void {
+    if (l === this.meet.layout) return;
+    const d = kvDefaultMeet(l);
+    this.meet = { ...this.meet, layout: l, capacity: d.capacity, equipment: d.equipment, privateDefault: d.privateDefault };
+    this.paintMeet();
+    if (this.kind === 'reuniao') this.kindHint.textContent = layoutDesc(l);
+    this.renderDecor();
+  }
+
+  private paintMeet(): void {
+    const m = this.meet;
+    this.meetLayouts.querySelectorAll<HTMLElement>('[data-l]').forEach((b) => {
+      const on = b.dataset.l === m.layout;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-checked', String(on));
+    });
+    this.meetCap.input.value = String(m.capacity);
+    this.meetCapField.setError('');
+    this.meetEquip.replaceChildren(
+      ...KV_MEET_EQUIPS.map((e) => {
+        const ico = h('span', { class: 'kv-ui-ico kv-meet-pick-ico', attrs: { 'aria-hidden': 'true' } });
+        ico.innerHTML = EQUIP_PIX[e];
+        return kvPick(
+          equipName(e),
+          m.equipment.includes(e),
+          (on) => {
+            const set = new Set(this.meet.equipment);
+            if (on) set.add(e);
+            else set.delete(e);
+            this.meet.equipment = KV_MEET_EQUIPS.filter((x) => set.has(x));
+          },
+          { extra: ico },
+        );
+      }),
+    );
+    this.meetBookable.checked = m.bookable;
+    this.meetRelease.checked = m.autoRelease;
+    this.meetPrivate.checked = m.privateDefault;
+  }
+
   private async submit(e: Event): Promise<void> {
     e.preventDefault();
     this.error.textContent = '';
@@ -561,6 +653,15 @@ export class KvRoomsDialog {
     };
     if (this.me.role === 'admin' && this.owner?.value) body.owner = this.owner.value;
     if (!this.editing) body.kind = this.kind;
+    if (this.kind === 'reuniao') {
+      const cap = Number(this.meetCap.input.value);
+      if (!Number.isInteger(cap) || cap < 1 || cap > KV_MEET_CAPACITY_MAX) {
+        this.meetCapField.setError(tr('De 1 a {0} lugares.', [KV_MEET_CAPACITY_MAX]));
+        this.meetCap.input.focus();
+        return;
+      }
+      body.meet = { ...this.meet, capacity: cap };
+    }
     this.save.disabled = true;
     const r = await call('POST', this.editing ? `${ROOMS_API}/${encodeURIComponent(this.editing.id)}` : ROOMS_API, body).catch(() => ({ ok: false, data: { error: tr('Sem conexão com o servidor.') } as Record<string, unknown> }));
     this.save.disabled = false;

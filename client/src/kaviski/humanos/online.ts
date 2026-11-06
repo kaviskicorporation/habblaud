@@ -29,6 +29,7 @@ import './online.css';
 
 /** Onde a pessoa está, em palavras (a sala pelo nome do snapshot desta página). */
 export function whereText(p: KvPresencePerson, snap: OfficeSnapshot | null): string {
+  if (p.meet) return `🔒 ${tr('em reunião privada')}`; // reuniões: sala privada de que não faço parte
   if (!p.pos) return tr('fora do escritório');
   if (p.pos.k === 'a') return tr('nas áreas comuns');
   const room = snap?.rooms.find((r) => r.id === p.pos!.r);

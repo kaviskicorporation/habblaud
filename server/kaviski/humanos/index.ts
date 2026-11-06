@@ -39,6 +39,7 @@ import { kvCanEditOwnRoom } from '../../../shared/kaviski-rooms';
 import { KvPlanStore, kvIsPlanPath, kvPlanRoute, kvUsePlan } from './plan';
 import { KvOrg, kvOrgRoute } from './org';
 import { kvPrefsRoute } from './prefs';
+import { KvMeetings, kvIsMeetingsPath, kvMeetingsRoute } from './meetings';
 import { KV_PREFS_PATH } from '../../../shared/kaviski-prefs';
 
 export const HUMANOS_API = '/api/kaviski/humanos';
@@ -178,7 +179,11 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
     extra: (v, id) => social.extra(v, id),
     state: (v, snap) => social.state(v, snap),
     callArea: (id) => social.callArea(id),
-    changed: (id) => social.changed(id),
+    changed: (id) => {
+      social.changed(id);
+      meetings.onArea(id, presence.areaOf(id)); // reuniões: entrar na sala da minha reunião = check-in
+    },
+    veil: (viewer, area) => social.veiled(area, viewer.id), // sala privada (reunião): quem está fora não vê quem está dentro
   });
   const chat = new KvChat(presence, deps.snapshot, dir ? join(dir, 'chat.json') : null);
   const audit = new KvAudit(dir ? join(dir, 'audit.jsonl') : null);
@@ -234,7 +239,7 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
       })
       .catch((err) => fail(res, err));
   };
-  const social = new KvSocial({ presence, snapshot: deps.snapshot, audit });
+  const social = new KvSocial({ presence, snapshot: deps.snapshot, audit, unlockMeeting: (id, p) => meetings.unlocked(id, p) });
   if (enabled) kvSetAreaGuard((area, p) => social.areaGuard(area, p));
   // Palco (megafone, stage.ts): a equipe fala para o andar inteiro; todos ouvem.
   const stage = new KvStage({ emit: (e, d, to) => presence.emit(e, d, to), online: (id) => !!presence.personOf(id), scope: deps.dataDir ?? '', audit: (p, a) => audit.add(p, a, { ok: true }) });
@@ -243,6 +248,25 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
   if (enabled) {
     rooms.load();
     kvUseRooms(rooms);
+  }
+  // Reuniões e reservas de sala (meetings.ts): as salas de reunião viram recursos reserváveis; a privada tranca e cobre
+  // a sala enquanto acontece (social.ts) e o convidado vê a sala perto do horário (rooms.ts `setGuest`).
+  const meetings = new KvMeetings({
+    file: dir ? join(dir, 'meetings.json') : null,
+    rooms,
+    people: () => people().map((p) => ({ id: p.id, name: p.name, role: p.role })),
+    changed: () => presence.emit('meetings', { at: Date.now() }, () => true),
+    roomsChanged: () => {
+      presence.emit('rooms', { at: Date.now() }, () => true);
+      presence.emit('plan', { version: plan.doc().version, refilter: true, at: Date.now() }, () => true);
+    },
+    locks: (list) => social.syncMeetingLocks(list),
+    agendaBusy: (id, from, to) => agenda.busyOf(id, from, to),
+    audit: (p, a, d, ok) => auditNote(p, a, d, ok),
+  });
+  if (enabled) {
+    meetings.load();
+    rooms.setGuest((roomId, pid) => meetings.guestSees(roomId, pid));
   }
   // Organograma e agentes fixos (org.ts): áreas e agentes em org.json; cargo/área/gestor na conta (profile.org).
   const org = new KvOrg(dir ? join(dir, 'org.json') : null);
@@ -262,6 +286,7 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
   if (enabled) {
     plan.load();
     kvUsePlan(plan);
+    meetings.start(); // depois da planta: a primeira volta já pode avisar as páginas (evento `plan`)
   }
   const auditNote = (person: KvPerson, action: string, detail: string, ok: boolean) => audit.add(person, action, { detail: kvShort(detail), ok });
   let messages: KvMessageSender | undefined;
@@ -746,7 +771,16 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
           people,
           audit: auditNote,
           changed: () => presence.emit('rooms', { at: Date.now() }, () => true),
-          removed: (id) => objects.dropArea(`r:${id}`),
+          removed: (id) => (objects.dropArea(`r:${id}`), meetings.dropRoom(id)),
+        });
+        return true;
+      }
+      if (kvIsMeetingsPath(path)) {
+        kvMeetingsRoute(req, res, url, {
+          meetings,
+          whoIs,
+          inArea: (area) => presence.online().filter((o) => o.area === area).map((o) => o.person.id),
+          areaOf: (id) => presence.areaOf(id),
         });
         return true;
       }

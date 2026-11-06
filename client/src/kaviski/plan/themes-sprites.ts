@@ -8,6 +8,7 @@ import { ramp, shade, type Ramp } from '../../art/core/color';
 import type { PixelBuf } from '../../art/core/pixbuf';
 import { floorSheet, rectAt, trim, wallSheet, type BufFurniture, type BufSprite } from '../../art/core/sprite';
 import { ACCENTS, contact, frontFace, glass, M, monitorBack, papers, rngOf, topFace, woodGrain } from '../../art/furniture/kit';
+import { KV_MEET_BUILD } from './meet-sprites';
 import type { KvSpriteKey } from './themes-dims';
 
 const INK = '#2b2540';
@@ -817,6 +818,7 @@ const BUILD: Record<KvSpriteKey, (seed: number) => BufFurniture> = {
   'kv-blueprint': blueprint,
   'kv-av-panel': avPanel,
   'kv-gear': gear,
+  ...KV_MEET_BUILD, // salas de reunião (meet-sprites.ts)
 };
 
 /** Sprite (em buffer) de um item nosso; null se a variante não é nossa. */

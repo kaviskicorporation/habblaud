@@ -53,6 +53,22 @@ export const KV_SPRITES = {
   'kv-blueprint': Wl('shelf_wall', 2),
   'kv-av-panel': Wl('shelf_wall', 2),
   'kv-gear': Wl('clock', 1),
+  // ---- salas de reunião (meet-sprites.ts, KAVISKI-HUMANOS.md → "Reuniões e reservas de sala")
+  'kv-round-table': F('meeting_table', 3, 2, 8),
+  'kv-board-table': F('meeting_table', 3, 2, 10),
+  'kv-call-desk': F('coffee_table', 2, 1, 22),
+  'kv-acoustic': F('filing_cabinet', 1, 1, 26),
+  'kv-train-desk': F('coffee_table', 2, 1, 8),
+  'kv-high-table': F('coffee_table', 2, 1, 16),
+  'kv-flipchart': F('filing_cabinet', 1, 1, 28),
+  'kv-coffee-bar': F('bookshelf', 2, 1, 18),
+  'kv-room-totem': F('filing_cabinet', 1, 1, 26),
+  'kv-room-panel': Wl('clock', 1),
+  'kv-room-panel-busy': Wl('clock', 1),
+  'kv-screen': Wl('shelf_wall', 4),
+  'kv-postit-wall': Wl('shelf_wall', 3),
+  'kv-postit-small': Wl('shelf_wall', 2),
+  'kv-acoustic-wall': Wl('shelf_wall', 2),
 } as const satisfies Record<string, KvSpriteDims>;
 
 export type KvSpriteKey = keyof typeof KV_SPRITES;

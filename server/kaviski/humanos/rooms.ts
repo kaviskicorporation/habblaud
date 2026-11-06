@@ -31,6 +31,7 @@ import {
   type KvOwnRoomKind,
 } from '../../../shared/kaviski-rooms';
 import { kvColor } from '../../../shared/kaviski';
+import { kvDefaultMeet, kvMeetLayoutText, kvParseMeet } from '../../../shared/kaviski-meetings';
 import { tr } from '../../../shared/i18n';
 import { HttpError, readJson, sendJson } from '../../http/app';
 import { errMsg, log } from '../../log';
@@ -44,6 +45,8 @@ export type KvRoomResult = { ok: true; room: KvOwnRoom } | { ok: false; status: 
 
 export class KvRooms {
   private rooms: KvOwnRoom[] = [];
+  /** Reuniões (meetings.ts): o convidado de uma reunião vê a sala dela perto do horário, mesmo sem estar na lista. */
+  private guest: ((roomId: string, personId: string) => boolean) | null = null;
 
   constructor(
     private readonly file: string | null,
@@ -59,6 +62,8 @@ export class KvRooms {
         r.people = Array.isArray(r.people) ? r.people.filter((p) => typeof p === 'string') : [];
         r.decor = kvParseDecor(r.decor) ?? [];
         if (r.access !== 'escolhidos') r.access = 'equipe';
+        if (r.kind === 'reuniao') r.meet = kvParseMeet(r.meet ?? {}) ?? kvDefaultMeet();
+        else delete r.meet;
       }
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== 'ENOENT') log.warn(tr('Salas próprias: não deu para ler {0} ({1}).', [this.file, errMsg(err)]));
@@ -90,13 +95,23 @@ export class KvRooms {
     return this.rooms.find((r) => r.id === id);
   }
 
+  /** Liga a regra do convidado de reunião (meetings.ts). */
+  setGuest(fn: ((roomId: string, personId: string) => boolean) | null): void {
+    this.guest = fn;
+  }
+
+  /** A pessoa vê a sala: pelas regras dela ou por ser convidada de uma reunião lá agora. */
+  sees(r: KvOwnRoom, person: KvPerson | undefined): boolean {
+    return kvCanSeeOwnRoom(r, person) || (!!person && !!this.guest?.(r.id, person.id));
+  }
+
   canSee(id: string, person: KvPerson | undefined): boolean {
     const r = this.get(id);
-    return !!r && kvCanSeeOwnRoom(r, person);
+    return !!r && this.sees(r, person);
   }
 
   visibleTo(person: KvPerson | undefined): KvOwnRoom[] {
-    return this.rooms.filter((r) => kvCanSeeOwnRoom(r, person));
+    return this.rooms.filter((r) => this.sees(r, person));
   }
 
   /** A sala pessoal de alguém. */
@@ -130,6 +145,7 @@ export class KvRooms {
       people: [],
       style: Math.floor(Math.random() * KV_ROOM_STYLES),
       decor: [],
+      ...(kind === 'reuniao' ? { meet: kvDefaultMeet() } : {}),
       createdAt: t,
       updatedAt: t,
     };
@@ -137,7 +153,8 @@ export class KvRooms {
     if (err) return { ok: false, status: 400, error: err };
     if (!room.name) {
       const who = known(owner) ?? person.name;
-      room.name = kvOwnRoomName(kind === 'pessoal' ? tr('Sala de {0}', [who]) : kind === 'reuniao' ? tr('Reunião') : kind === 'descanso' ? tr('Descanso') : tr('Sala')) ?? tr('Sala');
+      const meetName = room.meet ? kvMeetLayoutText(room.meet.layout).name : tr('Reunião');
+      room.name = kvOwnRoomName(kind === 'pessoal' ? tr('Sala de {0}', [who]) : kind === 'reuniao' ? meetName : kind === 'descanso' ? tr('Descanso') : tr('Sala')) ?? tr('Sala');
     }
     this.rooms.push(room);
     this.save();
@@ -148,7 +165,7 @@ export class KvRooms {
     const room = this.get(id);
     if (!room || !kvCanSeeOwnRoom(room, person)) return { ok: false, status: 404, error: tr('sala não encontrada') };
     if (!kvCanEditOwnRoom(room, person)) return { ok: false, status: 403, error: tr('só o dono da sala ou um admin muda a sala') };
-    const next: KvOwnRoom = { ...room, people: [...room.people], decor: [...room.decor] };
+    const next: KvOwnRoom = { ...room, people: [...room.people], decor: [...room.decor], ...(room.meet ? { meet: { ...room.meet, equipment: [...room.meet.equipment] } } : {}) };
     const err = this.apply(next, (body ?? {}) as Record<string, unknown>, known, false);
     if (err) return { ok: false, status: 400, error: err };
     // trocar o dono (só admin) não pode dar duas salas pessoais à mesma pessoa
@@ -210,6 +227,12 @@ export class KvRooms {
       if (!decor) return tr('decoração inválida');
       room.decor = decor;
     }
+    if (b.meet !== undefined && b.meet !== null) {
+      if (room.kind !== 'reuniao') return tr('só a sala de reunião tem tipo, lugares e reservas');
+      const meet = kvParseMeet(b.meet, room.meet);
+      if (!meet) return tr('configuração da sala de reunião inválida');
+      room.meet = meet;
+    }
     return null;
   }
 }
@@ -230,7 +253,7 @@ export function kvUseRooms(rooms: KvRooms | null): void {
 export function kvOwnRoomArea(id: string, person: KvPerson): string | undefined | null {
   if (!kvIsOwnRoomId(id)) return null;
   const r = active?.get(id);
-  return r && kvCanSeeOwnRoom(r, person) ? r.name : undefined;
+  return r && active!.sees(r, person) ? r.name : undefined;
 }
 
 /** Ids das salas próprias que a pessoa vê. */

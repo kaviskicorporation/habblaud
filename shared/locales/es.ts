@@ -16,6 +16,9 @@ import { KV_TEMAS_ES } from './kaviski-temas'; // fork Kaviski: salas temáticas
 import { KV_APROV_ES } from './kaviski-aprovacoes'; // fork Kaviski (KAVISKI.md)
 import { KV_ORG_ES } from './kaviski-organograma'; // fork Kaviski (planta livre: organograma)
 import { KV_PLANTA_ES } from './kaviski-planta'; // fork Kaviski (planta livre: motor do prédio)
+import { KV_REUNIOES_SALAS_ES } from './kaviski-reunioes-salas'; // fork Kaviski: reuniões e reservas de sala
+import { KV_REUNIOES_UI_ES } from './kaviski-reunioes-ui'; // fork Kaviski: reuniões e reservas de sala
+import { KV_REUNIOES_ES } from './kaviski-reunioes'; // fork Kaviski: reuniões e reservas de sala
 export const ES: Readonly<Record<string, string>> = {
   ...KV_HUMANOS_ES, // fork Kaviski (KAVISKI-HUMANOS.md)
   ...KV_EXTRAS_ES, // fork Kaviski (KAVISKI-HUMANOS.md)
@@ -32,6 +35,9 @@ export const ES: Readonly<Record<string, string>> = {
   ...KV_TOPO_ES, // fork Kaviski (topo em grupos)
   ...KV_MARCA_ES, // fork Kaviski (marca Voxtrin, empresa)
   ...KV_TEMAS_ES, // fork Kaviski: salas temáticas (planta livre, C)
+  ...KV_REUNIOES_SALAS_ES, // fork Kaviski: reuniões e reservas de sala
+  ...KV_REUNIOES_UI_ES, // fork Kaviski: reuniões e reservas de sala
+  ...KV_REUNIOES_ES, // fork Kaviski: reuniões e reservas de sala
   // fork Kaviski (KAVISKI.md): client/src/kaviski, server/kaviski
   "Abrir esta sessão no TwiCC": "Abrir esta sesión en TwiCC",
   "Abrir no TwiCC": "Abrir en TwiCC",

@@ -10,6 +10,8 @@
 // - cliente vê a equipe/admin e só os clientes que dividem alguma sala liberada com ele; a posição de quem está numa
 //   sala que ele não vê não vai (a pessoa aparece na lista sem lugar).
 // Um cliente também não consegue dizer que está numa sala que não é dele (a posição é descartada).
+// Sala privada (reunião privada ou sala trancada e coberta, social.ts): a posição de quem está dentro só vai a quem está
+// na lista dela; os outros recebem a pessoa sem lugar e com `meet: true` ("em reunião").
 // O SSE não passa por http/sse.ts (é um fluxo à parte, só nosso).
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { OfficeSnapshot } from '../../../shared/types';
@@ -66,6 +68,8 @@ export interface KvPresenceDeps {
   callArea?: (id: string) => string | undefined;
   /** A pessoa mudou de lugar ou saiu (id), para quem guarda estado por pessoa. */
   changed?: (id: string) => void;
+  /** A área é uma sala privada que `viewer` não pode ver por dentro (social.ts `veiled`). */
+  veil?: (viewer: KvPerson, area: string) => boolean;
 }
 
 export class KvPresence {
@@ -305,6 +309,9 @@ export class KvPresence {
       }
       let pos = e.pos;
       if (pos?.r && mine && !mine.has(pos.r)) pos = undefined;
+      // sala privada: quem está fora da lista não fica sabendo onde a pessoa está
+      const where = e.area ?? (pos?.k === 'r' && pos.r ? `r:${pos.r}` : undefined);
+      if (pos && p.id !== viewer.id && where && this.deps.veil?.(viewer, where)) pos = undefined;
       const desk = this.deps.desk?.(p.id);
       if (pos?.r && kvIsOwnRoomId(pos.r) && !(own ??= kvOwnRoomIdsFor(viewer)).has(pos.r)) pos = undefined; // sala própria que ele não vê
       out.push({

@@ -1,13 +1,15 @@
 // Fork Kaviski (KAVISKI-HUMANOS.md → "Planta livre"): mobília padrão das salas próprias (W4) de qualquer tamanho, no
-// espírito de humanos/rooms-layout.ts: reunião (mesa grande que cresce com a sala), descanso (sofá e TV, puffs),
+// espírito de humanos/rooms-layout.ts: reunião (pelo layout `meet.layout`: furnish-meet.ts), descanso (sofá e TV, puffs),
 // pessoal (mesa de trabalho, estante, cantinho de visitas) e outra (mesas face a face e mesa de reunião). Mais a
 // decoração escolhida pelo dono (`kvOwn.decor`) onde couber. Os assentos são só "da sala" (nook, stool, desk): os agentes
 // não vêm descansar aqui. Puro (sem DOM).
 import { FURNITURE, type FurnitureKind } from '../../art/api';
 import type { KvOwnRoomKind } from '../../../../shared/kaviski-rooms';
+import { KV_MEET_LAYOUTS, type KvMeetLayout } from '../../../../shared/kaviski-meetings';
 import { TILE } from '../../world/constants';
 import { kvOwnMark } from '../humanos/rooms-layout';
 import { kvRegisterFurnisher, type KvFurnishCtx } from './api';
+import { kvFurnishMeet } from './furnish-meet';
 import { BEANBAGS, KvPen, kvEdgeDecor, PLANTS_SMALL, POSTERS } from './furnish-util';
 
 const DECOR_FURN: Record<string, FurnitureKind> = {
@@ -21,30 +23,6 @@ const DECOR_FURN: Record<string, FurnitureKind> = {
   poster: 'poster',
   relogio: 'clock',
 };
-
-function meetingTable(pen: KvPen): void {
-  const { ctx, w, h } = pen;
-  // mesas de reunião (3x2) lado a lado, quantas couberem, em uma ou mais fileiras
-  const n = Math.max(1, Math.min(6, Math.floor((w - 6) / 3)));
-  const x0 = Math.max(2, Math.floor((w - n * 3) / 2));
-  for (let y = 4; y + 3 <= h - 3; y += 6) {
-    if (!pen.ok(x0 - 1, y - 1, n * 3 + 2, 4)) continue;
-    ctx.b.rug(x0 - 1.4, y - 1.4, n * 3 + 2.8, 4.8, ctx.theme.carpet, ctx.seed + y);
-    for (let i = 0; i < n; i++) pen.furn('meeting_table', x0 + i * 3, y, undefined, { order: 0.4 + i * 0.01 });
-    for (let i = 0; i < n * 3; i++) {
-      pen.seat('stool', 'stool', x0 + i, y - 1, 'down', undefined, { order: 0.6 + i * 0.01 });
-      pen.seat('stool', 'stool', x0 + i, y + 2, 'up', undefined, { order: 0.66 + i * 0.01 });
-    }
-    pen.seat('stool', 'stool', x0 - 1, y, 'right');
-    pen.seat('stool', 'stool', x0 - 1, y + 1, 'right');
-    pen.seat('stool', 'stool', x0 + n * 3, y, 'left');
-    pen.seat('stool', 'stool', x0 + n * 3, y + 1, 'left');
-    pen.reserve(x0 - 1, y - 1, n * 3 + 2, 4);
-    if (h < 16) break;
-  }
-  pen.furn('water_cooler', w - 2, 4, undefined, { order: 0.3 });
-  pen.furn('floor_lamp', w - 2, 6, undefined, { order: 0.3 });
-}
 
 function rest(pen: KvPen): void {
   const { ctx, w, h } = pen;
@@ -109,7 +87,25 @@ function other(pen: KvPen): void {
   pen.spot('stand', 5, 4, 'down');
 }
 
-export function kvFurnishOwn(ctx: KvFurnishCtx, kind: KvOwnRoomKind): void {
+/** Sala de reunião: a mobília do layout (furnish-meet.ts) e a decoração do dono, sem fechar caminho. */
+function meetRoom(ctx: KvFurnishCtx, layout: KvMeetLayout): void {
+  const P = kvFurnishMeet(ctx, layout);
+  const decor = kvOwnMark(ctx.info)?.decor ?? [];
+  decor.forEach((d, i) => {
+    if (d.kind === 'tapete') {
+      if (d.w && d.h && d.color && d.x + d.w <= P.w && d.y + d.h <= P.h) ctx.b.rug(d.x, d.y, d.w, d.h, d.color, ctx.seed + 10 + i);
+      return;
+    }
+    const fk = DECOR_FURN[d.kind];
+    if (!fk) return;
+    if (FURNITURE[fk].mount === 'wall') ctx.wall(fk, d.x, d.variant, { order: 0.5 });
+    else if (fk === 'beanbag') P.seat('nook', 'beanbag', d.x, d.y, 'down', d.variant, { order: 0.6 });
+    else P.putAt(fk, d.x, d.y, d.variant, { order: 0.5 });
+  });
+}
+
+export function kvFurnishOwn(ctx: KvFurnishCtx, kind: KvOwnRoomKind, layout?: KvMeetLayout): void {
+  if (kind === 'reuniao') return meetRoom(ctx, layout ?? kvOwnMark(ctx.info)?.meet?.layout ?? 'reuniao');
   const pen = new KvPen(ctx);
   const { w, h } = pen;
   // parede: quadro branco (ou TV no descanso) e o lugar do mural (pôster)
@@ -118,8 +114,7 @@ export function kvFurnishOwn(ctx: KvFurnishCtx, kind: KvOwnRoomKind): void {
     if (board) pen.spot('whiteboard', Math.floor(board.lcx - 0.5), 2, 'up', { dx: 8, dy: 2 });
   }
   pen.wallAt('poster', pen.centers(w - 3.4, 0.5), pen.pick(POSTERS), { order: 0.5 });
-  if (kind === 'reuniao') meetingTable(pen);
-  else if (kind === 'descanso') rest(pen);
+  if (kind === 'descanso') rest(pen);
   else if (kind === 'pessoal') personal(pen);
   else other(pen);
   pen.plant(w - 2, h - 3, true);
@@ -147,3 +142,5 @@ export function kvFurnishOwn(ctx: KvFurnishCtx, kind: KvOwnRoomKind): void {
 
 for (const k of ['pessoal', 'reuniao', 'descanso', 'outra'] as const) kvRegisterFurnisher(`propria:${k}`, (ctx) => kvFurnishOwn(ctx, k));
 kvRegisterFurnisher('propria', (ctx) => kvFurnishOwn(ctx, kvOwnMark(ctx.info)?.kind ?? 'outra'));
+// cada layout de sala de reunião com a sua chave (para quem quiser escolher o layout pela chave do furnisher)
+for (const l of KV_MEET_LAYOUTS) kvRegisterFurnisher(`propria:reuniao:${l}`, (ctx) => kvFurnishOwn(ctx, 'reuniao', l));

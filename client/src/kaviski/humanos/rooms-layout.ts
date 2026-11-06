@@ -1,6 +1,7 @@
 // Fork Kaviski (KAVISKI-HUMANOS.md): layout das salas próprias (rooms.json), com a mesma casca da sala de projeto
 // (16x12, porta no mesmo lugar, placa, interruptor) e a mobília pelo tipo:
-//   reuniao  = mesa grande com banquetas em volta e quadro branco;
+//   reuniao  = pelo layout da sala de reunião (`meet.layout`, rooms-meet.ts): cabine, bate-papo, reunião (mesa grande
+//              com banquetas em volta), conselho, treinamento ou criativa; com o painel de reservas na parede;
 //   descanso = sofá e poltronas de frente para a TV, puffs;
 //   pessoal  = mesa de trabalho + estante, cantinho com poltronas para visitas e quadro branco;
 //   outra    = duas mesas e uma mesa de reunião.
@@ -12,6 +13,7 @@ import { FURNITURE, type Dir, type FurnitureKind, type RoomTheme, type WallStyle
 import type { RoomInfo } from '../../../../shared/types';
 import { hash32, mulberry32 } from '../../../../shared/hash';
 import type { KvDecorItem, KvOwnRoomKind } from '../../../../shared/kaviski-rooms';
+import type { KvMeetConfig, KvMeetLayout } from '../../../../shared/kaviski-meetings';
 import { DOOR_W, DOOR_X, TILE } from '../../world/constants';
 import { AreaBuilder } from '../../world/layout/builder';
 import { slotRect, slotSide } from '../../world/layout/geometry';
@@ -19,12 +21,15 @@ import { layoutProjectRoom, type RoomInput } from '../../world/layout/room';
 import type { AreaLayout } from '../../world/layout/types';
 import type { Sim } from '../../world/sim/sim';
 import { kvPlanLayoutRoom } from '../plan/hooks';
+import { kvMeetRoom16 } from './rooms-meet';
 
 /** O que a página põe no RoomInfo de uma sala própria (só no navegador; nunca vem do servidor no snapshot). */
 export interface KvOwnRoomMark {
   kind: KvOwnRoomKind;
   decor: readonly KvDecorItem[];
   owner?: string;
+  /** Sala de reunião: o layout (cabine, bate-papo, reunião, conselho, treinamento, criativa) e o resto da configuração. */
+  meet?: KvMeetConfig;
 }
 export type KvOwnRoomInfo = RoomInfo & { kvOwn?: KvOwnRoomMark };
 
@@ -41,6 +46,17 @@ export function kvLayoutRoom(room: RoomInput, theme: RoomTheme, info?: RoomInfo 
 export function kvLayoutRoomOriginal(room: RoomInput, theme: RoomTheme, info?: RoomInfo | null): AreaLayout {
   const mark = kvOwnMark(info);
   return mark ? layoutOwnRoom(room, theme, mark) : layoutProjectRoom(room, theme);
+}
+
+/** Itens interativos ("ir e fazer") de cada layout de sala própria: id do item -> ações (o painel `reunioes`). */
+const ownTags = new WeakMap<AreaLayout, Map<string, string[]>>();
+
+/**
+ * Os itens marcados de uma sala própria montada por `layoutOwnRoom` (o painel de reservas das salas de reunião), para
+ * o motor da planta juntá-los aos `tag` dos furnishers quando usa o layout de sempre transladado (os ids não mudam).
+ */
+export function kvOwnRoomTags(a: AreaLayout): Map<string, string[]> | undefined {
+  return ownTags.get(a);
 }
 
 const PLANTS_TALL = ['palm', 'ficus', 'monstera', 'bonsai'] as const;
@@ -125,25 +141,10 @@ export function layoutOwnRoom(room: RoomInput, theme: RoomTheme, mark: KvOwnRoom
 
   switch (kind) {
     case 'reuniao': {
-      // mesa grande (duas mesas de reunião lado a lado) com banquetas em volta
-      b.rug(2.6, 3.6, 8.8, 4.8, theme.carpet, room.seed + 2);
-      b.furn('meeting_table', 4, 5, undefined, { order: 0.4 });
-      b.furn('meeting_table', 7, 5, undefined, { order: 0.41 });
-      for (let i = 0; i < 6; i++) {
-        seat('stool', 4 + i, 4, 'down', undefined, { order: 0.6 + i * 0.01 });
-        seat('stool', 4 + i, 7, 'up', undefined, { order: 0.66 + i * 0.01 });
-      }
-      seat('stool', 3, 5, 'right');
-      seat('stool', 3, 6, 'right');
-      seat('stool', 10, 5, 'left');
-      seat('stool', 10, 6, 'left');
-      b.furn('water_cooler', 14, 4, undefined, { order: 0.3 });
-      b.furn('plant_tall', 14, 9, pick(PLANTS_TALL), { order: 0.2 });
-      b.furn('plant_tall', 1, 10, pick(PLANTS_TALL), { order: 0.21 });
-      b.furn('plant_small', 13, 10, pick(PLANTS_SMALL), { order: 0.22 });
-      b.furn('floor_lamp', 14, 6, undefined, { order: 0.3 });
-      b.spot('stand', 12, 5, 'left');
-      b.spot('stand', 12, 7, 'left');
+      // pelo layout da sala de reunião (cabine, bate-papo, reunião, conselho, treinamento, criativa): rooms-meet.ts
+      const tags = new Map<string, string[]>();
+      kvMeetRoom16({ b, theme, seed: room.seed, north, pick, tags }, mark.meet?.layout ?? 'reuniao');
+      ownTags.set(area, tags);
       break;
     }
     case 'descanso': {
@@ -264,11 +265,13 @@ function applyDecor(b: AreaBuilder, decor: readonly KvDecorItem[], north: boolea
 
 /**
  * Para a tela de decoração: tiles livres (para itens de chão) e faixas de parede livres de uma sala deste tipo, sem a
- * decoração. Vale para os dois lados do corredor (o livre é o que está livre nos dois).
+ * decoração. Vale para os dois lados do corredor (o livre é o que está livre nos dois). Sala de reunião: passe o layout.
  */
-export function kvDecorFree(kind: KvOwnRoomKind, theme: RoomTheme): { floor: Set<string>; wall: [number, number][] } {
-  const north = layoutOwnRoom({ id: 'kvsala-preview', slot: 0, seed: 0 }, theme, { kind, decor: [] });
-  const south = layoutOwnRoom({ id: 'kvsala-preview', slot: 1, seed: 0 }, theme, { kind, decor: [] });
+export function kvDecorFree(kind: KvOwnRoomKind, theme: RoomTheme, layout?: KvMeetLayout): { floor: Set<string>; wall: [number, number][] } {
+  // sala de reunião: a mobília muda com o layout (sem layout = a "reunião" de sempre)
+  const mark: KvOwnRoomMark = { kind, decor: [], meet: layout ? ({ layout } as KvMeetConfig) : undefined };
+  const north = layoutOwnRoom({ id: 'kvsala-preview', slot: 0, seed: 0 }, theme, mark);
+  const south = layoutOwnRoom({ id: 'kvsala-preview', slot: 1, seed: 0 }, theme, mark);
   const busy = new Set([...occupied(north), ...occupied(south)]);
   const rn = reserved(true);
   const rs = reserved(false);

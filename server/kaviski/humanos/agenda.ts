@@ -353,6 +353,12 @@ export class KvAgenda {
     };
   }
 
+  /** Horários ocupados da agenda da pessoa (só início e fim, sem título: assistente de agendamento das reuniões). */
+  busyOf(id: string, from: number, to: number): { start: number; end: number }[] {
+    if (!this.stored.has(id)) return [];
+    return (this.cache.get(id)?.events ?? []).filter((e) => e.busy && !e.allDay && e.end > from && e.start < to).map((e) => ({ start: e.start, end: e.end }));
+  }
+
   /** Salas ocupadas nas próximas 24 h por alguma agenda (cada pessoa acha as salas que ela vê). */
   bookings(roomsFor: (id: string) => readonly KvAgendaRoom[]): KvRoomBooking[] {
     const t = this.now();

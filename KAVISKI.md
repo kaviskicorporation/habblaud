@@ -184,6 +184,7 @@ plano só quem entrou com a senha** (de propósito, no TwiCC). Então o auxiliar
 | `shared/locales/{en,es,fr}.ts` (planta livre, motor) | +2 cada | import e `...KV_PLANTA_XX` (`shared/locales/kaviski-planta.ts`) | idem; juntar as linhas dos dois lados |
 | `shared/locales/{en,es,fr}.ts` (planta livre: organograma) | +2 cada | import e `...KV_ORG_XX` (`shared/locales/kaviski-organograma.ts`: organograma, agentes fixos, áreas, atalhos) no fim da lista do fork | idem; juntar as linhas dos dois lados |
 | `shared/locales/{en,es,fr}.ts` (topo em grupos) | +2 cada | import e `...KV_TOPO_XX` (`shared/locales/kaviski-topo.ts`) logo depois do `KV_EDITOR_XX` | idem; juntar as linhas dos dois lados |
+| `shared/locales/{en,es,fr}.ts` (reuniões e reservas de sala) | +6 cada | imports e `...KV_REUNIOES_SALAS_XX`, `...KV_REUNIOES_UI_XX`, `...KV_REUNIOES_XX` depois do `KV_TEMAS_XX` | idem; juntar as linhas dos dois lados |
 | `docker-compose.yml` | +5 | `HABBLAUD_FRAME_ANCESTORS`, `HABBLAUD_TWICC_URL`, `HABBLAUD_TWICC_MESSAGES` e `HABBLAUD_BRAND` no `environment:` | manter os dois lados |
 
 `server/model/office.ts` **não** foi tocado: `kaviski.attach(office)` embrulha `office.commit()` em tempo de execução e

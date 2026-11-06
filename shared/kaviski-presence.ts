@@ -66,6 +66,8 @@ export interface KvPresencePerson {
   hand?: boolean;
   /** Roda de conversa privada em que está (id do grupo; a área de voz e chat dela é `b:<id>`). */
   bubble?: string;
+  /** Está numa sala privada (reunião) de que quem recebe não faz parte: a posição não vem. */
+  meet?: boolean;
 }
 
 /** Evento `people` do GET /api/kaviski/humanos/presence. */

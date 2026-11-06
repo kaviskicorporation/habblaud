@@ -1,0 +1,116 @@
+/* Fork Kaviski (KAVISKI-HUMANOS.md → "Reuniões e reservas de sala"): a plaquinha da porta e a sala privada coberta. */
+.kv-meet-layer {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ---- plaquinha da porta (como o tablet do Teams Rooms) */
+.kv-meet-door {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px 2px 4px;
+  border: 2px solid #1d2433;
+  border-radius: 3px;
+  background: #2a3142;
+  color: #f5f1e6;
+  font: 700 10px/1.1 var(--font-pixel, monospace);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transform-origin: 0 50%;
+  pointer-events: auto;
+  cursor: pointer;
+  will-change: transform;
+}
+.kv-meet-door[hidden] {
+  display: none;
+}
+.kv-meet-door:hover,
+.kv-meet-door:focus-visible {
+  filter: brightness(1.15);
+  outline: 2px solid #f2c14e;
+  outline-offset: 1px;
+}
+.kv-meet-door__led {
+  width: 7px;
+  height: 7px;
+  border-radius: 1px;
+  background: var(--led);
+  box-shadow: 0 0 6px var(--led);
+}
+.kv-meet-door[data-tone='free'] {
+  --led: #4cd07d;
+}
+.kv-meet-door[data-tone='busy'] {
+  --led: #ff5d55;
+  background: #4a2228;
+}
+.kv-meet-door[data-tone='soon'] {
+  --led: #f2c14e;
+}
+.kv-meet-door[data-tone='busy'] .kv-meet-door__led {
+  animation: kv-meet-led 1.6s ease-in-out infinite;
+}
+.kv-meet-door.is-mini {
+  padding: 2px;
+}
+.kv-meet-door.is-mini .kv-meet-door__text {
+  display: none;
+}
+@keyframes kv-meet-led {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* ---- sala privada coberta: persianas fechadas para quem está fora */
+.kv-meet-veil {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  border: 3px solid #6b4fa8;
+  background:
+    repeating-linear-gradient(180deg, rgba(234, 228, 247, 0.92) 0 calc(var(--z, 2) * 5px), rgba(196, 184, 224, 0.92) calc(var(--z, 2) * 5px) calc(var(--z, 2) * 6px)),
+    #d9d1ec;
+  backdrop-filter: blur(6px);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.4), 0 3px 0 rgba(0, 0, 0, 0.25);
+  will-change: transform;
+}
+.kv-meet-veil[hidden] {
+  display: none;
+}
+.kv-meet-veil__label {
+  max-width: 90%;
+  padding: 4px 8px;
+  border: 2px solid #3d2b66;
+  border-radius: 3px;
+  background: #4b3680;
+  color: #fff;
+  font: 700 11px/1.25 var(--font-pixel, monospace);
+  text-align: center;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+}
+/* quem está na lista vê a sala normal, só com o contorno e o aviso no alto */
+.kv-meet-veil.is-in {
+  place-items: start center;
+  border: 2px dashed rgba(139, 108, 207, 0.85);
+  background: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+.kv-meet-veil.is-in .kv-meet-veil__label {
+  margin-top: 4px;
+  padding: 2px 6px;
+  font-size: 9px;
+  opacity: 0.9;
+}

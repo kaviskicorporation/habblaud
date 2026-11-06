@@ -30,6 +30,14 @@ export interface KvLockInfo {
   n: number;
   /** Quem recebe está na lista (pode entrar e sair). */
   in: boolean;
+  /** Sala privada (reuniões): quem está fora não vê ninguém lá dentro, não ouve nem lê nada. */
+  veil?: boolean;
+  /** Reunião privada que trancou a sala (id da reserva, shared/kaviski-meetings.ts). */
+  meeting?: string;
+  /** Até quando a reunião vai (epoch ms). */
+  until?: number;
+  /** Título da reunião: só para quem é dela. */
+  title?: string;
 }
 
 /** Evento `ring` (alguém me chamou). */

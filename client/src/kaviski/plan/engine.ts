@@ -14,7 +14,7 @@ import type { ExteriorLayout, SlotShell } from '../../world/layout/exterior';
 import type { RoomInput } from '../../world/layout/room';
 import type { AreaLayout, TileRect } from '../../world/layout/types';
 import type { Sim } from '../../world/sim/sim';
-import { kvLayoutRoom, kvLayoutRoomOriginal, kvOwnMark } from '../humanos/rooms-layout';
+import { kvOwnRoomTags, kvLayoutRoom, kvLayoutRoomOriginal, kvOwnMark } from '../humanos/rooms-layout';
 import { kvPlanWorld } from './api';
 import { kvBridgeFloors, kvBuildFromStatics, kvOutsideSides, kvPlanStatics, kvStripItem, kvTranslateArea, type KvBuilding, type KvStatics } from './engine-build';
 import { kvPlanExterior } from './engine-ext';
@@ -189,7 +189,10 @@ function layoutRoom(room: RoomInput, theme: RoomTheme, info: RoomInfo | null | u
   const classic = classicSide(place);
   if (classic && !place.item?.style && place.item?.palette === undefined) {
     const a = kvLayoutRoomOriginal({ id: room.id, slot: classic === 'north' ? 0 : 1, seed: room.seed }, theme, info);
-    return kvTranslateArea(a, place.rect.x - 32, place.rect.y - (classic === 'north' ? 0 : 17));
+    const t = kvTranslateArea(a, place.rect.x - 32, place.rect.y - (classic === 'north' ? 0 : 17));
+    const tg = kvOwnRoomTags(a); // sala de reunião: o painel de reservas (ação `reunioes`) — os ids não mudam no translado
+    if (tg) roomTags.set(t, tg);
+    return t;
   }
   const item = place.item && (place.item.kind === 'projeto' || place.item.kind === 'propria' || place.item.kind === 'vaga') ? place.item : kvStripItem(place.rect, place.doors);
   const st0 = staticsCache;

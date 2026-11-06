@@ -1,0 +1,1493 @@
+/* Fork Kaviski (KAVISKI-HUMANOS.md → "Reuniões e reservas de sala"): janela Reuniões (meetings-dialog.ts), painel da
+   porta (meetings-panel.ts), peças comuns (meetings-ui.ts) e a seção "Sala de reunião" da tela Salas. No kit das pessoas
+   (ui/kit.css, ui/section.css): blocos "3D" (luz em cima, sombra embaixo), detalhes em pixel, verde = livre, vermelho =
+   ocupada, âmbar = começa já. `--lay` = a cor do tipo da sala. */
+
+/* ------------------------------------------------------------------ janela */
+
+.kv-meet .kv-ui-modal__body {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.kv-meet__tabs {
+  flex: none;
+  padding: 10px 18px 0;
+  border-bottom: 1px solid var(--ui-line);
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.kv-meet__pane {
+  min-height: 0;
+  height: min(70vh, 660px);
+  overflow-y: auto;
+  padding: 14px 18px 18px;
+}
+
+.kv-meet__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.kv-meet__bar-text {
+  margin: 0;
+  color: var(--ui-muted);
+  font-size: 12.5px;
+}
+
+.kv-meet__empty {
+  display: grid;
+  place-items: center;
+  min-height: 60%;
+  padding: 24px 0;
+}
+
+.kv-meet-lock {
+  color: #ffc861;
+}
+
+.kv-meet-lock svg {
+  width: 10px;
+  height: 10px;
+}
+
+/* ------------------------------------------------------------------ selos e chips comuns */
+
+.kv-meet-lay {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  border-radius: 7px;
+  color: var(--lay, #7cc8ff);
+  background: color-mix(in srgb, var(--lay, #7cc8ff) 16%, rgba(10, 13, 20, 0.85));
+  border: 1px solid color-mix(in srgb, var(--lay, #7cc8ff) 55%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.kv-meet-lay--sm {
+  width: 22px;
+  height: 22px;
+}
+
+.kv-meet-lay--sm svg {
+  width: 14px;
+  height: auto;
+}
+
+.kv-meet-lay--md {
+  width: 34px;
+  height: 34px;
+}
+
+.kv-meet-lay--md svg {
+  width: 20px;
+  height: auto;
+}
+
+.kv-meet-lay--lg {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+}
+
+.kv-meet-lay--lg svg {
+  width: 28px;
+  height: auto;
+}
+
+.kv-meet-roomtag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 1px 8px 1px 1px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--lay, #7cc8ff) 40%, transparent);
+  background: color-mix(in srgb, var(--lay, #7cc8ff) 10%, transparent);
+  color: color-mix(in srgb, var(--lay, #7cc8ff) 45%, #fff);
+  font: 600 12px/1.2 var(--font-ui);
+}
+
+.kv-meet-roomtag__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kv-meet-equips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.kv-meet-equip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 5px;
+  border: 1px solid var(--ui-line);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ui-muted);
+  font: 500 11px/1 var(--font-ui);
+}
+
+.kv-meet-equip svg {
+  width: 11px;
+  height: auto;
+  color: var(--ui-accent);
+}
+
+.kv-meet-avs {
+  display: inline-flex;
+  align-items: center;
+}
+
+.kv-meet-avs > .kv-ui-avatar + .kv-ui-avatar,
+.kv-meet-avs > .kv-meet-avs__more {
+  margin-left: -6px;
+}
+
+.kv-meet-avs > .kv-ui-avatar {
+  box-shadow: 0 0 0 2px #1d222e;
+  border-radius: 6px;
+}
+
+.kv-meet-avs__more {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 4px;
+  border-radius: 6px;
+  background: #2a3142;
+  box-shadow: 0 0 0 2px #1d222e;
+  color: var(--ui-muted);
+  font: 700 10.5px/1 var(--font-ui);
+}
+
+/* ------------------------------------------------------------------ linha do tempo (régua e faixas) */
+
+.kv-meet-ruler {
+  position: relative;
+  height: 16px;
+  overflow: hidden;
+}
+
+.kv-meet-ruler__tick {
+  position: absolute;
+  top: 0;
+  padding-left: 3px;
+  border-left: 1px solid var(--ui-line-strong);
+  color: var(--ui-faint);
+  font: 500 10px/14px var(--font-ui);
+  white-space: nowrap;
+}
+
+.kv-meet-strip {
+  position: relative;
+  height: 22px;
+  border-radius: 6px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(79, 209, 139, 0.06), rgba(79, 209, 139, 0.02)),
+    rgba(5, 7, 12, 0.34);
+  border: 1px solid var(--ui-line);
+  box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.kv-meet-strip.is-unknown {
+  background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0 6px, transparent 6px 12px), rgba(5, 7, 12, 0.34);
+}
+
+.kv-meet-strip.is-empty {
+  display: grid;
+  place-items: center;
+  color: var(--ui-faint);
+  font-size: 11px;
+}
+
+.kv-meet-strip__grid {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.kv-meet-strip__blk {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  min-width: 3px;
+  padding: 0 5px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--lv-crit) 55%, #1a1d26);
+  border: 1px solid color-mix(in srgb, var(--lv-crit) 70%, #fff 0%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font: 600 10.5px/14px var(--font-ui);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.kv-meet-strip__blk.is-mine {
+  background: color-mix(in srgb, var(--ui-accent) 45%, #1a1d26);
+  border-color: color-mix(in srgb, var(--ui-accent) 70%, transparent);
+}
+
+.kv-meet-strip__blk.is-private:not(.is-mine) {
+  background: repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.18) 0 4px, transparent 4px 8px), color-mix(in srgb, #c46bff 45%, #1a1d26);
+  border-color: color-mix(in srgb, #c46bff 70%, transparent);
+}
+
+.kv-meet-strip__blk.is-past {
+  opacity: 0.45;
+}
+
+.kv-meet-strip__blk.is-busy {
+  background: repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.2) 0 4px, transparent 4px 8px), color-mix(in srgb, var(--st-waiting) 50%, #1a1d26);
+  border-color: color-mix(in srgb, var(--st-waiting) 70%, transparent);
+}
+
+.kv-meet-strip__now {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: #ff6b6b;
+  box-shadow: 0 0 6px rgba(255, 107, 107, 0.7);
+}
+
+/* ------------------------------------------------------------------ Minhas reuniões */
+
+.kv-meet-day + .kv-meet-day {
+  margin-top: 16px;
+}
+
+.kv-meet-day__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--ui-line);
+}
+
+.kv-meet-day__title {
+  margin: 0;
+  font-size: 15px;
+  color: var(--ui-text);
+}
+
+.kv-meet-day__long {
+  color: var(--ui-muted);
+  font-size: 12px;
+}
+
+.kv-meet-day__n {
+  margin-left: auto;
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 5px;
+  background: rgba(124, 200, 255, 0.14);
+  color: var(--ui-accent);
+  text-align: center;
+  font: 700 11px/18px var(--font-ui);
+}
+
+.kv-meet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kv-meet-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(62px, max-content) minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 10px 10px 10px 0;
+  border-radius: 10px;
+  border: 1px solid var(--ui-line-strong);
+  background: linear-gradient(180deg, rgba(44, 51, 68, 0.9), rgba(30, 35, 47, 0.9));
+  box-shadow: var(--kv-ui-raise);
+  overflow: hidden;
+}
+
+.kv-meet-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--lay, var(--ui-accent));
+}
+
+.kv-meet-card.is-live {
+  border-color: rgba(79, 209, 139, 0.65);
+  box-shadow:
+    var(--kv-ui-raise),
+    0 0 0 2px rgba(79, 209, 139, 0.14);
+}
+
+.kv-meet-card.is-released {
+  opacity: 0.6;
+}
+
+.kv-meet-card__time {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding-top: 1px;
+  font-variant-numeric: tabular-nums;
+}
+
+.kv-meet-card__time strong {
+  white-space: nowrap;
+  font: 700 15px/1.1 var(--font-ui);
+  color: var(--ui-text);
+}
+
+.kv-meet-card__time span {
+  color: var(--ui-faint);
+  font-size: 11.5px;
+}
+
+.kv-meet-card__main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.kv-meet-card__top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.kv-meet-card__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 700 14px/1.25 var(--font-ui);
+}
+
+.kv-meet-live {
+  animation: kv-meet-pulse 1.6s steps(2) infinite;
+}
+
+@keyframes kv-meet-pulse {
+  50% {
+    background: rgba(79, 209, 139, 0.18);
+  }
+}
+
+.kv-meet-card__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  color: var(--ui-muted);
+  font-size: 12px;
+}
+
+.kv-meet-card__series {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ui-faint);
+}
+
+.kv-meet-card__series svg {
+  width: 10px;
+  height: auto;
+}
+
+.kv-meet-card__people {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kv-meet-card__count {
+  color: var(--ui-faint);
+  font-size: 11.5px;
+}
+
+.kv-meet-card__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  color: var(--ui-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.kv-meet-card__note span:last-child {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.kv-meet-card__note svg {
+  width: 10px;
+  height: auto;
+  margin-top: 3px;
+  color: var(--ui-faint);
+}
+
+.kv-meet-card__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.kv-meet-card__icons {
+  display: flex;
+  gap: 2px;
+}
+
+.kv-meet-del:hover {
+  color: var(--lv-crit) !important;
+}
+
+@media (max-width: 640px) {
+  .kv-meet-card {
+    grid-template-columns: minmax(50px, max-content) minmax(0, 1fr);
+  }
+
+  .kv-meet-card__actions {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    justify-content: space-between;
+    padding-left: 12px;
+  }
+}
+
+/* ------------------------------------------------------------------ Salas (diretório) */
+
+.kv-meet-rooms {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kv-meet-room {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--ui-line-strong);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--lay) 9%, transparent), transparent 70px),
+    linear-gradient(180deg, rgba(44, 51, 68, 0.92), rgba(28, 33, 45, 0.92));
+  box-shadow: var(--kv-ui-raise);
+}
+
+.kv-meet-room__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kv-meet-room__title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.kv-meet-room__title strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 700 15px/1.2 var(--font-ui);
+}
+
+.kv-meet-room__title span {
+  color: var(--ui-muted);
+  font-size: 12px;
+}
+
+.kv-meet-room__state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid;
+  font-size: 12px;
+}
+
+.kv-meet-room__state > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.kv-meet-room__state strong {
+  font: 700 13px/1.2 var(--font-ui);
+}
+
+.kv-meet-room__state span:not(.kv-meet-room__dot) {
+  color: var(--ui-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kv-meet-room__dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  background: currentColor;
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+.kv-meet-room__state.is-livre {
+  color: var(--st-working);
+  border-color: color-mix(in srgb, var(--st-working) 45%, transparent);
+  background: color-mix(in srgb, var(--st-working) 9%, transparent);
+}
+
+.kv-meet-room__state.is-ocupada {
+  color: #ff8a8a;
+  border-color: color-mix(in srgb, var(--lv-crit) 50%, transparent);
+  background: color-mix(in srgb, var(--lv-crit) 10%, transparent);
+}
+
+.kv-meet-room__state.is-breve {
+  color: var(--st-waiting);
+  border-color: color-mix(in srgb, var(--st-waiting) 50%, transparent);
+  background: color-mix(in srgb, var(--st-waiting) 10%, transparent);
+}
+
+.kv-meet-room__tl {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kv-meet-room__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+}
+
+/* ------------------------------------------------------------------ Marcar reunião */
+
+.kv-meet-book__head {
+  margin-bottom: 10px;
+}
+
+.kv-meet-book__title {
+  margin: 0;
+  font-size: 15px;
+}
+
+.kv-meet-book__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 12px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .kv-meet-book__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kv-meet-book__col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.kv-meet-book__when-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+@media (max-width: 480px) {
+  .kv-meet-book__when-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .kv-meet-book__when-grid > :first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.kv-meet .kv-ui-input__field[type='date'],
+.kv-meet .kv-ui-input__field[type='time'],
+.kv-meet .kv-ui-input__field[type='number'],
+.kv-salas2 .kv-ui-input__field[type='number'] {
+  color-scheme: dark;
+  font-variant-numeric: tabular-nums;
+}
+
+.kv-meet-book__durs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kv-meet-book__durs .kv-ui-seg {
+  flex-wrap: wrap;
+}
+
+.kv-meet-book__when {
+  margin: 0;
+  color: var(--ui-muted);
+}
+
+.kv-meet-book__repeat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kv-meet-book__repeat .kv-ui-input {
+  max-width: 120px;
+}
+
+.kv-meet-book__note {
+  width: 100%;
+  min-height: 64px;
+  resize: vertical;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--ui-line-strong);
+  background: var(--kv-ui-in, rgba(5, 7, 12, 0.34));
+  box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.25);
+  color: var(--ui-text);
+  font: 13px/1.45 var(--font-ui);
+}
+
+.kv-meet-book__note:focus {
+  outline: none;
+  border-color: var(--ui-accent);
+}
+
+.kv-meet-book__error:empty {
+  display: none;
+}
+
+.kv-meet-book__error {
+  margin: 0 auto 0 0;
+  align-self: center;
+}
+
+/* convidados */
+
+.kv-meet-guests {
+  position: relative;
+}
+
+.kv-meet-guests__results {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  max-height: 260px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border-radius: 10px;
+  border: 1px solid var(--ui-line-strong);
+  background: var(--kv-ui-panel);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.5),
+    var(--kv-ui-raise);
+}
+
+.kv-meet-guests__opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 7px;
+  color: var(--ui-text);
+  text-align: left;
+}
+
+.kv-meet-guests__opt:hover,
+.kv-meet-guests__opt:focus-visible {
+  background: var(--ui-bg-hover);
+  outline: none;
+}
+
+.kv-meet-guests__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.kv-meet-guests__empty {
+  padding: 8px;
+  color: var(--ui-faint);
+  font-size: 12px;
+}
+
+.kv-meet-guests__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kv-meet-guest {
+  padding-left: 2px;
+}
+
+.kv-meet-guest .kv-ui-avatar {
+  border-radius: 5px;
+}
+
+.kv-meet-guests__none {
+  color: var(--ui-faint);
+  font-size: 12px;
+}
+
+.kv-meet-guests__count {
+  color: var(--ui-muted);
+  font-size: 12px;
+}
+
+.kv-meet-guests__count.is-warn {
+  color: var(--st-waiting);
+}
+
+/* assistente de agendamento */
+
+.kv-meet-asst__day {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kv-meet-asst__day strong {
+  flex: 1;
+  text-align: center;
+  font: 600 13px/1.2 var(--font-ui);
+}
+
+.kv-meet-asst__fwd {
+  display: inline-flex;
+  transform: scaleX(-1);
+}
+
+.kv-meet-asst {
+  display: grid;
+  grid-template-columns: 124px minmax(0, 1fr);
+  border-radius: 10px;
+  border: 1px solid var(--ui-line);
+  background: rgba(0, 0, 0, 0.16);
+  overflow: hidden;
+}
+
+.kv-meet-asst__labels,
+.kv-meet-asst__tracks {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 0 8px;
+}
+
+.kv-meet-asst__labels {
+  padding-left: 8px;
+  padding-right: 6px;
+  border-right: 1px solid var(--ui-line);
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.kv-meet-asst__who {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--ui-text);
+}
+
+.kv-meet-asst__who > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kv-meet-asst__who.is-ruler {
+  height: 16px;
+}
+
+.kv-meet-asst__who.is-room {
+  color: var(--ui-muted);
+}
+
+.kv-meet-asst__scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
+.kv-meet-asst__tracks {
+  position: relative;
+  min-width: 100%;
+  cursor: crosshair;
+}
+
+.kv-meet-asst__tracks .kv-meet-strip {
+  height: 28px;
+}
+
+.kv-meet-asst__tracks.is-nope {
+  animation: kv-meet-nope 0.3s steps(3);
+}
+
+@keyframes kv-meet-nope {
+  33% {
+    transform: translateX(-3px);
+  }
+  66% {
+    transform: translateX(3px);
+  }
+}
+
+.kv-meet-asst__sel {
+  position: absolute;
+  top: 26px;
+  bottom: 8px;
+  min-width: 6px;
+  border-radius: 6px;
+  border: 2px solid #7cc8ff;
+  background: rgba(58, 142, 227, 0.28);
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  cursor: grab;
+  touch-action: none;
+}
+
+.kv-meet-asst__sel:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.kv-meet-asst__sel.is-drag {
+  cursor: grabbing;
+  background: rgba(58, 142, 227, 0.42);
+}
+
+.kv-meet-asst__sel-text {
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  padding: 1px 6px;
+  border-radius: 4px 4px 0 0;
+  background: #3a8ee3;
+  color: #fff;
+  font: 700 10.5px/14px var(--font-ui);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.kv-meet-asst__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: var(--ui-faint);
+  font-size: 11px;
+}
+
+.kv-meet-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.kv-meet-legend::before {
+  content: '';
+  width: 12px;
+  height: 9px;
+  border-radius: 2px;
+}
+
+.kv-meet-legend--busy::before {
+  background: color-mix(in srgb, var(--st-waiting) 60%, #1a1d26);
+}
+
+.kv-meet-legend--room::before {
+  background: color-mix(in srgb, var(--lv-crit) 60%, #1a1d26);
+}
+
+.kv-meet-legend--sel::before {
+  border: 2px solid #7cc8ff;
+  background: rgba(58, 142, 227, 0.3);
+}
+
+/* achar sala */
+
+.kv-meet-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kv-meet-filter__cap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ui-muted);
+  font-size: 12.5px;
+}
+
+.kv-meet-filter__cap .kv-ui-input {
+  width: 84px;
+}
+
+.kv-meet-filter__equips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kv-meet-pick-ico svg {
+  width: 11px;
+  height: auto;
+}
+
+.kv-meet-findroom {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kv-meet-fr {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--ui-line-strong);
+  background: linear-gradient(180deg, rgba(48, 56, 74, 0.95), rgba(32, 37, 50, 0.95));
+  box-shadow: var(--kv-ui-raise);
+  color: var(--ui-text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 0.08s,
+    border-color 0.15s;
+}
+
+.kv-meet-fr:hover {
+  border-color: rgba(160, 176, 210, 0.45);
+}
+
+.kv-meet-fr:active {
+  transform: translateY(1px);
+  box-shadow: var(--kv-ui-press);
+}
+
+.kv-meet-fr.is-busy,
+.kv-meet-fr.is-off {
+  opacity: 0.55;
+}
+
+.kv-meet-fr.is-on {
+  opacity: 1;
+  border-color: #58a6f2;
+  background: linear-gradient(180deg, rgba(58, 142, 227, 0.32), rgba(42, 111, 184, 0.24));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 0 0 2px rgba(124, 200, 255, 0.2);
+}
+
+.kv-meet-fr__text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.kv-meet-fr__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.kv-meet-fr__top strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 700 13.5px/1.2 var(--font-ui);
+}
+
+.kv-meet-fr__st {
+  flex: none;
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: 4px;
+  border: 1px solid currentColor;
+  font: 600 10.5px/1.6 var(--font-ui);
+}
+
+.kv-meet-fr__st.is-free {
+  color: var(--st-working);
+}
+
+.kv-meet-fr__st.is-busy {
+  color: #ff8a8a;
+}
+
+.kv-meet-fr__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ui-muted);
+  font-size: 11.5px;
+}
+
+.kv-meet-fr__meta .is-warn {
+  color: var(--st-waiting);
+}
+
+.kv-meet-fr__radio {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 2px solid var(--ui-line-strong);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.kv-meet-fr.is-on .kv-meet-fr__radio {
+  border-color: #7cc8ff;
+  background: #3a8ee3;
+  box-shadow: inset 0 0 0 2px #1d2a3d;
+}
+
+.kv-meet-findroom__hidden {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--ui-faint);
+  font-size: 12px;
+}
+
+.kv-ui-sec.is-flash {
+  animation: kv-meet-flash 1.2s ease-out;
+}
+
+@keyframes kv-meet-flash {
+  0%,
+  40% {
+    border-color: var(--ui-accent);
+    box-shadow: 0 0 0 3px rgba(124, 200, 255, 0.25);
+  }
+}
+
+/* conflitos */
+
+.kv-meet-conflict {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--lv-crit) 55%, transparent);
+  background: color-mix(in srgb, var(--lv-crit) 10%, rgba(20, 23, 31, 0.9));
+}
+
+.kv-meet-conflict p {
+  margin: 0;
+  color: var(--ui-muted);
+  font-size: 12.5px;
+}
+
+.kv-meet-conflict__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffb0b0;
+  font-size: 13px;
+}
+
+.kv-meet-conflict__ico {
+  color: var(--lv-crit);
+}
+
+.kv-meet-conflict__list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ui-text);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.kv-meet-conflict__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ------------------------------------------------------------------ painel da porta */
+
+.kv-meet-panel .kv-ui-modal__icon {
+  color: var(--lay, var(--ui-accent));
+}
+
+.kv-meet-panel .kv-ui-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kv-meet-band {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  border: 2px solid;
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.25),
+    0 2px 0 rgba(0, 0, 0, 0.35);
+  background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 2px, transparent 2px 8px);
+}
+
+.kv-meet-band.is-livre {
+  background-color: #23784a;
+  border-color: #4fd18b;
+}
+
+.kv-meet-band.is-ocupada {
+  background-color: #8c2e34;
+  border-color: #ff6b6b;
+}
+
+.kv-meet-band.is-breve {
+  background-color: #8a6416;
+  border-color: #f4c95d;
+}
+
+.kv-meet-band__big {
+  font: 500 30px/1.1 var(--font-px);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.kv-meet-band__sub {
+  font: 600 14px/1.3 var(--font-ui);
+  opacity: 0.9;
+}
+
+.kv-meet-band__clock {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.25);
+  font: 700 14px/1.3 var(--font-ui);
+  font-variant-numeric: tabular-nums;
+}
+
+.kv-meet-panel__cur {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--ui-line-strong);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.kv-meet-panel__cur.is-mine {
+  border-color: color-mix(in srgb, var(--ui-accent) 50%, transparent);
+}
+
+.kv-meet-panel__cur-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kv-meet-panel__cur-top strong {
+  font: 700 15px/1.25 var(--font-ui);
+  overflow-wrap: anywhere;
+}
+
+.kv-meet-panel__cur-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  color: var(--ui-muted);
+  font-size: 12px;
+}
+
+.kv-meet-panel__quick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in srgb, var(--st-working) 45%, transparent);
+  background: color-mix(in srgb, var(--st-working) 6%, transparent);
+}
+
+.kv-meet-panel__quick-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--st-working);
+}
+
+.kv-meet-panel__quick-head strong {
+  color: var(--ui-text);
+  font-size: 13.5px;
+}
+
+.kv-meet-panel__quick-head span:last-child {
+  margin-left: auto;
+  color: var(--ui-faint);
+  font-size: 11.5px;
+}
+
+.kv-meet-panel__quick-row,
+.kv-meet-panel__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.kv-meet-panel__quick-row .kv-ui-btn {
+  flex: 1;
+  min-width: 72px;
+  justify-content: center;
+}
+
+.kv-meet-panel__today {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kv-meet-panel__h {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ui-muted);
+}
+
+.kv-meet-panel__next {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kv-meet-panel__next li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 12.5px;
+}
+
+.kv-meet-panel__next li.is-mine {
+  background: rgba(124, 200, 255, 0.08);
+}
+
+.kv-meet-panel__when {
+  flex: none;
+  min-width: 86px;
+  color: var(--ui-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.kv-meet-panel__what {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kv-meet-panel__none {
+  margin: 0;
+  color: var(--ui-faint);
+  font-size: 12px;
+}
+
+/* ------------------------------------------------------------------ tela Salas: seção "Sala de reunião" */
+
+.kv-meet-cfg__layouts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.kv-meet-cfgl {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--ui-line-strong);
+  background: linear-gradient(180deg, rgba(48, 56, 74, 0.95), rgba(32, 37, 50, 0.95));
+  box-shadow: var(--kv-ui-raise);
+  color: var(--ui-text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 0.08s,
+    border-color 0.15s;
+}
+
+.kv-meet-cfgl:hover {
+  border-color: color-mix(in srgb, var(--lay) 60%, transparent);
+}
+
+.kv-meet-cfgl:active {
+  transform: translateY(1px);
+  box-shadow: var(--kv-ui-press);
+}
+
+.kv-meet-cfgl.is-on {
+  border-color: var(--lay);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--lay) 28%, #26304a), color-mix(in srgb, var(--lay) 14%, #1d2436));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 0 0 2px color-mix(in srgb, var(--lay) 30%, transparent);
+}
+
+.kv-meet-cfgl__name {
+  font: 700 12.5px/1.2 var(--font-ui);
+}
+
+.kv-meet-cfgl__desc {
+  color: var(--ui-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.kv-meet-cfgl__seats {
+  margin-top: auto;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.25);
+  color: color-mix(in srgb, var(--lay) 60%, #fff);
+  font: 600 10.5px/1.7 var(--font-ui);
+}
+
+.kv-meet-cfg__row {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.kv-meet-cfg__row .kv-ui-input {
+  width: 100px;
+}
+
+.kv-meet-cfg__equips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kv-meet-cfg__toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kv-meet-cfg__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ui-muted);
+}
+
+/* ------------------------------------------------------------------ Minha agenda (agenda.ts): reservas de sala */
+
+.kv-agenda2__side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.kv-agenda2__side-head .kv-agenda2__side-title {
+  margin: 0;
+}
+
+.kv-agenda2__meet-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}

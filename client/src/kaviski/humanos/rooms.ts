@@ -88,7 +88,7 @@ export function kvOwnRoomInfo(r: KvOwnRoom, i: number): KvOwnRoomInfo {
     seed: kvOwnSeed(r),
     createdAt: r.createdAt,
     kaviski: { ...(r.color ? { color: r.color } : {}), ...(group ? { group } : {}) },
-    kvOwn: { kind: r.kind, decor: r.decor, ...(r.owner ? { owner: r.owner } : {}) },
+    kvOwn: { kind: r.kind, decor: r.decor, ...(r.owner ? { owner: r.owner } : {}), ...(r.kind === 'reuniao' && r.meet ? { meet: r.meet } : {}) },
   } as KvOwnRoomInfo;
 }
 
@@ -111,7 +111,7 @@ function sync(): void {
   const sim = kvPeople.sim?.();
   if (!sim || !sim.initialized) return;
   const now = Date.now();
-  const key = JSON.stringify(state.rooms.map((r) => [r.id, r.name, r.style, r.color, r.kind, r.decor]));
+  const key = JSON.stringify(state.rooms.map((r) => [r.id, r.name, r.style, r.color, r.kind, r.decor, r.meet?.layout]));
   if (sim !== injectedSim || key !== injectedKey) {
     injectedSim = sim;
     injectedKey = key;

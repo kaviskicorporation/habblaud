@@ -5,7 +5,7 @@
 import type { KvStatus } from '../../../../shared/kaviski-presence';
 import { kvClearStatus, kvSetStatus } from './status';
 
-export type KvAutoSource = 'agenda' | 'foco';
+export type KvAutoSource = 'agenda' | 'foco' | 'reuniao'; // reuniao: reservas de sala (meetings.ts)
 
 export interface KvAutoStatus {
   status: KvStatus;

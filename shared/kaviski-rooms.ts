@@ -6,6 +6,7 @@
 // NÃO entra no snapshot do servidor (nem no Habblaud World): a página pede a lista (já filtrada) e a monta no prédio.
 import type { KvPerson } from './kaviski-humanos';
 import { kvColor, KV_NAME_MAX } from './kaviski';
+import type { KvMeetConfig } from './kaviski-meetings';
 
 export type KvOwnRoomKind = 'pessoal' | 'reuniao' | 'descanso' | 'outra';
 export const KV_OWN_ROOM_KINDS: readonly KvOwnRoomKind[] = ['pessoal', 'reuniao', 'descanso', 'outra'];
@@ -59,6 +60,8 @@ export interface KvOwnRoom {
   /** Cor de destaque (moldura da placa), opcional. */
   color?: string;
   decor: KvDecorItem[];
+  /** Só nas salas de reunião: layout, capacidade, equipamentos e reservas (shared/kaviski-meetings.ts). */
+  meet?: KvMeetConfig;
   createdAt: number;
   updatedAt: number;
 }

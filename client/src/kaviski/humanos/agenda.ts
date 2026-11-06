@@ -14,6 +14,11 @@ import { ICONS, pixelIcon } from '../../ui/icons';
 import { kvAutoClear, kvAutoSet } from './auto-status';
 import { kvTopButton } from './topbar';
 import { kvGoArea } from './walk';
+// reuniões e reservas de sala: as minhas reservas internas entram em "Reuniões de hoje"
+import type { KvMeetingView } from '../../../../shared/kaviski-meetings';
+import { kvMeetings, kvMeetLabel, kvMeetRoom, kvOnMeetings } from './meetings-api';
+import { kvOpenMeetings } from './meetings-dialog';
+import { kvRoomTag, MEET_ICON } from './meetings-ui';
 
 const API = '/api/kaviski/humanos/agenda';
 const POLL_MS = 60_000;
@@ -58,6 +63,7 @@ class AgendaDialog {
   private readonly error: HTMLElement;
   private readonly off: HTMLButtonElement;
   private readonly save: HTMLButtonElement;
+  private last: KvAgendaState | null = null;
 
   constructor(private readonly onSaved: (s: KvAgendaState) => void) {
     this.modal = new KvModal({
@@ -98,7 +104,18 @@ class AgendaDialog {
       ),
       kvSection(KV_ICONS.lock, tr('Privacidade'), tr('O endereço fica guardado só no servidor do escritório: ninguém mais vê, nem você depois de salvar. Para trocar, cole outro.')),
     );
-    const side = h('div', {}, kvTitle('h3', tr('Reuniões de hoje'), 'kv-agenda2__side-title'), this.today);
+    const side = h(
+      'div',
+      {},
+      h(
+        'div',
+        { class: 'kv-agenda2__side-head' },
+        kvTitle('h3', tr('Reuniões de hoje'), 'kv-agenda2__side-title'),
+        kvBtn(tr('Abrir Reuniões'), { size: 'sm', icon: MEET_ICON, title: tr('Reservas de sala: marcar, ver e achar sala livre'), onClick: () => (this.modal.close(), kvOpenMeetings()) }),
+      ),
+      this.today,
+    );
+    kvOnMeetings(() => this.modal.open && this.render(this.last));
     this.modal.body.append(kvSplit(side, main));
     this.modal.setFoot(this.error, this.off, this.save);
   }
@@ -110,8 +127,10 @@ class AgendaDialog {
   }
 
   render(state: KvAgendaState | null): void {
+    this.last = state;
     if (!state) {
       this.status.textContent = tr('Carregando…');
+      this.renderToday([], false);
       return;
     }
     const age = state.fetchedAt ? Math.max(0, Math.round((Date.now() - state.fetchedAt) / 60_000)) : null;
@@ -123,21 +142,48 @@ class AgendaDialog {
     this.off.hidden = !state.configured;
     this.save.querySelector('.kv-ui-btn__label')!.textContent = state.configured ? tr('Trocar o endereço') : tr('Ligar a agenda');
     const now = Date.now();
-    const list = state.events.filter((e) => sameDay(e.start, now) || (e.start < now && e.end > now)).sort((a, b) => a.start - b.start);
-    this.today.replaceChildren(...list.map((e) => this.item(e, now)));
-    if (!list.length) {
+    const list = state.events.filter((e) => sameDay(e.start, now) || (e.start < now && e.end > now));
+    this.renderToday(list, state.configured);
+  }
+
+  /** Reuniões de hoje: as da agenda ligada e as minhas reservas de sala, misturadas por hora. */
+  private renderToday(list: KvAgendaEventOut[], configured: boolean): void {
+    const now = Date.now();
+    const mine = kvMeetings().meetings.filter((m) => m.mine && !m.released && (sameDay(m.start, now) || (m.start < now && m.end > now)));
+    const rows: { start: number; el: HTMLElement }[] = [...list.map((e) => ({ start: e.start, el: this.item(e, now) })), ...mine.map((m) => ({ start: m.start, el: this.meetItem(m, now) }))];
+    this.today.replaceChildren(...rows.sort((a, b) => a.start - b.start).map((r) => r.el));
+    if (!rows.length) {
       this.today.append(
         h(
           'li',
           {},
           kvEmpty(
             CAL_ICON,
-            state.configured ? tr('Nada na agenda hoje') : tr('Agenda ainda não ligada'),
-            state.configured ? tr('Quando houver reunião, ela aparece aqui e o seu status muda sozinho.') : tr('Cole o link da sua agenda ao lado para ver as reuniões daqui.'),
+            configured ? tr('Nada na agenda hoje') : tr('Agenda ainda não ligada'),
+            configured ? tr('Quando houver reunião, ela aparece aqui e o seu status muda sozinho.') : tr('Cole o link da sua agenda ao lado para ver as reuniões daqui.'),
           ),
         ),
       );
     }
+  }
+
+  /** Uma reserva de sala minha (organizador ou convidado), com o selo da sala e "Ir". */
+  private meetItem(m: KvMeetingView, now: number): HTMLElement {
+    const live = m.start <= now && m.end > now;
+    const room = kvMeetRoom(m.room);
+    const go = kvBtn(tr('Ir'), { size: 'sm', variant: 'primary', icon: KV_ICONS.walk, title: tr('Ir para a sala'), onClick: () => (kvGoArea(`r:${m.room}`), this.modal.close()) });
+    return h(
+      'li',
+      { class: `kv-ui-card${m.end <= now ? ' is-dim' : ''}${live ? ' is-live' : ''}`, style: live ? '--a:#2f9e5f' : '' },
+      h('span', { class: 'kv-ui-card__ico', text: kvHour(m.start) }),
+      h(
+        'span',
+        { class: 'kv-ui-card__text' },
+        h('span', { class: 'kv-ui-card__top' }, h('strong', { text: kvMeetLabel(m) }), live ? h('span', { class: 'kv-ui-state kv-ui-state--ok', text: tr('agora') }) : null),
+        h('span', { class: 'kv-ui-card__meta kv-agenda2__meet-meta' }, h('span', { text: `${kvHour(m.start)}–${kvHour(m.end)}` }), kvRoomTag(room, tr('Sala'))),
+      ),
+      h('span', { class: 'kv-ui-card__actions' }, go),
+    );
   }
 
   private item(e: KvAgendaEventOut, now: number): HTMLElement {

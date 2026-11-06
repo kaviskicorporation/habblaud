@@ -792,6 +792,44 @@ direto como sempre.
 - **Habblaud World**: nada disto entra no snapshot do `Office` — as salas e os itens existem só na página (mobília da
   planta) e as ações só abrem janelas que já existiam.
 
+## Reuniões e reservas de sala (2026-11-06) ✅
+Pedido do Vitor: "salas de reunião diferentes que possam ser usadas de verdade, agendadas e marcadas (como as do MS
+Teams); privada = ninguém de fora vê nem escuta; melhorar o layout com essas salas". Tudo só com `HABBLAUD_HUMANOS=1`.
+- **Salas de reunião = salas próprias do tipo `reuniao` com `meet`** (`shared/kaviski-meetings.ts`, `KvMeetConfig`): 6
+  tipos (`cabine` 2 lugares, `bate-papo` 4, `reuniao` 8, `conselho` 14, `treinamento` 20, `criativa` 8), capacidade,
+  equipamentos (tela, vídeo, quadro, som, projetor, café, acessível), "aceita reservas", "liberar se ninguém aparecer
+  em 10 min" e "privada por padrão". Configura-se na tela **Salas** (cartões dos tipos). Sala antiga sem `meet` = `reuniao`.
+- **Mobília por tipo**, no prédio original (16x12, `humanos/rooms-meet.ts`) e na planta livre de 8x8 a 40x28
+  (`plan/furnish-meet.ts`, pelo `KvPlacer`: tudo alcançável), 14 itens novos em pixel art (`plan/meet-sprites.ts`: mesa
+  redonda, mesa de conselho, mesa de chamada, painéis acústicos, mesas de treinamento, mesa alta, flip chart, bar de
+  café, tela de projeção, mural de post-its, painel de reservas da porta). O painel de cada sala é marcado com a ação
+  `reunioes` do "ir e fazer" (abre o painel da sala).
+- **Reservas** (`server/kaviski/humanos/meetings.ts` + `meetings.test.ts`, `<dataDir>/kaviski/meetings.json`, 600):
+  `GET|POST /api/kaviski/humanos/meetings`, `POST meetings/now` (usar agora pela porta), `GET meetings/freebusy`
+  (reservas + agenda ICS, sem títulos, só a equipe), `POST|DELETE meetings/<id>` (mudar/cancelar; `?series=1`), `POST
+  meetings/<id>/checkin|end|extend`. Evento `meetings` no fluxo de presença. Regras: marca a equipe/admin numa sala que
+  vê e que aceita reservas; nunca duas reservas no mesmo horário (409 com os conflitos; repetição diária/dias
+  úteis/semanal até 52 vezes, com "marcar só os livres"); muda/cancela o organizador ou um admin; check-in sozinho quando
+  alguém da reunião entra na sala (de 5 min antes); sem check-in em 10 min a reserva é liberada (`released: 'auto'`).
+- **Privacidade**: numa privada, quem não é da reunião vê só "Reunião privada" (sem título, organizador nem convidados).
+  Enquanto acontece, a sala fica **trancada e coberta** (`social.ts` `syncMeetingLocks`, tranca com `veil` e `meeting`):
+  só organizador e convidados (e quem eles deixarem entrar pela batida na porta) entram; para os outros o servidor não
+  manda a posição de quem está dentro (presença: `veil` → sem `pos`, com `meet: true`, "🔒 em reunião privada" na lista),
+  recusa token do LiveKit, conversa, quadro, mural e reações. Destrancar a sala de uma reunião privada a torna pública.
+  O cadeado da barra numa sala própria agora tranca **e cobre** (`lock {veil: true}`).
+- **Convidado de fora da sala** (ex.: cliente): vê a sala da reunião de 15 min antes a 5 min depois (`KvRooms.setGuest`;
+  eventos `rooms` e `plan` com `refilter` avisam as páginas).
+- **Página**: botão **Reuniões** no topo (`meetings-dialog.ts`: Minhas reuniões, Marcar reunião com assistente de
+  agendamento e "achar sala", Salas), **painel da porta** (`meetings-panel.ts`: LIVRE/OCUPADA, usar agora 15/30/60 min,
+  check-in, mais 15 min, encerrar), plaquinha com LED na porta de cada sala e a sala privada coberta com persianas
+  (`meetings.ts`, `meetings-world.css`), status automático "📅 Em reunião até…" (fonte `reuniao`) e aviso 1 min antes,
+  "Baixar .ics", e as reservas na janela Minha agenda. Lógica pura em `meetings-model.ts` (+ teste).
+- **Planta da Kaviski**: a sala temática genérica de reunião virou a **Sala do Conselho** (reservável, mesmo lugar) e
+  entrou a **Ala das reuniões** (Rua e Passeio das reuniões, jardim): Cabines 1–3, Sala Café e Sala Pôr do Sol
+  (bate-papo), Salas Azul e Verde (reunião), Sala Ideias (criativa) e Sala de Treinamento. Script de montagem fora do
+  repositório (as salas são dados: `rooms.json` + `plan.json`, versão nova da planta; a anterior fica no histórico).
+- Traduções: `shared/locales/kaviski-reunioes{,-ui,-salas}.ts`.
+
 ## Como desenvolver sem derrubar o escritório
 - Desenvolver numa **segunda instância** (`HABBLAUD_PORT=4757`, `HABBLAUD_REMOTE_PORT=4758`,
   `HABBLAUD_DATA_DIR=~/.habblaud-dev`), sem mexer no serviço `habblaud` em produção.

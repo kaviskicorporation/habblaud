@@ -105,7 +105,15 @@ export class KvLocks {
     const lock = this.lockOf(room);
     const canLock = !!room && !kvRestricted(this.me.person);
     this.btn.hidden = !room || (!lock && !canLock) || (!!lock && !lock.in);
-    const label = lock ? tr('Destrancar a sala (trancada por {0})', [lock.by]) : tr('Trancar a sala: só quem está aqui entra');
+    // sala própria (reunião, pessoal...): trancar também cobre (quem está fora não vê nem ouve); a reunião privada destrancada vira pública
+    const own = !!room && room.startsWith('r:kvsala-');
+    const label = lock
+      ? lock.meeting
+        ? tr('Abrir a sala: a reunião deixa de ser privada')
+        : tr('Destrancar a sala (trancada por {0})', [lock.by])
+      : own
+        ? tr('Tornar a sala privada: só quem está aqui entra, vê e ouve')
+        : tr('Trancar a sala: só quem está aqui entra');
     this.btn.textContent = lock ? '🔒' : '🔓';
     this.btn.title = label;
     this.btn.setAttribute('aria-label', label);
@@ -116,9 +124,10 @@ export class KvLocks {
   private async toggleLock(): Promise<void> {
     const area = kvPeople.area;
     const lock = this.lockOf(area);
-    const r = await kvSocialPost('lock', lock ? { on: false, area } : { on: true });
+    const veil = !!area?.startsWith('r:kvsala-');
+    const r = await kvSocialPost('lock', lock ? { on: false, area } : { on: true, ...(veil ? { veil: true } : {}) });
     if (!r.ok) return this.bar.warn(r.error);
-    this.bar.warn(lock ? tr('Sala destrancada.') : tr('Sala trancada: quem chegar vai bater na porta.'));
+    this.bar.warn(lock ? tr('Sala destrancada.') : veil ? tr('Sala privada: quem está fora não vê nem ouve; quem chegar vai bater na porta.') : tr('Sala trancada: quem chegar vai bater na porta.'));
   }
 
   // ---------------------------------------------------------------- cadeados
@@ -139,7 +148,7 @@ export class KvLocks {
         this.pads.set(l.area, el);
       }
       el.classList.toggle('is-in', l.in);
-      el.title = tr('Trancada por {0}', [l.by]);
+      el.title = l.meeting ? tr('Reunião privada de {0}', [l.by]) : tr('Trancada por {0}', [l.by]);
     }
   }
 

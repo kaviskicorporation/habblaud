@@ -102,7 +102,8 @@ export async function kvPlanVersions(): Promise<KvPlanVersionInfo[] | null> {
 /** Liga a planta na página: busca agora e de novo a cada evento `plan` (alguém gravou). */
 export function kvStartPlanStore(client: { onEvent<T>(name: string, cb: (data: T) => void): () => void } | null): void {
   void kvLoadPlan();
-  client?.onEvent<{ version: number }>('plan', (e) => {
-    if (!doc || e?.version !== doc.version) void kvLoadPlan();
+  client?.onEvent<{ version: number; refilter?: boolean }>('plan', (e) => {
+    // refilter: a mesma versão, mas mudou o que eu vejo dela (convidado de uma reunião, frente das reuniões)
+    if (!doc || e?.version !== doc.version || e?.refilter) void kvLoadPlan();
   });
 }
