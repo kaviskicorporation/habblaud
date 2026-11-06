@@ -13,6 +13,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { OfficeSnapshot } from '../../../shared/types';
 import { kvAllowedRoomIds, kvRestricted, type KvPerson } from '../../../shared/kaviski-humanos';
+import { kvAreaAllowed } from './livekit';
 import { kvDefaultLook, kvIsStatus, kvParsePos, type KvLook, type KvPos, type KvPresencePerson, type KvPresenceState, type KvStatus } from '../../../shared/kaviski-presence';
 
 /** Depois que a última página fecha, a pessoa fica mais este tempo (recarregar a página não a tira e põe de volta). */
@@ -26,6 +27,8 @@ interface Entry {
   person: KvPerson;
   status: KvStatus;
   pos?: KvPos;
+  /** Área do escritório (a da chamada de voz e do chat): `r:<sala>`, `a:<núcleo>` ou `c`. */
+  area?: string;
   since: number;
   conns: number;
   offlineTimer?: ReturnType<typeof setTimeout>;
@@ -151,6 +154,14 @@ export class KvPresence {
       if (pos === undefined) return 'pos';
       if (pos && pos.r && kvRestricted(person) && !kvAllowedRoomIds(this.deps.snapshot(), person.rooms).has(pos.r)) return 'room';
       e.pos = pos ?? undefined;
+      if (!pos) e.area = undefined;
+    }
+    if ('area' in b) {
+      if (b.area === null || !e.pos) e.area = undefined;
+      else {
+        if (!kvAreaAllowed(b.area, person, this.deps.snapshot())) return 'area';
+        e.area = b.area as string;
+      }
     }
     if ('status' in b) {
       if (!kvIsStatus(b.status)) return 'status';
@@ -158,6 +169,30 @@ export class KvPresence {
     }
     this.schedule();
     return null;
+  }
+
+  /** Área atual de uma pessoa online (undefined = fora do escritório). */
+  areaOf(id: string): string | undefined {
+    return this.entries.get(id)?.area;
+  }
+
+  /** Posição atual de uma pessoa online. */
+  posOf(id: string): KvPos | undefined {
+    return this.entries.get(id)?.pos;
+  }
+
+  /** Quem está online agora (a pessoa, pelo id). */
+  personOf(id: string): KvPerson | undefined {
+    return this.entries.get(id)?.person;
+  }
+
+  /** Manda um evento a cada página cuja pessoa passa no filtro (chat, cumprimentos, chamadas de agente). */
+  emit(event: string, data: unknown, to: (viewer: KvPerson, area: string | undefined) => boolean): void {
+    const chunk = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+    for (const v of this.viewers) {
+      if (v.res.destroyed || v.res.writableEnded) continue;
+      if (to(v.person, this.entries.get(v.person.id)?.area)) v.res.write(chunk);
+    }
   }
 
   /** O boneco mudou (perfil salvo): todo mundo recebe. */

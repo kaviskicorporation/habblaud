@@ -116,9 +116,9 @@ As sessões do TwiCC rodam pelo SDK (sem terminal): o plugin `habblaud-mensagens
 | `server/http/app.ts` (humanos) | ±7 | `allows(feature, req)` no tipo `remote` e no `trusted()`; `kvRemotePty()` → `kvRemotePtyFor(req)` (5 linhas já marcadas) | idem |
 | `server/http/pty.ts` | ±2 | `kvRemotePtyFor(req)` | idem |
 | `server/http/remote.ts` (humanos) | +1 | `export const kvMarkRemote` (marca a requisição como remota, para o login por pessoa) | idem |
-| `server/index.ts` (humanos) | +9/−3 | imports; `createHumanos(...)` depois do `Hub`; `kvRemoteAllows(...)` no `canAnswer` e no `allows`; `kvSessions` + `kvHumanos.gate(createRemoteGate(...))`; `kvHumanos.before(...)` antes do `api(...)` nas duas portas | idem |
+| `server/index.ts` (humanos) | +10/−3 | imports; `createHumanos(...)` depois do `Hub`; `kvRemoteAllows(...)` no `canAnswer` e no `allows`; `kvSessions` + `kvHumanos.gate(createRemoteGate(...))`; `kvHumanos.before(...)` antes do `api(...)` nas duas portas; `kvHumanos.attachMessages(messages)` depois do `kaviski.attachMessages` | idem |
 | `client/src/app.ts` (humanos) | +2 | import; `kvStartHumanos(store)` | idem |
-| `client/src/world/index.ts` (humanos) | +4/−2 | import; `const kv = kvAttachWorld(...)` antes do `attachInput`; `kv.click(...)` no `click:` e `!kv.walking()` no `keys:`; `kv.frame(...)` logo depois do `sim.update` | idem |
+| `client/src/world/index.ts` (humanos) | +4/−2 | import; `const kv = kvAttachWorld({..., select, selected})` antes do `attachInput`; `kv.click(...)` no `click:` e `!kv.walking()` no `keys:`; `kv.frame(...)` logo depois do `sim.update` | idem |
 | `client/src/world/render/overlay.ts` (humanos) | +4/−3 | import; `visitor = ... \|\| !!kvPersonBadge(ch)` (2 lugares: etiqueta sempre à mostra) e o selo `kvPersonBadge(ch) ?? visitorBadge()` (medida e desenho) | idem |
 | `shared/locales/{en,es,fr}.ts` (humanos) | +2 cada | import e `...KV_HUMANOS_XX` no começo do objeto | idem |
 | `package.json` / `package-lock.json` (humanos) | +1 | `livekit-client` (Apache 2.0) em `devDependencies` (voz e vídeo, carregado sob demanda) | manter os dois lados; `npm install` |

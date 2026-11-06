@@ -7,6 +7,7 @@ import { kvTwiccSessionUrl, type KvSnapshotMeta } from '../../../shared/kaviski'
 import { tr } from '../../../shared/i18n';
 import { pixelIcon } from '../ui/icons';
 import './kaviski.css';
+import { kvAgentExtras } from './humanos/agent';
 
 /** Seta saindo da caixa (link externo). */
 const OPEN_ICON = pixelIcon(['....####', '......##', '.....#.#', '#..##..#', '#.##....', '#.......', '#.......', '######..']);
@@ -56,6 +57,7 @@ export class KvTwiccButton {
   update(agent: AgentInfo | undefined, room: RoomInfo | undefined, snap: OfficeSnapshot | null | undefined): void {
     const base = kvTwiccUrl(snap);
     setLink(this.el, agent && base ? kvTwiccSessionUrl(base, { provider: agent.provider, kind: agent.kind, cwd: room?.path ?? agent.roomId, sessionId: agent.sessionId }) : undefined);
+    kvAgentExtras.update?.(this.el, agent); // pessoas no escritório: "Chamar até mim" (KAVISKI-HUMANOS.md)
   }
 }
 

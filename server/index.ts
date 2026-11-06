@@ -285,6 +285,7 @@ const messages = config.messages
   : undefined;
 late.messages = messages;
 kaviski.attachMessages(messages, office); // fork Kaviski (KAVISKI.md): mensagens às sessões do TwiCC
+kvHumanos.attachMessages(messages); // fork Kaviski (KAVISKI-HUMANOS.md): cliente pede tarefa / registro
 
 // Terminal interativo (abrir/assumir sessões e encerrar agentes): opt-in com HABBLAUD_PTY=1, só com bind local, fora
 // do Docker, com node-pty e o executável do claude no PATH.
@@ -383,7 +384,7 @@ const api = createApiHandler({
   codexLive,
   stats,
   updates,
-  remote: config.remote ? { is: isRemoteRequest, allows: (f, req) => kvRemoteAllows(config.remote!.allow.has(f), req) } : undefined, // fork Kaviski: kvRemoteAllows
+  remote: config.remote ? { is: isRemoteRequest, allows: (f, req) => kvRemoteAllows(config.remote!.allow.has(f), req, f) } : undefined, // fork Kaviski: kvRemoteAllows
   world: world ? createWorldRoutes(world, worldViewer, worldSocial) : undefined,
 });
 

@@ -112,3 +112,37 @@ export function kvDefaultLook(id: string): KvLook {
   for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619) >>> 0;
   return { seed: h >>> 0, look: h & 1 ? 'f' : 'm' };
 }
+
+// ---------------------------------------------------------------- fase 2: conversa
+
+/** Tamanho máximo de uma mensagem de chat. */
+export const KV_CHAT_MAX = 300;
+/** Quantas mensagens o histórico de cada sala guarda (e por quanto tempo). */
+export const KV_CHAT_HISTORY = 50;
+export const KV_CHAT_HISTORY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Uma fala no escritório (evento `chat` do fluxo de presença): texto ou cumprimento (ids do Habblaud World,
+ * shared/world/protocol.ts GREETING_IDS). Só chega a quem está na mesma área. Nas salas de projeto vale para a sala
+ * toda e fica no histórico curto; nas áreas abertas (núcleo, corredor) é por proximidade (a página confere a distância
+ * pela posição de quem falou) e não fica guardada.
+ */
+export interface KvChatMessage {
+  id: string;
+  at: number;
+  from: { id: string; name: string; role: KvRole };
+  area: string;
+  text?: string;
+  greet?: string;
+  to?: { id: string; name: string };
+  /** Onde quem falou estava (para a proximidade nas áreas abertas). */
+  pos?: KvPos;
+}
+
+/** Texto de chat limpo (sem controles, espaços colapsados, até KV_CHAT_MAX) ou undefined se vazio. */
+export function kvChatText(v: unknown): string | undefined {
+  if (typeof v !== 'string') return undefined;
+  // eslint-disable-next-line no-control-regex
+  const s = v.replace(/[\u0000-\u0008\u000b-\u001f\u007f\u2028\u2029\u202a-\u202e\u2066-\u2069]/g, '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+  return s ? [...s].slice(0, KV_CHAT_MAX).join('') : undefined;
+}

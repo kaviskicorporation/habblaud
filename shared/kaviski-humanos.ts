@@ -20,6 +20,8 @@ export interface KvPerson {
   rooms: string[];
   /** Conta do HABBLAUD_REMOTE_USER (não se apaga nem troca de papel pela tela). */
   builtin?: boolean;
+  /** Cliente que pode pedir tarefas (mandar mensagem) aos agentes das salas dele (fase 3; o admin libera). */
+  request?: boolean;
   createdAt?: number;
 }
 

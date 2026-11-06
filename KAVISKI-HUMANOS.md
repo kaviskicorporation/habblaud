@@ -117,7 +117,7 @@ Liga com `HABBLAUD_HUMANOS=1` (e a porta remota configurada, como hoje). Sem a v
 - Código: `server/kaviski/humanos/presence.ts`, `shared/kaviski-presence.ts`,
   `client/src/kaviski/humanos/{presence,world,online,pos}.ts` (+ `pos.test.ts`). Depuração: `habblaud.kvPeople` no console.
 
-### 1c — voz e vídeo (LiveKit) (2026-11-06) ✅ (falta só o endereço público)
+### 1c — voz e vídeo (LiveKit) (2026-11-06) ✅
 - **Uma chamada por área** do escritório: cada sala de projeto, cada área comum do núcleo (recepção, copa, banheiros,
   lounge) e o corredor. Entrou na área (parado ~0,7 s), entra na chamada dela; saiu, sai. Dentro de sala de projeto,
   volume cheio; nas áreas comuns e no corredor, **volume pela distância** entre os bonecos (cheio até 3 tiles, some em 11).
@@ -137,6 +137,44 @@ Liga com `HABBLAUD_HUMANOS=1` (e a porta remota configurada, como hoje). Sem a v
   `~/.config/habblaud/livekit.yaml` e `livekit.env` (600, fora do git). Testado com dois navegadores (Chromium com
   microfone/câmera falsos): mesma chamada, áudio e vídeo dos dois lados.
 - Código: `server/kaviski/humanos/livekit.ts`, `client/src/kaviski/humanos/media.ts`.
+
+### Ajustes da fase 1 (2026-11-06) ✅
+- **Freio de login por endereço e por usuário** (`KvLoginLimiter` em `gate.ts`): cada chave tem o seu freio (5 falhas,
+  depois a espera dobra até 5 min); quem erra muito trava só a si mesmo (o do original era um só para todos). Atrás do
+  Caddy, o endereço vem do `X-Forwarded-For` (só quando a conexão chega do loopback).
+- **Cliente**: os atalhos L (timelapse), M (Meu dia) e T (terminal) também ficam mudos (os botões já sumiam; o
+  servidor já recusava).
+
+### 2 — conversa (2026-11-06) ✅
+- **Chat por área**: a mesma área da voz (sala de projeto, área comum do núcleo, corredor). A presença passa a levar a
+  área (validada no servidor: cliente nunca está numa sala que não é dele). `POST /api/kaviski/humanos/chat {text}` vai
+  como evento `chat` do fluxo de presença **só a quem está na mesma área**. Sala de projeto: a sala toda lê, com
+  **histórico curto** (50 falas, 24 h, `<dataDir>/kaviski/chat.json`, `GET /api/kaviski/humanos/chat?area=`). Áreas
+  abertas: **por proximidade** (só quem está a até 11 tiles lê; não fica guardado).
+- **Balões** em cima do boneco de quem falou (o balão do próprio Sim, `showBubble`).
+- **Cumprimentos**: a roda do Habblaud World (`GreetingWheel`, os mesmos 10 cumprimentos, `RateGate`), importada de
+  `client/src/world/city/greetings.ts` sem copiar. Abre com **G** (pessoa mais perto) ou clicando numa pessoa; 1–9/0.
+- **Barra do topo** (`bar.ts`): área atual, botão da conversa (com contador de não lidas) e, com o LiveKit, microfone,
+  câmera e tela. **Enter** abre a conversa (com o foco no escritório).
+- Limite: 1 fala a cada 0,8 s e 20 por minuto por pessoa. Texto até 300 caracteres, sem caracteres de controle.
+- Código: `server/kaviski/humanos/chat.ts`, `client/src/kaviski/humanos/{chat,bar}.ts`.
+
+### 3 — pessoa + agente (2026-11-06) ✅
+- **Chegar perto abre o painel**: parado a até 1,8 tile de um agente por 0,7 s, a gaveta dele abre (com o que o papel
+  permite: conversa, aprovar, terminal); afastar além de 3,5 tiles fecha. Gancho: `select`/`selected` no
+  `kvAttachWorld` (`client/src/world/index.ts`).
+- **"Chamar até mim"** (botão na gaveta, entra pelo `KvTwiccButton` — nenhum gancho novo no `drawer.ts`):
+  `POST /api/kaviski/humanos/summon {agentId}` manda o evento `summon` a toda página que vê aquele agente; ele levanta,
+  anda até o boneco de quem chamou, fica até 45 s (ou até o status mudar) e volta sozinho. Por enquanto vai até onde o
+  boneco está (a "mesa fixa" `profile.desk` é da sessão d553e49d, que vai ligar depois). 1 chamada a cada 15 s por pessoa.
+- **Registro** (`audit.ts`, `<dataDir>/kaviski/audit.jsonl`, 600, gira em 5 MB): mensagem, permissão (aprovar/recusar,
+  com o título do pedido), novo agente, terminal aberto/fechado, encerrar/assumir, personagem, renomear sala, chamar
+  agente — quem, quando, qual agente/sala, o quê e se deu certo. O corpo é copiado enquanto a rota original o lê
+  (`kvTapBody`), sem mexer nas rotas. Tela de Pessoas → botão **Registro** (só admin; `GET /api/kaviski/humanos/audit`).
+- **Cliente pode pedir tarefas** (opção na conta, o admin liga): ele passa a ter a caixa de mensagem, só para agentes
+  das salas dele (`POST /api/messages` e `GET /api/messages/:id` tratados por `humanos/index.ts` com o registro de
+  mensagens, `kvHumanos.attachMessages`). Todo o resto continua fechado. `kvRemoteAllows(allowed, req, feature)`.
+- Código: `server/kaviski/humanos/{audit,index}.ts`, `client/src/kaviski/humanos/{agent,world,people}.ts`.
 
 ### Endereço público: https://escritorio.kaviski.com.br (2026-11-06)
 Decisão do Vitor: **sem VPS**. O nome só funciona na rede local e pela VPN (Tailscale, que roteia 192.168.1.0/24).

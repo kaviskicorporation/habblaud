@@ -221,7 +221,7 @@ export function createWorld(canvas: HTMLCanvasElement, store: OfficeStore, o: Cr
     camera.follow = VISITOR_ID;
   };
 
-  const kv = kvAttachWorld({ sim: () => sim, camera, office: !visitMode }); // fork Kaviski: pessoas no escritório
+  const kv = kvAttachWorld({ sim: () => sim, camera, office: !visitMode, select: (id) => setSelection(id ? { type: 'agent', id } : null), selected: () => (selection?.type === 'agent' ? selection.id : null) }); // fork Kaviski: pessoas no escritório
   const detachInput = attachInput(canvas, camera, {
     pick,
     click: (hit, at) => (visitMode ? visitClick(hit, at) : kv.click(hit, at) ? undefined : setSelection(hit)), // fork Kaviski: kv.click

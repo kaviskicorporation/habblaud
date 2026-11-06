@@ -4,7 +4,8 @@
 // - POST /api/remote/login: confere primeiro a conta embutida (HABBLAUD_REMOTE_USER, emite o mesmo token "v1" do
 //   original, então o cookie de quem já estava logado continua valendo) e depois as contas de users.json (token "h1"
 //   com o id da pessoa, assinado com uma chave que mistura o hash da senha dela: trocar a senha derruba as sessões
-//   dela). O scrypt roda sempre, com usuário existente ou não.
+//   dela). O scrypt roda sempre, com usuário existente ou não. Freio de tentativas por endereço e por usuário
+//   (KvLoginLimiter): quem erra muito trava só a si mesmo, não o login de todo mundo.
 // - /api/remote/logout: encerra o token (h1 ou v1).
 // - /login: a tela original, com o texto "entre com seu usuário e senha".
 // - Requisição com token válido: marca como remota (como o original) e guarda a pessoa (humanos/request.ts).
@@ -153,7 +154,57 @@ export interface KvGateDeps {
   /** Nome exibido da conta embutida (perfil salvo ou o usuário). */
   builtinName?: () => string;
   verify?: (password: string, hash: PasswordHash) => Promise<boolean>;
-  throttle?: LoginThrottle;
+  limiter?: KvLoginLimiter;
+}
+
+/** Endereço de quem fez a requisição: o do socket ou, vindo do proxy local (Caddy), o 1º do X-Forwarded-For. */
+export function kvClientIp(req: IncomingMessage): string {
+  const addr = (req.socket.remoteAddress ?? '').replace(/^::ffff:/i, '');
+  const loopback = addr === '::1' || /^127\./.test(addr);
+  const xff = req.headers['x-forwarded-for'];
+  const first = (Array.isArray(xff) ? xff[0] : xff)?.split(',')[0]?.trim();
+  return loopback && first && first.length <= 64 ? first : addr || '?';
+}
+
+/**
+ * Freio de login por endereço E por usuário (o do original é um só para todos: quem errasse muito travava o login de
+ * todo mundo). Cada chave tem o seu LoginThrottle (5 falhas, depois espera dobrando até 5 min); a tentativa passa só se
+ * as duas chaves deixam. Chaves paradas há mais de 1 h são esquecidas.
+ */
+export class KvLoginLimiter {
+  private readonly keys = new Map<string, { t: LoginThrottle; used: number }>();
+
+  constructor(private readonly now: () => number = Date.now) {}
+
+  private get(key: string): LoginThrottle {
+    const t = this.now();
+    if (this.keys.size > 5000) for (const [k, v] of this.keys) if (t - v.used > 3_600_000) this.keys.delete(k);
+    let e = this.keys.get(key);
+    if (!e) {
+      e = { t: new LoginThrottle(this.now), used: t };
+      this.keys.set(key, e);
+    }
+    e.used = t;
+    return e.t;
+  }
+
+  /** Segundos até poder tentar de novo com este endereço e este usuário. */
+  retryAfter(ip: string, user: string): number {
+    return Math.max(this.get(`ip:${ip}`).retryAfter(), this.get(`u:${user.trim().toLowerCase()}`).retryAfter());
+  }
+
+  /** Começa a tentativa (conta como falha nas duas chaves) ou devolve null se o freio não deixa. */
+  begin(ip: string, user: string): ((ok: boolean) => void) | null {
+    const a = this.get(`ip:${ip}`);
+    const b = this.get(`u:${user.trim().toLowerCase()}`);
+    if (a.retryAfter() > 0 || b.retryAfter() > 0) return null;
+    a.begin();
+    b.begin();
+    return (ok) => {
+      a.end(ok);
+      b.end(ok);
+    };
+  }
 }
 
 /** Uma senha qualquer para o scrypt rodar quando o usuário não existe (mesmo tempo de resposta). */
@@ -179,7 +230,7 @@ export function kvResolvePerson(deps: Pick<KvGateDeps, 'builtin' | 'people' | 'u
 }
 
 export function createPeopleGate(deps: KvGateDeps): Gate {
-  const throttle = deps.throttle ?? new LoginThrottle();
+  const limiter = deps.limiter ?? new KvLoginLimiter();
   const verify = deps.verify ?? verifyPassword;
   const caAvailable = () => {
     if (!deps.caFile) return false;
@@ -201,29 +252,26 @@ export function createPeopleGate(deps: KvGateDeps): Gate {
         sendJson(res, 405, { error: tr('método não permitido') }, { Allow: 'POST' });
         return true;
       }
-      const tooMany = () => {
-        const wait = Math.max(1, throttle.retryAfter());
+      const ip = kvClientIp(req);
+      const tooMany = (user: string) => {
+        const wait = Math.max(1, limiter.retryAfter(ip, user));
         sendJson(res, 429, { error: tr('Muitas tentativas. Tente de novo em {0} s.', [wait]) }, { 'Retry-After': String(wait) });
       };
-      if (throttle.retryAfter() > 0) {
-        req.resume();
-        tooMany();
-        return true;
-      }
-      let begun = false;
+      // O corpo inteiro primeiro: só então se sabe o usuário (o freio é por endereço e por usuário).
+      let end: ((ok: boolean) => void) | null = null;
       let ok = false;
       readBody(req)
         .then(async (raw) => {
-          if (!throttle.begin()) return tooMany();
-          begun = true;
           let body: { user?: unknown; password?: unknown } = {};
           try {
             body = JSON.parse(raw) as typeof body;
           } catch {
             // recusa abaixo
           }
-          const user = typeof body.user === 'string' ? body.user.trim() : '';
+          const user = typeof body.user === 'string' ? body.user.trim().slice(0, 64) : '';
           const password = typeof body.password === 'string' ? body.password : '';
+          end = limiter.begin(ip, user);
+          if (!end) return tooMany(user);
           const isBuiltin = safeEqual(user, deps.config.user);
           const rec = isBuiltin ? undefined : deps.users.byUser(user);
           const hash = isBuiltin ? deps.config.passwordHash : (rec && deps.users.hashOf(rec)) ?? (await dummy());
@@ -238,7 +286,7 @@ export function createPeopleGate(deps: KvGateDeps): Gate {
           if (!res.headersSent) sendJson(res, 400, { error: tr('requisição inválida') });
         })
         .finally(() => {
-          if (begun) throttle.end(ok);
+          (end as ((ok: boolean) => void) | null)?.(ok);
         });
       return true;
     }

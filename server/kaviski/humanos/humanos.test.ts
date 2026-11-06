@@ -268,7 +268,11 @@ describe('porta remota com HABBLAUD_HUMANOS=1', () => {
     const e = (await login(h, 'bia', 'senha-da-bia'))!;
     const snap = (await (await fetch(`${h.base}/api/snapshot`, { headers: { cookie: e } })).json()) as OfficeSnapshot;
     expect(snap.rooms).toHaveLength(2);
-    expect((await fetch(`${h.base}/api/messages`, { method: 'POST', headers: { ...json, cookie: e }, body: '{}' })).status).toBe(200);
+    expect((await fetch(`${h.base}/api/messages`, { method: 'POST', headers: { ...json, cookie: e }, body: JSON.stringify({ agentId: 'c:2', text: 'roda os testes' }) })).status).toBe(200);
+    // fase 3: o registro guarda quem pediu o quê
+    const log = (await (await fetch(`${h.base}/api/kaviski/humanos/audit`, { headers: { cookie: admin } })).json()) as { entries: { who: { name: string }; action: string; detail?: string; ok: boolean }[] };
+    expect(log.entries[0]).toMatchObject({ who: { name: 'bia' }, action: 'mensagem', detail: 'roda os testes', ok: true });
+    expect((await fetch(`${h.base}/api/kaviski/humanos/audit`, { headers: { cookie: e } })).status).toBe(403);
     expect((await fetch(`${h.base}/api/kaviski/humanos/users`, { headers: { cookie: e } })).status).toBe(403);
     await fetch(`${h.base}/api/kaviski/humanos/users/${r.person.id}`, { method: 'POST', headers: { ...json, cookie: admin }, body: JSON.stringify({ password: 'outra-senha' }) });
     expect((await fetch(`${h.base}/api/snapshot`, { headers: { cookie: e } })).status).toBe(401);
@@ -356,5 +360,104 @@ describe('voz e vídeo (LiveKit)', () => {
     const payload = JSON.parse(Buffer.from(p, 'base64url').toString());
     expect(payload).toMatchObject({ iss: 'chave', sub: 'p1', name: 'Ana', video: { room: 'kv-sala', roomJoin: true, canPublish: true, canSubscribe: true } });
     expect(payload.exp - payload.nbf).toBeGreaterThan(3600);
+  });
+});
+
+import { KvLoginLimiter } from './gate';
+
+describe('freio de login por endereço e por usuário', () => {
+  it('quem erra muito trava a si mesmo, não os outros', () => {
+    let t = 1_000_000;
+    const lim = new KvLoginLimiter(() => t);
+    for (let i = 0; i < 5; i++) lim.begin('1.1.1.1', 'ana')!(false);
+    expect(lim.begin('1.1.1.1', 'ana')).toBeNull();
+    // outro usuário em outro endereço: entra normal
+    const other = lim.begin('2.2.2.2', 'bia');
+    expect(other).not.toBeNull();
+    other!(true);
+    // o mesmo endereço tentando outro usuário também espera (chave do endereço)
+    expect(lim.begin('1.1.1.1', 'bia')).toBeNull();
+    // e outro endereço tentando a ana também (chave do usuário)
+    expect(lim.begin('3.3.3.3', 'ana')).toBeNull();
+    t += 2_000;
+    const again = lim.begin('1.1.1.1', 'ana');
+    expect(again).not.toBeNull();
+    again!(true);
+    expect(lim.retryAfter('1.1.1.1', 'ana')).toBe(0);
+  });
+});
+
+import { KvChat } from './chat';
+
+describe('conversa (fase 2)', () => {
+  const person = (id: string, role: 'admin' | 'equipe' | 'cliente', rooms: string[] = []) => ({ id, user: id, name: id, role, rooms });
+  function setup() {
+    const pres = new KvPresence({ snapshot, look: () => undefined });
+    const got = new Map<string, string[]>();
+    const join = (p: ReturnType<typeof person>) => {
+      got.set(p.id, []);
+      const res = { writeHead() {}, write: (c: string) => (got.get(p.id)!.push(c), true), on() {}, end() {}, destroyed: false, writableEnded: false };
+      const req = { socket: { setTimeout() {}, setNoDelay() {} }, on() {} };
+      pres.attach(req as unknown as http.IncomingMessage, res as unknown as http.ServerResponse, p);
+    };
+    const chats = (id: string) => got.get(id)!.filter((c) => c.startsWith('event: chat')).map((c) => JSON.parse(c.split('data: ')[1]));
+    return { pres, join, chats };
+  }
+  it('fala só chega a quem está na mesma área; sala guarda histórico; cliente não lê sala alheia', () => {
+    const { pres, join, chats } = setup();
+    let t = 1_000_000;
+    const chat = new KvChat(pres, snapshot, null, () => t);
+    const rarm = person('rarm', 'cliente', ['/proj/Clientes/12-Rarm']);
+    const bia = person('bia', 'equipe');
+    const caio = person('caio', 'equipe');
+    for (const p of [rarm, bia, caio]) join(p);
+    const at = (p: ReturnType<typeof person>, area: string) => pres.update(p, { pos: { k: 'a', x: 1, y: 1, d: 'down', m: 0 }, area });
+    expect(chat.post(bia, { text: 'oi' })).toMatchObject({ ok: false, status: 409 });
+    expect(at(rarm, 'r:r2')).toBe('area');
+    at(rarm, 'r:r1');
+    at(bia, 'r:r1');
+    at(caio, 'r:r2');
+    expect(chat.post(bia, { text: '  olá\u0007 Rarm  ' })).toMatchObject({ ok: true, message: { text: 'olá Rarm', area: 'r:r1' } });
+    expect(chats('rarm').map((m) => m.text)).toEqual(['olá Rarm']);
+    expect(chats('caio')).toEqual([]);
+    t += 1000;
+    expect(chat.post(bia, { greet: 'hello', to: 'rarm' })).toMatchObject({ ok: true, message: { greet: 'hello', to: { id: 'rarm' } } });
+    t += 1000;
+    expect(chat.post(bia, { greet: 'nao-existe' })).toMatchObject({ ok: false, status: 400 });
+    expect(chat.list(rarm, 'r:r1')!.map((m) => m.text)).toEqual(['olá Rarm']);
+    expect(chat.list(rarm, 'r:r2')).toBeUndefined();
+    expect(chat.list(caio, 'r:r1')).toHaveLength(1);
+    // limite: falar rápido demais
+    expect(chat.post(bia, { text: 'primeira' })).toMatchObject({ ok: true });
+    t += 100;
+    expect(chat.post(bia, { text: 'de novo' })).toMatchObject({ ok: false, status: 429 });
+    pres.stop();
+  });
+});
+
+import { kvSetPerson } from './request';
+
+describe('cliente que pode pedir tarefas (fase 3)', () => {
+  it('só mensagens, e só se o admin liberou', () => {
+    const req = {} as http.IncomingMessage;
+    kvSetPerson(req, { id: 'r', user: 'r', name: 'R', role: 'cliente', rooms: [], request: true });
+    expect(kvRemoteAllows(true, req, 'messages')).toBe(true);
+    expect(kvRemoteAllows(true, req, 'terminal')).toBe(false);
+    expect(kvRemoteAllows(true, req, 'permissions')).toBe(false);
+    expect(kvRemoteAllows(false, req, 'messages')).toBe(false);
+    const req2 = {} as http.IncomingMessage;
+    kvSetPerson(req2, { id: 'r2', user: 'r2', name: 'R2', role: 'cliente', rooms: [] });
+    expect(kvRemoteAllows(true, req2, 'messages')).toBe(false);
+  });
+  it('a flag só vale para cliente e é salva na conta', async () => {
+    const tmp = tempDir();
+    const users = new KvUsers(join(tmp.dir, 'u.json'), 'admin', Date.now, (p) => hashPassword(p, 10));
+    const r = await users.create({ user: 'cli', role: 'cliente', rooms: ['/a'], password: '12345678', request: true });
+    expect(r.ok && r.person.request).toBe(true);
+    const e = await users.create({ user: 'eq', role: 'equipe', password: '12345678', request: true });
+    expect(e.ok && e.person.request).toBeUndefined();
+    const off = await users.update((r as { person: { id: string } }).person.id, { request: false });
+    expect(off.ok && off.person.request).toBeUndefined();
+    tmp.cleanup();
   });
 });

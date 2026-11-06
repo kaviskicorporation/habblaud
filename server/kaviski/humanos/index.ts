@@ -21,6 +21,9 @@ import { kvPersonOf } from './request';
 import { kvFilterStream } from './stream-filter';
 import { KvPresence } from './presence';
 import { kvAreaAllowed, kvCallName, kvLiveKitConfig, kvLiveKitToken } from './livekit';
+import { KvChat } from './chat';
+import { KvAudit, kvShort, kvTapBody, type KvAuditEntry } from './audit';
+import type { OutboxMessage } from '../../../shared/types';
 import { kvParseLook, type KvLook } from '../../../shared/kaviski-presence';
 import { BUILTIN_ID, KvUsers, publicPerson } from './users';
 
@@ -30,6 +33,18 @@ const PRESENCE_PATH = `${HUMANOS_API}/presence`;
 const PROFILE_PATH = `${HUMANOS_API}/profile`;
 const LIVEKIT_PATH = `${HUMANOS_API}/livekit`;
 const LIVEKIT_TOKEN_PATH = `${HUMANOS_API}/livekit-token`;
+const CHAT_PATH = `${HUMANOS_API}/chat`;
+const SUMMON_PATH = `${HUMANOS_API}/summon`;
+const AUDIT_PATH = `${HUMANOS_API}/audit`;
+const MESSAGE_ITEM = /^\/api\/messages\/([^/]+)$/;
+const PERMISSION_DECISION = /^\/api\/permissions\/([^/]+)\/decision$/;
+const AGENT_ACTION = /^\/api\/agents\/([^/]+)\/(stop|takeover|character)$/;
+
+/** O pedaço do registro de mensagens (server/messages/registry.ts) que o cliente com "pode pedir tarefas" usa. */
+export interface KvMessageSender {
+  send(raw: unknown): { message: OutboxMessage } | { error: 'not-found' | 'too-many' } | { error: 'unavailable'; reason: string };
+  get(id: string): OutboxMessage | undefined;
+}
 const AGENT_DETAIL = /^\/api\/agents\/([^/]+)$/;
 
 type Gate = (req: IncomingMessage, res: ServerResponse, url: URL) => boolean;
@@ -40,6 +55,8 @@ export interface KvHumanos {
   readonly presence: KvPresence;
   /** Põe o login por pessoa na frente do gate original (sem HABBLAUD_HUMANOS=1, devolve o original). */
   gate(original: Gate, builtin: RemoteSessions, cfg: RemoteConfig): Gate;
+  /** Liga o registro de mensagens (cliente que pode pedir tarefas). */
+  attachMessages(registry: KvMessageSender | undefined): void;
   /** Antes da API (porta local e remota): rotas próprias e a trava do cliente. true = já respondeu. */
   before(req: IncomingMessage, res: ServerResponse, url: URL): boolean;
 }
@@ -102,6 +119,188 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
 
   const lookOf = (id: string): KvLook | undefined => kvParseLook(users.profile(id).look);
   const presence = new KvPresence({ snapshot: deps.snapshot, look: lookOf });
+  const chat = new KvChat(presence, deps.snapshot, dir ? join(dir, 'chat.json') : null);
+  const audit = new KvAudit(dir ? join(dir, 'audit.jsonl') : null);
+  let messages: KvMessageSender | undefined;
+  const summoned = new Map<string, number>();
+
+  /** Agente (e a sala dele) pelo id, se a pessoa pode vê-lo. */
+  const agentFor = (person: KvPerson, id: unknown) => {
+    if (typeof id !== 'string') return undefined;
+    const snap = deps.snapshot();
+    const a = snap.agents.find((x) => x.id === id);
+    if (!a) return undefined;
+    if (kvRestricted(person) && !kvAllowedRoomIds(snap, person.rooms).has(a.roomId)) return undefined;
+    const room = snap.rooms.find((r) => r.id === a.roomId);
+    return { id: a.id, name: a.name, room: room?.name ?? a.roomId, roomId: a.roomId };
+  };
+  const agentRef = (a: ReturnType<typeof agentFor>): KvAuditEntry['agent'] => (a ? { id: a.id, name: a.name, room: a.room } : undefined);
+
+  /**
+   * Registro das ações de quem não é cliente nas rotas originais (o corpo é copiado enquanto passa; a linha sai quando
+   * a resposta termina). As do cliente são registradas na rota dele (clientMessage).
+   */
+  const tapAudit = (req: IncomingMessage, res: ServerResponse, path: string, person: KvPerson): void => {
+    const method = req.method ?? 'GET';
+    if (method === 'GET' || method === 'HEAD') return;
+    const parse = (body: string): Record<string, unknown> => {
+      try {
+        return (JSON.parse(body) as Record<string, unknown>) ?? {};
+      } catch {
+        return {};
+      }
+    };
+    let action: string | undefined;
+    let make: (b: Record<string, unknown>) => { agent?: KvAuditEntry['agent']; detail?: string } = () => ({});
+    const snap = () => deps.snapshot();
+    if (path === '/api/messages') {
+      action = 'mensagem';
+      make = (b) => ({ agent: agentRef(agentFor(person, b.agentId)), detail: kvShort(b.text) });
+    } else if (PERMISSION_DECISION.test(path)) {
+      const raw = PERMISSION_DECISION.exec(path)![1]!;
+      let id = raw;
+      try {
+        id = decodeURIComponent(raw);
+      } catch {
+        // id cru
+      }
+      const who = snap().agents.find((a) => a.permission?.id === id);
+      const title = who?.permission?.title;
+      action = 'permissão';
+      make = (b) => ({
+        agent: agentRef(who ? agentFor(person, who.id) : undefined),
+        detail: kvShort([typeof b.behavior === 'string' ? b.behavior : '', title ?? '', typeof b.message === 'string' ? `“${b.message}”` : ''].filter(Boolean).join(' · ')),
+      });
+    } else if (path === '/api/spawn') {
+      action = 'novo agente';
+      make = (b) => ({ detail: kvShort([typeof b.cwd === 'string' ? b.cwd : typeof b.folder === 'string' ? b.folder : '', typeof b.prompt === 'string' ? b.prompt : ''].filter(Boolean).join(' · ')) });
+    } else if (path === '/api/pty') {
+      action = 'terminal aberto';
+      make = (b) => ({ detail: kvShort(b.cwd) });
+    } else if (/^\/api\/pty\/[^/]+\/close$/.test(path)) {
+      action = 'terminal fechado';
+    } else if (AGENT_ACTION.test(path)) {
+      const m = AGENT_ACTION.exec(path)!;
+      let id = m[1]!;
+      try {
+        id = decodeURIComponent(id);
+      } catch {
+        // id cru
+      }
+      action = m[2] === 'stop' ? 'encerrar agente' : m[2] === 'takeover' ? 'assumir sessão' : 'personagem';
+      make = (b) => ({ agent: agentRef(agentFor(person, id)), detail: kvShort(b.name) });
+    } else if (path === '/api/rooms/rename') {
+      action = 'renomear sala';
+      make = (b) => ({ detail: kvShort(b.name) });
+    }
+    if (!action) return;
+    const name = action;
+    // o agente e o pedido de permissão podem sumir depois da resposta: o que der para saber agora
+    const early = make({});
+    kvTapBody(req, res, (body, status) => {
+      const e = make(parse(body));
+      audit.add(person, name, { agent: e.agent ?? early.agent, detail: e.detail, ok: status < 400 });
+    });
+  };
+
+  /** Cliente com "pode pedir tarefas": mensagem só para agente das salas dele (o resto do cliente segue fechado). */
+  const clientMessage = (req: IncomingMessage, res: ServerResponse, path: string, person: KvPerson): boolean => {
+    const method = req.method ?? 'GET';
+    if (!person.request || !messages) {
+      req.resume();
+      sendJson(res, 403, { error: tr('não liberado para clientes') });
+      return true;
+    }
+    const reg = messages;
+    if (path === '/api/messages') {
+      if (method !== 'POST') {
+        req.resume();
+        res.setHeader('Allow', 'POST');
+        sendJson(res, 405, { error: tr('método não permitido') });
+        return true;
+      }
+      readJson(req)
+        .then((body) => {
+          const b = (body ?? {}) as Record<string, unknown>;
+          const agent = agentFor(person, b.agentId);
+          if (!agent) throw new HttpError(404, tr('agente não encontrado'));
+          const r = reg.send({ agentId: agent.id, text: b.text });
+          const ok = 'message' in r;
+          audit.add(person, 'mensagem', { agent: agentRef(agent), detail: kvShort(b.text), ok });
+          if (ok) return sendJson(res, 201, r.message);
+          if (r.error === 'not-found') throw new HttpError(404, tr('agente desconhecido: ele já saiu do escritório?'));
+          if (r.error === 'too-many') throw new HttpError(429, tr('mensagens demais esperando a entrega para este agente'));
+          throw new HttpError(409, 'reason' in r ? r.reason : tr('erro interno'));
+        })
+        .catch((err) => fail(res, err));
+      return true;
+    }
+    req.resume();
+    let id = '';
+    try {
+      id = decodeURIComponent(MESSAGE_ITEM.exec(path)?.[1] ?? '');
+    } catch {
+      // 404 abaixo
+    }
+    const m = method === 'GET' || method === 'HEAD' ? reg.get(id) : undefined;
+    if (m && agentFor(person, m.agentId)) sendJson(res, 200, m);
+    else sendJson(res, 404, { error: tr('mensagem desconhecida') });
+    return true;
+  };
+
+  /** "Chamar até mim": o agente anda até a pessoa em toda página que o vê (uma vez a cada 15 s por pessoa). */
+  const summonRoute = (req: IncomingMessage, res: ServerResponse): void => {
+    const person = whoIs(req);
+    if ((req.method ?? 'GET') !== 'POST') {
+      req.resume();
+      res.setHeader('Allow', 'POST');
+      return sendJson(res, 405, { error: tr('método não permitido') });
+    }
+    if (!person) {
+      req.resume();
+      return sendJson(res, 403, { error: tr('entre com a sua conta para aparecer no escritório') });
+    }
+    readJson(req, 4096)
+      .then((body) => {
+        if (!presence.areaOf(person.id)) throw new HttpError(409, tr('entre no escritório (Andar) para chamar um agente'));
+        const agent = agentFor(person, (body as { agentId?: unknown })?.agentId);
+        if (!agent) throw new HttpError(404, tr('agente não encontrado'));
+        const t = Date.now();
+        if (t - (summoned.get(person.id) ?? 0) < 15_000) throw new HttpError(429, tr('espere um pouco para chamar de novo'));
+        summoned.set(person.id, t);
+        audit.add(person, 'chamar agente', { agent: agentRef(agent), ok: true });
+        const snap = deps.snapshot();
+        presence.emit('summon', { agentId: agent.id, to: person.id, name: person.name, at: t }, (viewer) => !kvRestricted(viewer) || kvAllowedRoomIds(snap, viewer.rooms).has(agent.roomId));
+        sendJson(res, 200, { ok: true });
+      })
+      .catch((err) => fail(res, err));
+  };
+
+  const chatRoute = (req: IncomingMessage, res: ServerResponse, url: URL): void => {
+    const method = req.method ?? 'GET';
+    const person = whoIs(req);
+    if (!person) {
+      req.resume();
+      return sendJson(res, 403, { error: tr('entre com a sua conta para aparecer no escritório') });
+    }
+    if (method === 'GET' || method === 'HEAD') {
+      req.resume();
+      const list = chat.list(person, url.searchParams.get('area') ?? '');
+      return list ? sendJson(res, 200, { messages: list }) : sendJson(res, 403, { error: tr('essa conversa não é sua') });
+    }
+    if (method !== 'POST') {
+      req.resume();
+      res.setHeader('Allow', 'GET, POST');
+      return sendJson(res, 405, { error: tr('método não permitido') });
+    }
+    readJson(req, 4096)
+      .then((body) => {
+        const r = chat.post(person, body);
+        if (!r.ok) throw new HttpError(r.status, r.error);
+        sendJson(res, 200, { message: r.message });
+      })
+      .catch((err) => fail(res, err));
+  };
 
   /** Quem é: a pessoa do login ou, pela porta local aberta no próprio computador, a conta do .env. */
   const whoIs = (req: IncomingMessage): KvPerson | undefined => {
@@ -259,6 +458,7 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
       return true;
     }
     if ((path === '/api/access' || path === '/api/updates') && isRead) return false;
+    if (path === '/api/messages' || MESSAGE_ITEM.test(path)) return clientMessage(req, res, path, person);
     const agent = AGENT_DETAIL.exec(path);
     if (agent && isRead) {
       let id = '';
@@ -284,6 +484,9 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
     enabled,
     users,
     presence,
+    attachMessages(registry) {
+      messages = registry;
+    },
     gate(original, builtin, cfg) {
       if (!enabled) return original;
       const secret = loadSecret(join(deps.dataDir ?? '', 'remote-secret'));
@@ -308,6 +511,20 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
         presenceRoute(req, res);
         return true;
       }
+      if (path === SUMMON_PATH) {
+        summonRoute(req, res);
+        return true;
+      }
+      if (path === AUDIT_PATH) {
+        req.resume();
+        if (!isAdmin(req)) sendJson(res, 403, { error: tr('só quem é admin cuida das pessoas') });
+        else sendJson(res, 200, { entries: audit.recent(300) });
+        return true;
+      }
+      if (path === CHAT_PATH) {
+        chatRoute(req, res, url);
+        return true;
+      }
       if (path === LIVEKIT_PATH || path === LIVEKIT_TOKEN_PATH) {
         liveKitRoute(req, res, path);
         return true;
@@ -321,6 +538,8 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
         return true;
       }
       if (person && kvRestricted(person)) return clientRoute(req, res, path, person);
+      const who = whoIs(req);
+      if (who) tapAudit(req, res, path, who);
       return false;
     },
   };

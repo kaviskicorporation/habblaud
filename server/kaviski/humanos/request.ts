@@ -20,9 +20,13 @@ export function kvIsCliente(req: IncomingMessage | undefined): boolean {
 }
 
 /**
- * O que a porta remota libera (HABBLAUD_REMOTE_ALLOW) para esta pessoa: cliente, nada; equipe e admin, o que estiver
- * liberado. Sem pessoa (humanos desligado), o original.
+ * O que a porta remota libera (HABBLAUD_REMOTE_ALLOW) para esta pessoa: cliente, nada (a não ser mensagens, quando o
+ * admin liberou "pode pedir tarefas": a rota dele confere a sala do agente, humanos/index.ts); equipe e admin, o que
+ * estiver liberado. Sem pessoa (humanos desligado), o original.
  */
-export function kvRemoteAllows(allowed: boolean, req: IncomingMessage | undefined): boolean {
-  return allowed && !kvIsCliente(req);
+export function kvRemoteAllows(allowed: boolean, req: IncomingMessage | undefined, feature?: string): boolean {
+  if (!allowed) return false;
+  const p = kvPersonOf(req);
+  if (p?.role !== 'cliente') return true;
+  return feature === 'messages' && !!p.request;
 }

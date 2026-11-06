@@ -26,6 +26,8 @@ export interface KvUserRecord {
   name: string;
   role: KvRole;
   rooms: string[];
+  /** Cliente pode pedir tarefas aos agentes das salas dele (fase 3). */
+  request?: boolean;
   /** Hash scrypt (remote/password.ts). */
   hash: string;
   createdAt: number;
@@ -45,8 +47,17 @@ export type KvUserResult = { ok: true; person: KvPerson } | { ok: false; status:
 
 export const BUILTIN_ID = 'admin';
 
-export function publicPerson(r: Pick<KvUserRecord, 'id' | 'user' | 'name' | 'role' | 'rooms' | 'createdAt'>, builtin = false): KvPerson {
-  return { id: r.id, user: r.user, name: r.name, role: r.role, rooms: [...r.rooms], createdAt: r.createdAt, ...(builtin ? { builtin: true } : {}) };
+export function publicPerson(r: Pick<KvUserRecord, 'id' | 'user' | 'name' | 'role' | 'rooms' | 'createdAt' | 'request'>, builtin = false): KvPerson {
+  return {
+    id: r.id,
+    user: r.user,
+    name: r.name,
+    role: r.role,
+    rooms: [...r.rooms],
+    createdAt: r.createdAt,
+    ...(builtin ? { builtin: true } : {}),
+    ...(r.role === 'cliente' && r.request ? { request: true } : {}),
+  };
 }
 
 function validPassword(v: unknown): v is string {
@@ -150,6 +161,7 @@ export class KvUsers {
     if (!validPassword(b.password)) return { ok: false, status: 400, error: tr('senha precisa ter de {0} a {1} caracteres', [KV_PASSWORD_MIN, KV_PASSWORD_MAX]) };
     const t = this.now();
     const rec: KvUserRecord = { id: randomBytes(9).toString('base64url'), user, name, role: b.role, rooms, hash: await this.hasher(b.password), createdAt: t, updatedAt: t };
+    if (b.request === true) rec.request = true;
     // Outra criação com o mesmo usuário pode ter terminado enquanto o scrypt rodava.
     if (this.taken(user)) return { ok: false, status: 409, error: tr('esse usuário já existe') };
     this.users.push(rec);
@@ -175,6 +187,11 @@ export class KvUsers {
       const rooms = kvRoomRules(b.rooms);
       if (!rooms) return { ok: false, status: 400, error: tr('salas inválidas: use caminhos absolutos (ex.: /home/hostadmin/projetos/Clientes/12-Rarm)') };
       next.rooms = rooms;
+    }
+    if (b.request !== undefined) {
+      if (typeof b.request !== 'boolean') return { ok: false, status: 400, error: tr('esperado request: true ou false') };
+      if (b.request) next.request = true;
+      else delete next.request;
     }
     if (b.password !== undefined && b.password !== '') {
       if (!validPassword(b.password)) return { ok: false, status: 400, error: tr('senha precisa ter de {0} a {1} caracteres', [KV_PASSWORD_MIN, KV_PASSWORD_MAX]) };

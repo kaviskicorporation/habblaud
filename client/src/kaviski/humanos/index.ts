@@ -12,6 +12,9 @@ import { PeopleDialog } from './people';
 import { KvOnline } from './online';
 import { KvPresenceClient } from './presence';
 import { kvStartMedia } from './media';
+import { KvBar } from './bar';
+import { KvChatPanel } from './chat';
+import { kvStartAgentExtras } from './agent';
 import { kvPeople } from './world';
 import type { OfficeStore } from '../../net/store';
 import './humanos.css';
@@ -50,14 +53,31 @@ export function kvStartHumanos(store: OfficeStore, root: ParentNode = document):
       status.append(online.chip);
       client.on((s) => online.setState(s));
       client.start();
-      void kvStartMedia(); // voz e vídeo (fase 1c), só com o LiveKit configurado no servidor
+      // Barra do topo (área, conversa) e o painel de conversa (fase 2); voz e vídeo (fase 1c) só com o LiveKit ligado.
+      let chat: KvChatPanel | null = null;
+      const bar = new KvBar(store, () => chat?.toggle());
+      chat = new KvChatPanel(client, bar, store);
+      // Fase 3: "Chamar até mim" na gaveta do agente e o agente andando até quem chamou.
+      kvStartAgentExtras((text) => bar.warn(text));
+      client.onEvent<{ agentId: string; to: string; name: string }>('summon', (e) => kvPeople.summon?.(e.agentId, e.to === client.state?.me ? null : e.to, e.name));
+      void kvStartMedia(bar);
     }
     if (m.person?.role === 'cliente') {
-      // O servidor recusa o timelapse e o Meu dia ao cliente (são da empresa toda): os botões somem.
+      // O servidor recusa o timelapse, o Meu dia e o terminal ao cliente (são da empresa toda): os botões somem e os
+      // atalhos L, M e T também (o atalho do original ignora a tecla já tratada: defaultPrevented).
       const day = tr('Meu dia: para onde foi o tempo (M)');
       root.querySelectorAll<HTMLElement>('.ui-btn-timelapse, .ui-topbar button[aria-label]').forEach((b) => {
         if (b.classList.contains('ui-btn-timelapse') || b.getAttribute('aria-label') === day) b.hidden = true;
       });
+      document.addEventListener(
+        'keydown',
+        (e) => {
+          const t = e.target as HTMLElement | null;
+          if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+          if (/^[lmtLMT]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) e.preventDefault();
+        },
+        true,
+      );
     }
     const admin = m.local || m.person?.role === 'admin';
     const group = root.querySelector('.ui-btn-feed')?.parentElement;

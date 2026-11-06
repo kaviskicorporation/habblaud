@@ -1,7 +1,7 @@
 // Fork Kaviski (KAVISKI-HUMANOS.md): presença ao vivo, lado da página. Abre o fluxo SSE de GET
 // /api/kaviski/humanos/presence (quem está online, já filtrado pelo servidor) e manda a minha posição e o meu status por
 // POST. A posição sai no máximo a cada SEND_MS enquanto ando, e uma última vez quando paro.
-import type { KvPos, KvPresencePerson, KvPresenceState, KvStatus } from '../../../../shared/kaviski-presence';
+import type { KvChatMessage, KvPos, KvPresencePerson, KvPresenceState, KvStatus } from '../../../../shared/kaviski-presence';
 
 const URL_ = '/api/kaviski/humanos/presence';
 export const SEND_MS = 120;
@@ -12,7 +12,10 @@ export class KvPresenceClient {
   state: KvPresenceState | null = null;
   private es: EventSource | null = null;
   private readonly listeners = new Set<Listener>();
-  private pending: { pos?: KvPos | null; status?: KvStatus } = {};
+  /** Outros eventos do fluxo (chat da fase 2, chamada de agente da fase 3). */
+  private readonly events = new Map<string, Set<(data: unknown) => void>>();
+  private pending: { pos?: KvPos | null; area?: string | null; status?: KvStatus } = {};
+  private lastArea: string | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private lastSent = 0;
   private lastPosKey = '';
@@ -25,7 +28,7 @@ export class KvPresenceClient {
     this.es = new EventSource(URL_, { withCredentials: true });
     this.es.addEventListener('open', () => {
       // reconectou (servidor reiniciado): o servidor me esqueceu, manda de novo onde estou
-      if (this.lastPos || this.lastStatus) this.queue({ ...(this.lastPos ? { pos: this.lastPos } : {}), ...(this.lastStatus ? { status: this.lastStatus } : {}) }, true);
+      if (this.lastPos || this.lastStatus) this.queue({ ...(this.lastPos ? { pos: this.lastPos, area: this.lastArea } : {}), ...(this.lastStatus ? { status: this.lastStatus } : {}) }, true);
     });
     this.es.addEventListener('people', (ev) => {
       try {
@@ -35,6 +38,53 @@ export class KvPresenceClient {
       }
       for (const cb of this.listeners) cb(this.state);
     });
+    for (const name of ['chat', 'summon']) {
+      this.es.addEventListener(name, (ev) => {
+        let data: unknown;
+        try {
+          data = JSON.parse((ev as MessageEvent<string>).data);
+        } catch {
+          return;
+        }
+        for (const cb of this.events.get(name) ?? []) cb(data);
+      });
+    }
+  }
+
+  /** Ouve um evento do fluxo de presença (`chat`, `summon`). */
+  onEvent<T>(name: 'chat' | 'summon', cb: (data: T) => void): () => void {
+    let set = this.events.get(name);
+    if (!set) this.events.set(name, (set = new Set()));
+    set.add(cb as (data: unknown) => void);
+    return () => void set.delete(cb as (data: unknown) => void);
+  }
+
+  /** Fala no chat (ou cumprimenta): devolve o erro do servidor ou null. */
+  async say(body: { text: string } | { greet: string; to?: string }): Promise<string | null> {
+    try {
+      const res = await fetch('/api/kaviski/humanos/chat', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) return null;
+      const b = (await res.json().catch(() => ({}))) as { error?: string };
+      return b.error ?? String(res.status);
+    } catch {
+      return 'offline';
+    }
+  }
+
+  /** Histórico curto de uma sala. */
+  async history(area: string): Promise<KvChatMessage[]> {
+    try {
+      const res = await fetch(`/api/kaviski/humanos/chat?area=${encodeURIComponent(area)}`, { credentials: 'same-origin', cache: 'no-store' });
+      if (!res.ok) return [];
+      return ((await res.json()) as { messages?: KvChatMessage[] }).messages ?? [];
+    } catch {
+      return [];
+    }
   }
 
   on(cb: Listener): () => void {
@@ -47,13 +97,15 @@ export class KvPresenceClient {
     return this.state?.people.find((p) => p.id === this.state?.me);
   }
 
-  /** Minha posição (null = saí do escritório). Repetida e igual não sai. */
-  setPos(pos: KvPos | null): void {
-    const key = pos ? `${pos.k}|${pos.r ?? ''}|${pos.x}|${pos.y}|${pos.d}|${pos.m}` : 'null';
+  /** Minha posição e a área em que estou (null = saí do escritório). Repetida e igual não sai. */
+  setPos(pos: KvPos | null, area: string | null = null): void {
+    const key = pos ? `${pos.k}|${pos.r ?? ''}|${pos.x}|${pos.y}|${pos.d}|${pos.m}|${area ?? ''}` : 'null';
     if (key === this.lastPosKey) return;
     this.lastPosKey = key;
     this.lastPos = pos;
-    this.queue({ pos }, !pos || pos.m === 0);
+    const areaChanged = area !== this.lastArea;
+    this.lastArea = pos ? area : null;
+    this.queue({ pos, area: pos ? area : null }, !pos || pos.m === 0 || areaChanged);
   }
 
   setStatus(status: KvStatus): void {
@@ -61,7 +113,7 @@ export class KvPresenceClient {
     this.queue({ status }, true);
   }
 
-  private queue(part: { pos?: KvPos | null; status?: KvStatus }, now: boolean): void {
+  private queue(part: { pos?: KvPos | null; area?: string | null; status?: KvStatus }, now: boolean): void {
     Object.assign(this.pending, part);
     if (this.timer) {
       if (!now) return;

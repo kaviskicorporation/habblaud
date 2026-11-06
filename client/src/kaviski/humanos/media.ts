@@ -13,6 +13,7 @@ import { h } from '../../ui/dom';
 import { ICONS, pixelIcon } from '../../ui/icons';
 import { TILE } from '../../world/constants';
 import { kvPeople } from './world';
+import type { KvBar } from './bar';
 
 type LK = typeof import('livekit-client');
 
@@ -41,18 +42,14 @@ export class KvMedia {
   private lk: LK | null = null;
   private room: Room | null = null;
   private area: string | null = null;
-  private areaName = '';
   private wanted: string | null = null;
   private wantedSince = 0;
   private switching = false;
   private prefs: Prefs = { mic: false, cam: false };
   private screen = false;
-  private readonly dock: HTMLElement;
-  private readonly label: HTMLElement;
   private readonly micBtn: HTMLButtonElement;
   private readonly camBtn: HTMLButtonElement;
   private readonly screenBtn: HTMLButtonElement;
-  private readonly note: HTMLElement;
   private readonly audio: HTMLElement;
   /** Bolinhas de câmera por pessoa ('' = eu). */
   private readonly bubbles = new Map<string, HTMLElement>();
@@ -60,21 +57,22 @@ export class KvMedia {
   private readonly volumes = new Map<string, number>();
   private raf = 0;
 
-  constructor(private readonly url: string) {
+  constructor(
+    private readonly url: string,
+    private readonly bar: KvBar,
+  ) {
     try {
       this.prefs = { ...this.prefs, ...(JSON.parse(localStorage.getItem(PREFS) ?? '{}') as Partial<Prefs>) };
     } catch {
       // sem preferências
     }
-    this.label = h('span', { class: 'kv-dock__where' });
     this.micBtn = this.toggle(ICONS.mic, () => void this.setMic(!this.prefs.mic));
     this.camBtn = this.toggle(CAM_ICON, () => void this.setCam(!this.prefs.cam));
     this.screenBtn = this.toggle(SCREEN_ICON, () => void this.setScreen(!this.screen));
-    this.note = h('span', { class: 'kv-dock__note', attrs: { role: 'status' } });
-    this.dock = h('div', { class: 'kv-dock', hidden: true, attrs: { role: 'toolbar', 'aria-label': tr('Voz e vídeo') } }, this.label, this.micBtn, this.camBtn, this.screenBtn, this.note);
+    bar.media.append(this.micBtn, this.camBtn, this.screenBtn);
+    bar.media.setAttribute('aria-label', tr('Voz e vídeo'));
     this.audio = h('div', { class: 'kv-audio', hidden: true });
-    const root = document.querySelector('.ui-root') ?? document.body;
-    root.append(this.dock, this.audio);
+    (document.querySelector('.ui-root') ?? document.body).append(this.audio);
     this.paint();
     setInterval(() => void this.tick(), 250);
     const loop = () => {
@@ -108,13 +106,11 @@ export class KvMedia {
     set(this.micBtn, this.prefs.mic, tr('Desligar o microfone'), tr('Ligar o microfone'));
     set(this.camBtn, this.prefs.cam, tr('Desligar a câmera'), tr('Ligar a câmera'));
     set(this.screenBtn, this.screen, tr('Parar de compartilhar a tela'), tr('Compartilhar a tela'));
-    this.label.textContent = this.room ? tr('Na chamada: {0}', [this.areaName]) : this.wanted ? tr('Entrando…') : '';
-    this.dock.hidden = !kvPeople.inside;
+    this.bar.setCall(!!this.room);
   }
 
   private warn(text: string): void {
-    this.note.textContent = text;
-    if (text) setTimeout(() => this.note.textContent === text && (this.note.textContent = ''), 8000);
+    this.bar.warn(text);
   }
 
   private mediaOk(): boolean {
@@ -239,7 +235,6 @@ export class KvMedia {
       return;
     }
     this.room = room;
-    this.areaName = info.name === 'corredor' ? tr('corredor') : info.name.startsWith('core:') ? areaLabel(info.name) : info.name;
     if (this.prefs.mic && this.mediaOk()) await room.localParticipant.setMicrophoneEnabled(true).catch(() => this.warn(tr('Não deu para ligar o microfone.')));
     if (this.prefs.cam && this.mediaOk()) await room.localParticipant.setCameraEnabled(true, { resolution: { width: 320, height: 240, frameRate: 15 } }).catch(() => this.warn(tr('Não deu para ligar a câmera.')));
   }
@@ -355,19 +350,13 @@ export class KvMedia {
   }
 }
 
-function areaLabel(id: string): string {
-  return (
-    { 'core:recepcao': tr('Recepção'), 'core:copa': tr('Copa'), 'core:banheiros': tr('Banheiros'), 'core:lounge': tr('Lounge') } as Record<string, string>
-  )[id] ?? id;
-}
-
 /** Liga a voz e o vídeo se o servidor tiver o LiveKit configurado. */
-export async function kvStartMedia(): Promise<KvMedia | null> {
+export async function kvStartMedia(bar: KvBar): Promise<KvMedia | null> {
   try {
     const res = await fetch('/api/kaviski/humanos/livekit', { credentials: 'same-origin', cache: 'no-store' });
     if (!res.ok) return null;
     const body = (await res.json()) as { enabled?: boolean; url?: string };
-    return body.enabled && body.url ? new KvMedia(body.url) : null;
+    return body.enabled && body.url ? new KvMedia(body.url, bar) : null;
   } catch {
     return null;
   }

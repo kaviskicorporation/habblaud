@@ -20,6 +20,15 @@ const ROLE_HINT: Record<KvRole, string> = {
   cliente: tr('Só vê as salas liberadas abaixo; não aprova, não manda mensagem, não abre terminal.'),
 };
 
+interface AuditEntry {
+  at: number;
+  who: { id: string; name: string; role: string };
+  action: string;
+  agent?: { id: string; name?: string; room?: string };
+  detail?: string;
+  ok: boolean;
+}
+
 interface RoomRef {
   path: string;
   name: string;
@@ -50,6 +59,11 @@ export class PeopleDialog {
   private readonly roomsBox: HTMLElement;
   private readonly rooms: HTMLTextAreaElement;
   private readonly known: HTMLElement;
+  private readonly request: HTMLInputElement;
+  private readonly body: HTMLElement;
+  private readonly auditBox: HTMLElement;
+  private readonly auditList: HTMLElement;
+  private readonly auditBtn: HTMLButtonElement;
   private readonly error: HTMLElement;
   private readonly save: HTMLButtonElement;
   private editing: KvPerson | null = null;
@@ -75,6 +89,7 @@ export class PeopleDialog {
       this.rooms,
       h('p', { class: 'kv-people__hint', text: tr('Salas abertas agora (clique para pôr na lista):') }),
       this.known,
+      h('label', { class: 'kv-people__check' }, (this.request = h('input', { type: 'checkbox', attrs: { name: 'request' } })), h('span', { text: tr('Pode pedir tarefas (mandar mensagem) aos agentes das salas dele') })),
     );
     this.error = h('p', { class: 'kv-people__error', attrs: { role: 'alert' } });
     this.save = h('button', { class: 'ui-btn ui-btn--primary', type: 'submit', text: tr('Criar') });
@@ -97,16 +112,21 @@ export class PeopleDialog {
       h('div', { class: 'kv-people__actions' }, cancel, this.save),
     );
     this.role.addEventListener('change', () => this.syncRole());
+    this.auditList = h('ol', { class: 'kv-audit__list' });
+    this.auditBox = h('section', { class: 'kv-audit', hidden: true }, h('h3', { text: tr('Registro: quem aprovou, pediu ou mexeu no quê') }), this.auditList);
+    this.auditBtn = h('button', { class: 'ui-btn ui-btn--sm', type: 'button', text: tr('Registro'), on: { click: () => void this.toggleAudit() } });
+    this.body = h(
+      'div',
+      { class: 'ui-dialog__body kv-people__body' },
+      h('section', {}, h('h3', { text: tr('Contas') }), this.list),
+      h('section', {}, this.form),
+    );
     this.el = h(
       'dialog',
       { class: 'ui-dialog kv-people', attrs: { 'aria-labelledby': 'kv-people-title' } },
-      h('div', { class: 'ui-dialog__head' }, h('h2', { text: tr('Pessoas no escritório'), attrs: { id: 'kv-people-title' } }), close),
-      h(
-        'div',
-        { class: 'ui-dialog__body kv-people__body' },
-        h('section', {}, h('h3', { text: tr('Contas') }), this.list),
-        h('section', {}, this.form),
-      ),
+      h('div', { class: 'ui-dialog__head' }, h('h2', { text: tr('Pessoas no escritório'), attrs: { id: 'kv-people-title' } }), h('div', { class: 'kv-people__head-actions' }, this.auditBtn, close)),
+      this.body,
+      this.auditBox,
     );
     this.el.addEventListener('click', (e) => {
       if (e.target === this.el) this.el.close();
@@ -118,6 +138,39 @@ export class PeopleDialog {
   async open(): Promise<void> {
     if (!this.el.open) this.el.showModal();
     await this.reload();
+  }
+
+  /** Alterna entre as contas e o registro de ações. */
+  private async toggleAudit(): Promise<void> {
+    const show = this.auditBox.hidden === true;
+    this.auditBox.hidden = !show;
+    this.body.hidden = show;
+    this.auditBtn.classList.toggle('is-on', show);
+    this.auditBtn.textContent = show ? tr('Contas') : tr('Registro');
+    if (!show) return;
+    this.auditList.replaceChildren(h('li', { class: 'kv-people__hint', text: tr('Carregando…') }));
+    let entries: AuditEntry[] = [];
+    try {
+      const r = await call('GET', '/api/kaviski/humanos/audit');
+      entries = (r.data.entries as AuditEntry[]) ?? [];
+    } catch {
+      // vazio
+    }
+    this.auditList.replaceChildren(
+      ...entries.map((e) =>
+        h(
+          'li',
+          { class: `kv-audit__item${e.ok ? '' : ' is-fail'}` },
+          h('time', { text: new Date(e.at).toLocaleString(undefined, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) }),
+          h('strong', { text: e.who.name }),
+          h('span', { class: `kv-role kv-role--${e.who.role}`, text: ROLE_LABEL[e.who.role as KvRole] ?? e.who.role }),
+          h('span', { class: 'kv-audit__action', text: e.ok ? e.action : tr('{0} (recusado)', [e.action]) }),
+          e.agent ? h('span', { class: 'kv-audit__agent', text: [e.agent.name, e.agent.room].filter(Boolean).join(' · ') }) : null,
+          e.detail ? h('span', { class: 'kv-audit__detail', text: e.detail }) : null,
+        ),
+      ),
+    );
+    if (!entries.length) this.auditList.append(h('li', { class: 'kv-people__hint', text: tr('Nada registrado ainda.') }));
   }
 
   private async reload(): Promise<void> {
@@ -156,7 +209,10 @@ export class PeopleDialog {
           }
           void this.remove(p);
         });
-        const rooms = p.role === 'cliente' ? (p.rooms.length ? p.rooms.map((r) => r.split('/').filter(Boolean).slice(-2).join('/')).join(', ') : tr('nenhuma sala')) : tr('todas as salas');
+        const rooms =
+          p.role === 'cliente'
+            ? (p.rooms.length ? p.rooms.map((r) => r.split('/').filter(Boolean).slice(-2).join('/')).join(', ') : tr('nenhuma sala')) + (p.request ? ` · ${tr('pede tarefas')}` : '')
+            : tr('todas as salas');
         return h(
           'li',
           { class: `kv-people__item${this.editing?.id === p.id ? ' is-on' : ''}` },
@@ -217,6 +273,7 @@ export class PeopleDialog {
     this.password.placeholder = p ? (p.builtin ? tr('a senha vem do .env') : tr('em branco: mantém a senha')) : tr('mínimo {0} caracteres', [KV_PASSWORD_MIN]);
     this.password.required = !p;
     this.rooms.value = (p?.rooms ?? []).join('\n');
+    this.request.checked = !!p?.request;
     this.save.textContent = p ? tr('Salvar') : tr('Criar');
     this.syncRole();
     this.renderList();
@@ -232,6 +289,7 @@ export class PeopleDialog {
     if (!p?.builtin) {
       body.role = this.role.value;
       body.rooms = this.role.value === 'cliente' ? rooms : [];
+      body.request = this.role.value === 'cliente' && this.request.checked;
       if (this.password.value) body.password = this.password.value;
     }
     if (!p) body.user = this.user.value;

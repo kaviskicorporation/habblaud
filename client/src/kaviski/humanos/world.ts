@@ -19,10 +19,17 @@ import { intentFrom, moveKeyOf } from '../../world/city/input';
 import { Character, dirOf } from '../../world/sim/character';
 import type { Sim } from '../../world/sim/sim';
 import { VISITOR_ID } from '../../world/sim/visitor';
+import { FREE } from '../../world/path/grid';
 import { kvDecodePos, kvEncodePos, type KvBuildingGeom } from './pos';
 import type { KvPresenceClient } from './presence';
 
 const PUPPET_PREFIX = 'pessoa:';
+/** Fase 3: parado a até NEAR_TILES de um agente por NEAR_MS abre a gaveta dele; afastar além de LEAVE_TILES fecha. */
+const NEAR_TILES = 1.8;
+const LEAVE_TILES = 3.5;
+const NEAR_MS = 700;
+/** Quanto tempo o agente chamado fica perto de quem chamou. */
+const SUMMON_MS = 45_000;
 /** Distância (px) acima da qual o boneco de corda pula em vez de andar (entrou agora, ou a rede atrasou muito). */
 const SNAP_PX = 6 * TILE;
 
@@ -89,6 +96,14 @@ export const kvPeople: {
   area: string | null;
   /** Onde está o boneco de uma pessoa (null = o meu): px de mundo e px de tela (CSS, relativo à janela). */
   locate?: (id: string | null) => { x: number; y: number; sx: number; sy: number; zoom: number } | null;
+  /** Balão sobre o boneco de uma pessoa (null = o meu): fala do chat, cumprimento (fase 2). */
+  say?: (id: string | null, icon: string, text: string, ms: number) => void;
+  /** Clicaram numa pessoa no escritório (com o meu boneco dentro): abre a roda de cumprimentos. */
+  onPersonClick?: (id: string, at: { x: number; y: number }) => void;
+  /** Pessoas no escritório com boneco aqui (id e posição em px de mundo), para achar a mais perto. */
+  around?: () => { id: string; x: number; y: number }[];
+  /** Um agente foi chamado por uma pessoa (fase 3): ele anda até ela e fica um pouco (null = a pessoa sou eu). */
+  summon?: (agentId: string, personId: string | null, name: string) => void;
 } = { client: null, inside: false, area: null };
 
 interface Puppet {
@@ -103,6 +118,10 @@ export interface KvWorldCtx {
   camera: Camera;
   /** O mundo é o do escritório (não a cena Visita do World). */
   office: boolean;
+  /** Abre (id) ou fecha (null) a gaveta de um agente (fase 3: chegar perto abre). */
+  select?: (id: string | null) => void;
+  /** O agente da gaveta aberta. */
+  selected?: () => string | null;
 }
 
 export interface KvWorldHooks {
@@ -127,6 +146,41 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
   let wasMoving = false;
 
   const active = () => !!kvPeople.client && kvPeople.inside;
+  /** Fase 3: o agente de quem cheguei perto (a gaveta abriu sozinha) e desde quando estou parado perto de quem. */
+  let nearOpened: string | null = null;
+  let nearCandidate: { id: string; since: number } | null = null;
+  /** Parei perto de um agente (até NEAR_TILES) por NEAR_MS: abre a gaveta dele; me afastei: fecha (se ainda é ele). */
+  const nearAgent = (sim: Sim, v: Character, moving: boolean, t: number) => {
+    if (!ctx.select) return;
+    let best: Character | null = null;
+    let bestD = NEAR_TILES * TILE;
+    for (const ch of sim.chars.values()) {
+      if (ch.leaving || ch.gone || ch.alpha < 0.5) continue;
+      const d = Math.hypot(ch.x - v.x, ch.y - v.y);
+      if (d <= bestD) {
+        bestD = d;
+        best = ch;
+      }
+    }
+    if (nearOpened && (!best || best.id !== nearOpened)) {
+      const far = sim.chars.get(nearOpened);
+      if (!far || Math.hypot(far.x - v.x, far.y - v.y) > LEAVE_TILES * TILE) {
+        if (ctx.selected?.() === nearOpened) ctx.select(null);
+        nearOpened = null;
+      }
+    }
+    if (!best || moving) {
+      nearCandidate = null;
+      return;
+    }
+    if (best.id === nearOpened) return;
+    if (nearCandidate?.id !== best.id) nearCandidate = { id: best.id, since: t };
+    else if (t - nearCandidate.since >= NEAR_MS) {
+      nearOpened = best.id;
+      nearCandidate = null;
+      if (ctx.selected?.() !== best.id) ctx.select(best.id);
+    }
+  };
   kvPeople.sim = ctx.sim;
   kvPeople.locate = (id) => {
     const sim = ctx.sim();
@@ -136,6 +190,30 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
     const r = document.getElementById('world')?.getBoundingClientRect();
     return { x: ch.x, y: ch.y, sx: p.x + (r?.left ?? 0), sy: p.y + (r?.top ?? 0), zoom: ctx.camera.zoom };
   };
+  kvPeople.say = (id, icon, text, ms) => {
+    const sim = ctx.sim();
+    const ch = id === null ? sim.visitor : puppets.get(PUPPET_PREFIX + id)?.ch;
+    ch?.showBubble(icon, text, ms, Date.now());
+  };
+  kvPeople.summon = (agentId, personId, name) => {
+    const sim = ctx.sim();
+    const ag = sim.chars.get(agentId);
+    const to = personId === null ? sim.visitor : puppets.get(PUPPET_PREFIX + personId)?.ch;
+    if (!ag || !to || ag.leaving || ag.gone) return;
+    const tile = freeTileNear(sim, Math.floor(to.x / TILE), Math.floor(to.y / TILE));
+    if (!tile) return;
+    sim.interrupt(ag);
+    const now = Date.now();
+    const status = ag.info.status;
+    if (ag.atSpot) ag.queue.push({ t: 'exit' });
+    ag.queue.push(
+      { t: 'go', tx: tile.x, ty: tile.y },
+      // fica perto da pessoa até 45 s (ou até o status do agente mudar); depois o Sim decide a volta sozinho
+      { t: 'until', cond: () => ag.info.status !== status, minMs: 1500, maxMs: SUMMON_MS, pose: 'stand', dir: dirOf(to.x - tile.x * TILE, to.y - tile.y * TILE, 'down') },
+    );
+    ag.showBubble('🏃', tr('Indo até {0}', [name]), 4_000, now);
+  };
+  kvPeople.around = () => [...puppets.entries()].map(([id, p]) => ({ id: id.slice(PUPPET_PREFIX.length), x: p.ch.x, y: p.ch.y }));
   kvPeople.follow = (id) => {
     ctx.camera.follow = puppets.has(PUPPET_PREFIX + id) ? PUPPET_PREFIX + id : null;
   };
@@ -268,7 +346,11 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
     click(hit, at) {
       if (!active()) return false;
       const sim = ctx.sim();
-      if (hit?.type === 'agent' && (hit.id === VISITOR_ID || hit.id.startsWith(PUPPET_PREFIX))) return true;
+      if (hit?.type === 'agent' && hit.id.startsWith(PUPPET_PREFIX)) {
+        kvPeople.onPersonClick?.(hit.id.slice(PUPPET_PREFIX.length), at);
+        return true;
+      }
+      if (hit?.type === 'agent' && hit.id === VISITOR_ID) return true;
       if (hit?.type === 'agent') return false;
       const w = ctx.camera.screenToWorld(at.x, at.y);
       if (sim.visitorWalkTo(Math.floor(w.x / TILE), Math.floor(w.y / TILE))) {
@@ -293,12 +375,13 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
         if ((intent.dx || intent.dy) && ctx.camera.follow !== VISITOR_ID) ctx.camera.follow = VISITOR_ID;
         const moving = v.pose === 'walk' || v.pose === 'run';
         const t = Date.now();
+        kvPeople.area = sim.visitorBusy ? null : areaOf(sim, g, v.x, v.y);
+        nearAgent(sim, v, moving, t);
         if (!sim.visitorBusy && (moving ? t - lastSend >= 100 : wasMoving || t - lastSend > 5000)) {
           lastSend = t;
-          kvPeople.client.setPos(kvEncodePos(g, v.x, v.y, v.dir, moving ? (v.pose === 'run' ? 2 : 1) : 0));
+          kvPeople.client.setPos(kvEncodePos(g, v.x, v.y, v.dir, moving ? (v.pose === 'run' ? 2 : 1) : 0), kvPeople.area);
         }
         wasMoving = moving;
-        kvPeople.area = sim.visitorBusy ? null : areaOf(sim, g, v.x, v.y);
       } else {
         kvPeople.area = null;
         // fora do escritório (ou no timelapse): os outros não me veem (setPos ignora o repetido)
@@ -307,6 +390,15 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
       }
     },
   };
+}
+
+/** Um tile livre (chão, sem móvel nem assento) ao lado de (tx, ty), para o agente chamado parar. */
+function freeTileNear(sim: Sim, tx: number, ty: number): { x: number; y: number } | null {
+  const grid = sim.building.grid;
+  for (const [dx, dy] of [[0, 1], [1, 0], [-1, 0], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1], [0, 2], [2, 0], [-2, 0], [0, -2]] as const) {
+    if (grid.get(tx + dx, ty + dy) === FREE) return { x: tx + dx, y: ty + dy };
+  }
+  return null;
 }
 
 /** A área do escritório em (x, y): sala de projeto, área do núcleo ou corredor. */

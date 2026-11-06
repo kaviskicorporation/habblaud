@@ -492,3 +492,259 @@ button.kv-me:hover {
   background: #000;
   object-fit: contain;
 }
+
+/* ---- fase 2: conversa ---- */
+
+.kv-dock__media {
+  display: contents;
+}
+
+.kv-dock__chat {
+  position: relative;
+}
+
+.kv-dock__chat.is-on {
+  color: var(--ui-accent);
+  background: var(--ui-accent-soft);
+}
+
+.kv-dock__badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 8px;
+  background: var(--lv-crit);
+  color: #fff;
+  font: 700 10px/15px var(--font-ui);
+  text-align: center;
+}
+
+.kv-dock__badge[hidden] {
+  display: none;
+}
+
+.kv-chat {
+  position: fixed;
+  z-index: 41;
+  left: 50%;
+  top: calc(var(--free-top) + 54px);
+  transform: translateX(-50%);
+  width: min(380px, calc(100vw - 24px));
+  max-height: min(52vh, 460px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--ui-line-strong);
+  background: var(--ui-bg-solid);
+  box-shadow: 0 18px 50px rgba(5, 7, 12, 0.55);
+  color: var(--ui-text);
+  font: 13px/1.4 var(--font-ui);
+}
+
+.kv-chat[hidden] {
+  display: none;
+}
+
+.kv-chat__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.kv-chat__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 700 13.5px/1.2 var(--font-ui);
+}
+
+.kv-chat__close {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.kv-chat__list {
+  flex: 1;
+  min-height: 60px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kv-chat__msg {
+  display: flex;
+  flex-direction: column;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--ui-bg-soft);
+  border-left: 3px solid var(--ui-line-strong);
+}
+
+.kv-chat__msg.kv-role--cliente {
+  border-left-color: var(--st-working);
+}
+
+.kv-chat__msg.kv-role--equipe,
+.kv-chat__msg.kv-role--admin {
+  border-left-color: var(--ui-accent);
+}
+
+.kv-chat__msg.is-old {
+  opacity: 0.8;
+}
+
+.kv-chat__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--ui-muted);
+}
+
+.kv-chat__meta strong {
+  color: var(--ui-text);
+  font-weight: 600;
+}
+
+.kv-chat__text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.kv-chat__hint {
+  font-size: 12px;
+  color: var(--ui-faint);
+  list-style: none;
+}
+
+.kv-chat__compose {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.kv-chat__input {
+  flex: 1;
+  min-height: 32px;
+  max-height: 96px;
+  resize: vertical;
+  padding: 7px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--ui-line-strong);
+  background: var(--ui-bg-soft);
+  color: var(--ui-text);
+  font: inherit;
+}
+
+.kv-chat__input:focus {
+  outline: none;
+  border-color: var(--ui-accent);
+}
+
+.kv-chat__error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--lv-crit);
+}
+
+.kv-chat__error:empty {
+  display: none;
+}
+
+/* ---- fase 3: pessoa + agente ---- */
+
+.kv-summon-btn {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  height: 30px;
+  margin-top: 8px;
+}
+
+.kv-summon-btn[hidden] {
+  display: none;
+}
+
+.kv-people__check {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--ui-text);
+}
+
+.kv-people__head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kv-people .ui-dialog__body[hidden],
+.kv-audit[hidden] {
+  display: none;
+}
+
+.kv-audit {
+  padding: 16px 22px 22px;
+  overflow-y: auto;
+}
+
+.kv-audit h3 {
+  margin: 0 0 10px;
+  font: 700 14px/1.2 var(--font-ui);
+}
+
+.kv-audit__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kv-audit__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--ui-bg-soft);
+  border-left: 3px solid var(--st-working);
+  font-size: 12.5px;
+}
+
+.kv-audit__item.is-fail {
+  border-left-color: var(--lv-crit);
+}
+
+.kv-audit__item time {
+  color: var(--ui-faint);
+  font: 11.5px/1.4 var(--font-mono);
+}
+
+.kv-audit__action {
+  font-weight: 600;
+}
+
+.kv-audit__agent {
+  color: var(--ui-accent);
+}
+
+.kv-audit__detail {
+  flex-basis: 100%;
+  color: var(--ui-muted);
+  overflow-wrap: anywhere;
+}
