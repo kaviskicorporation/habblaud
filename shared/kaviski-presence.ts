@@ -11,8 +11,8 @@ import { parseAppearanceParts, parseSeed, type AppearanceParts } from './appeara
 import type { KvRole } from './kaviski-humanos';
 import { kvIsHeld, kvIsPose, type KvHeld, type KvPose } from './kaviski-desk'; // fork Kaviski W1: pose e mesa
 
-export type KvStatus = 'disponivel' | 'ocupado' | 'ausente';
-export const KV_STATUSES: readonly KvStatus[] = ['disponivel', 'ocupado', 'ausente'];
+export type KvStatus = 'disponivel' | 'ocupado' | 'ausente' | 'naoperturbe';
+export const KV_STATUSES: readonly KvStatus[] = ['disponivel', 'ocupado', 'ausente', 'naoperturbe'];
 export type KvDir = 'up' | 'down' | 'left' | 'right';
 
 export interface KvPos {
@@ -56,12 +56,22 @@ export interface KvPresencePerson {
   since: number;
   /** Mesa fixa (k='r'; só vem se quem recebe vê a sala). */
   desk?: KvPos;
+  /** Nota livre do status (até KV_NOTE_MAX, pode começar com emoji): "🍽️ Almoçando" (shared/kaviski-social.ts). */
+  note?: string;
+  /** Até quando o status e a nota valem (epoch ms); depois o servidor limpa sozinho. */
+  until?: number;
+  /** Mão levantada (✋, fica até baixar). */
+  hand?: boolean;
+  /** Roda de conversa privada em que está (id do grupo; a área de voz e chat dela é `b:<id>`). */
+  bubble?: string;
 }
 
 /** Evento `people` do GET /api/kaviski/humanos/presence. */
 export interface KvPresenceState {
   me: string;
   people: KvPresencePerson[];
+  /** Salas trancadas que quem recebe vê (shared/kaviski-social.ts). */
+  locks?: import('./kaviski-social').KvLockInfo[];
 }
 
 /** Limite de coordenada (px de mundo): prédios enormes passam disso, mas não há prédio com 2 mil colunas. */

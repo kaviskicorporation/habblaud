@@ -39,7 +39,7 @@ export class KvChat {
   }
 
   post(person: KvPerson, body: unknown): KvChatResult {
-    const area = this.presence.areaOf(person.id);
+    const area = this.presence.callAreaOf(person.id); // W2: na roda privada, a área dela (b:<id>)
     if (!area) return { ok: false, status: 409, error: tr('entre no escritório (Andar) para conversar') };
     if (!kvAreaAllowed(area, person, this.snapshot())) return { ok: false, status: 403, error: tr('essa conversa não é sua') };
     const b = (body ?? {}) as Record<string, unknown>;
@@ -55,7 +55,7 @@ export class KvChat {
       if (typeof b.to === 'string' && b.to !== person.id) {
         const to = this.presence.personOf(b.to);
         // só para quem está na mesma área (senão o cumprimento vai sem destinatário)
-        if (to && this.presence.areaOf(to.id) === area) msg.to = { id: to.id, name: to.name };
+        if (to && this.presence.callAreaOf(to.id) === area) msg.to = { id: to.id, name: to.name };
       }
     } else {
       const text = kvChatText(b.text);
@@ -73,7 +73,7 @@ export class KvChat {
       this.history.set(area, list);
       this.scheduleSave();
     }
-    this.presence.emit('chat', msg, (_viewer, viewerArea) => viewerArea === area);
+    this.presence.emit('chat', msg, (viewer) => this.presence.callAreaOf(viewer.id) === area);
     return { ok: true, message: msg };
   }
 

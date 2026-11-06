@@ -42,11 +42,14 @@ export function kvCallName(area: string): string {
 }
 
 /**
- * A pessoa pode entrar na chamada desta área? Área: `r:<id da sala>`, `a:<área do núcleo>` ou `c` (corredor).
+ * A pessoa pode entrar na chamada desta área? Área: `r:<id da sala>`, `a:<área do núcleo>`, `c` (corredor) ou
+ * `b:<id>` (roda de conversa privada, decidida pelo guarda de social.ts, que também fecha as salas trancadas).
  * Devolve o nome legível da área (para a página) ou undefined.
  */
 export function kvAreaAllowed(area: unknown, person: KvPerson, snap: OfficeSnapshot): string | undefined {
   if (typeof area !== 'string' || area.length > 1100) return undefined;
+  const guarded = areaGuard?.(area, person, snap); // W2: sala trancada e roda privada (social.ts)
+  if (guarded !== undefined) return guarded ?? undefined;
   if (area === 'c') return KV_CORRIDOR;
   if (area.startsWith('a:')) return (KV_CORE_AREAS as readonly string[]).includes(area.slice(2)) ? area.slice(2) : undefined;
   if (!area.startsWith('r:')) return undefined;
@@ -72,4 +75,13 @@ export function kvLiveKitToken(cfg: KvLiveKitConfig, person: Pick<KvPerson, 'id'
   });
   const sig = createHmac('sha256', cfg.secret).update(`${header}.${payload}`).digest('base64url');
   return `${header}.${payload}.${sig}`;
+}
+
+/** Guarda de áreas (W2, social.ts): string = pode (nome da área), null = não pode, undefined = segue a regra de cima. */
+export type KvAreaGuard = (area: string, person: KvPerson, snap: OfficeSnapshot) => string | null | undefined;
+let areaGuard: KvAreaGuard | null = null;
+
+/** Liga (ou desliga, com null) o guarda que o kvAreaAllowed consulta antes da regra das salas. */
+export function kvSetAreaGuard(g: KvAreaGuard | null): void {
+  areaGuard = g;
 }

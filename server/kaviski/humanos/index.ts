@@ -20,7 +20,8 @@ import { builtinPerson, createPeopleGate, KvPersonSessions } from './gate';
 import { kvPersonOf } from './request';
 import { kvFilterStream } from './stream-filter';
 import { KvPresence } from './presence';
-import { kvAreaAllowed, kvCallName, kvLiveKitConfig, kvLiveKitToken } from './livekit';
+import { kvAreaAllowed, kvCallName, kvLiveKitConfig, kvLiveKitToken, kvSetAreaGuard } from './livekit';
+import { KvSocial } from './social';
 import { KvChat } from './chat';
 import { KvDirect } from './direct';
 import { KvAudit, kvShort, kvTapBody, type KvAuditEntry } from './audit';
@@ -149,7 +150,17 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
   };
 
   const lookOf = (id: string): KvLook | undefined => kvParseLook(users.profile(id).look);
-  const presence = new KvPresence({ snapshot: deps.snapshot, look: lookOf, desk: (id) => kvDeskOf(users.profile(id)) });
+  // W2 (social.ts): chamar, reações, salas trancadas e rodas privadas entram na presença pelos ganchos
+  const presence = new KvPresence({
+    snapshot: deps.snapshot,
+    look: lookOf,
+    desk: (id) => kvDeskOf(users.profile(id)),
+    guard: (p, b) => social.postGuard(p, b),
+    extra: (v, id) => social.extra(v, id),
+    state: (v, snap) => social.state(v, snap),
+    callArea: (id) => social.callArea(id),
+    changed: (id) => social.changed(id),
+  });
   const chat = new KvChat(presence, deps.snapshot, dir ? join(dir, 'chat.json') : null);
   const audit = new KvAudit(dir ? join(dir, 'audit.jsonl') : null);
   const direct = new KvDirect({
@@ -195,6 +206,8 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
       })
       .catch((err) => fail(res, err));
   };
+  const social = new KvSocial({ presence, snapshot: deps.snapshot, audit });
+  if (enabled) kvSetAreaGuard((area, p) => social.areaGuard(area, p));
   let messages: KvMessageSender | undefined;
   const summoned = new Map<string, number>();
   // Visitante cujo convite venceu (ou foi revogado) sai do escritório mesmo com a página aberta.
@@ -644,6 +657,7 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
         });
         return true;
       }
+      if (path.startsWith(`${HUMANOS_API}/`) && social.route(req, res, path.slice(HUMANOS_API.length + 1), whoIs(req))) return true;
       if (path === USERS_PATH || path.startsWith(`${USERS_PATH}/`)) {
         usersRoute(req, res, path);
         return true;

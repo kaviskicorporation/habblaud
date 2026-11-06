@@ -2,7 +2,8 @@
 //
 // GET  /api/kaviski/humanos/presence  fluxo SSE: evento `people` (KvPresenceState) logo ao conectar e a cada mudança
 //                                     (no máximo ~10 por segundo). Enquanto a página está conectada, a pessoa está online.
-// POST /api/kaviski/humanos/presence  {pos?, status?}: onde estou (KvPos, null = fora do escritório) e como estou.
+// POST /api/kaviski/humanos/presence  {pos?, area?, status?, note?, until?}: onde estou (KvPos, null = fora do
+//                                     escritório) e como estou (W2: nota do status até 60 caracteres e "até", epoch ms).
 //
 // Cada página recebe uma lista feita para quem ela é (filtro no servidor, como o snapshot):
 // - equipe e admin veem todo mundo, em qualquer sala;
@@ -15,6 +16,7 @@ import type { OfficeSnapshot } from '../../../shared/types';
 import { kvAllowedRoomIds, kvRestricted, type KvPerson } from '../../../shared/kaviski-humanos';
 import { kvAreaAllowed } from './livekit';
 import { kvDefaultLook, kvIsStatus, kvParsePos, type KvLook, type KvPos, type KvPresencePerson, type KvPresenceState, type KvStatus } from '../../../shared/kaviski-presence';
+import { kvStatusNote, kvStatusUntil } from '../../../shared/kaviski-social';
 
 /** Depois que a última página fecha, a pessoa fica mais este tempo (recarregar a página não a tira e põe de volta). */
 export const OFFLINE_GRACE_MS = 8_000;
@@ -26,6 +28,9 @@ const MAX_POSTS_PER_S = 25;
 interface Entry {
   person: KvPerson;
   status: KvStatus;
+  /** Nota do status e até quando vale (W2: o servidor limpa quando vence). */
+  note?: string;
+  until?: number;
   pos?: KvPos;
   /** Área do escritório (a da chamada de voz e do chat): `r:<sala>`, `a:<núcleo>` ou `c`. */
   area?: string;
@@ -49,6 +54,16 @@ export interface KvPresenceDeps {
   /** Mesa fixa da pessoa (desk.ts). */
   desk?: (id: string) => KvPos | undefined;
   now?: () => number;
+  /** Recusa um POST (ex.: posição dentro de sala trancada, social.ts): devolve o código do erro ou null. */
+  guard?: (person: KvPerson, body: Record<string, unknown>) => string | null;
+  /** Campos a mais de uma pessoa como `viewer` a vê (mão levantada, roda privada...). */
+  extra?: (viewer: KvPerson, id: string) => Partial<KvPresencePerson>;
+  /** Campos a mais do estado de cada página (salas trancadas...). */
+  state?: (viewer: KvPerson, snap: OfficeSnapshot) => Partial<KvPresenceState>;
+  /** A área de voz e chat que vale para a pessoa, se não for a do boneco (roda privada `b:<id>`). */
+  callArea?: (id: string) => string | undefined;
+  /** A pessoa mudou de lugar ou saiu (id), para quem guarda estado por pessoa. */
+  changed?: (id: string) => void;
 }
 
 export class KvPresence {
@@ -56,6 +71,7 @@ export class KvPresence {
   private readonly viewers = new Set<Viewer>();
   private timer: ReturnType<typeof setTimeout> | null = null;
   private readonly pinger: ReturnType<typeof setInterval>;
+  private readonly sweeper: ReturnType<typeof setInterval>;
   private readonly now: () => number;
 
   constructor(private readonly deps: KvPresenceDeps) {
@@ -64,10 +80,13 @@ export class KvPresence {
       for (const v of this.viewers) if (!v.res.destroyed) v.res.write(': ping\n\n');
     }, PING_MS);
     this.pinger.unref?.();
+    this.sweeper = setInterval(() => this.expire(), 5_000);
+    this.sweeper.unref?.();
   }
 
   stop(): void {
     clearInterval(this.pinger);
+    clearInterval(this.sweeper);
     if (this.timer) clearTimeout(this.timer);
     for (const v of this.viewers) v.res.end();
     this.viewers.clear();
@@ -75,8 +94,28 @@ export class KvPresence {
   }
 
   /** Quem está online agora (para a voz e o vídeo, fase 1c). */
-  online(): { person: KvPerson; status: KvStatus; pos?: KvPos }[] {
-    return [...this.entries.values()].map((e) => ({ person: e.person, status: e.status, pos: e.pos }));
+  online(): { person: KvPerson; status: KvStatus; pos?: KvPos; area?: string }[] {
+    return [...this.entries.values()].map((e) => ({ person: e.person, status: e.status, pos: e.pos, area: e.area }));
+  }
+
+  /** Status de quem está online (undefined = offline). */
+  statusOf(id: string): KvStatus | undefined {
+    return this.entries.get(id)?.status;
+  }
+
+  /** "Até" vencido: a nota some e o status volta a disponível (W2). */
+  expire(): void {
+    const t = this.now();
+    let any = false;
+    for (const e of this.entries.values()) {
+      if (e.until && e.until <= t) {
+        e.until = undefined;
+        e.note = undefined;
+        e.status = 'disponivel';
+        any = true;
+      }
+    }
+    if (any) this.schedule();
   }
 
   /** Conta ou papel mudou (tela de Pessoas): atualiza quem está online; conta apagada sai. */
@@ -86,6 +125,7 @@ export class KvPresence {
     if (!person) {
       this.entries.delete(id);
       for (const v of [...this.viewers]) if (v.person.id === id) v.res.end();
+      this.deps.changed?.(id);
     } else e.person = person;
     this.schedule();
   }
@@ -128,6 +168,7 @@ export class KvPresence {
         cur.offlineTimer = setTimeout(() => {
           if (cur.conns === 0 && this.entries.get(person.id) === cur) {
             this.entries.delete(person.id);
+            this.deps.changed?.(person.id);
             this.schedule();
           }
         }, OFFLINE_GRACE_MS);
@@ -151,6 +192,8 @@ export class KvPresence {
     }
     if (++e.posts > MAX_POSTS_PER_S) return 'rate';
     const b = (body ?? {}) as Record<string, unknown>;
+    const refused = this.deps.guard?.(person, b);
+    if (refused) return refused;
     if ('pos' in b) {
       const pos = kvParsePos(b.pos);
       if (pos === undefined) return 'pos';
@@ -169,6 +212,18 @@ export class KvPresence {
       if (!kvIsStatus(b.status)) return 'status';
       e.status = b.status;
     }
+    // W2: nota e "até" (vão junto com o status; vazio/0 limpa)
+    if ('note' in b) {
+      const note = kvStatusNote(b.note);
+      if (note === undefined) return 'note';
+      e.note = note || undefined;
+    }
+    if ('until' in b) {
+      const until = kvStatusUntil(b.until, t);
+      if (until === undefined) return 'until';
+      e.until = until || undefined;
+    }
+    this.deps.changed?.(person.id);
     this.schedule();
     return null;
   }
@@ -176,6 +231,12 @@ export class KvPresence {
   /** Área atual de uma pessoa online (undefined = fora do escritório). */
   areaOf(id: string): string | undefined {
     return this.entries.get(id)?.area;
+  }
+
+  /** A área de voz e chat de uma pessoa: a da roda privada em que está (`b:<id>`) ou a do boneco. */
+  callAreaOf(id: string): string | undefined {
+    const area = this.entries.get(id)?.area;
+    return area ? (this.deps.callArea?.(id) ?? area) : undefined;
   }
 
   /** Posição atual de uma pessoa online. */
@@ -220,7 +281,7 @@ export class KvPresence {
   /** Monta e manda a lista desta página (só se mudou desde a última). */
   private send(v: Viewer, snap: OfficeSnapshot): void {
     if (v.res.destroyed || v.res.writableEnded) return;
-    const state: KvPresenceState = { me: v.person.id, people: this.visibleTo(v.person, snap) };
+    const state: KvPresenceState = { me: v.person.id, people: this.visibleTo(v.person, snap), ...this.deps.state?.(v.person, snap) };
     const data = JSON.stringify(state);
     if (data === v.last) return;
     v.last = data;
@@ -251,6 +312,9 @@ export class KvPresence {
         ...(pos ? { pos } : {}),
         ...(desk?.r && (!mine || mine.has(desk.r)) ? { desk } : {}),
         since: e.since,
+        ...(e.note ? { note: e.note } : {}),
+        ...(e.until ? { until: e.until } : {}),
+        ...this.deps.extra?.(viewer, p.id),
       });
     }
     out.sort((a, b) => a.since - b.since || a.id.localeCompare(b.id));

@@ -28,6 +28,7 @@ import { DESK_OWNER, KvMeCtl } from './me';
 import { freeTileAt, freeTileNear, KV_DESK_KINDS, KV_SIT_KINDS, seatAt } from './seats';
 import { kvStick } from './stick';
 import { kvDeskLabels } from './desk-labels';
+import { kvShortNote } from './status-text';
 
 const PUPPET_PREFIX = 'pessoa:';
 /** Fase 3: parado a até NEAR_TILES de um agente por NEAR_MS abre a gaveta dele; afastar além de LEAVE_TILES fecha. */
@@ -51,12 +52,15 @@ export const STATUS_LABEL: Record<KvStatus, string> = {
   disponivel: tr('disponível'),
   ocupado: tr('ocupado'),
   ausente: tr('ausente'),
+  naoperturbe: tr('não perturbe'),
 };
 
 const ROLE_BADGE: Record<string, string> = { admin: tr('equipe'), equipe: tr('equipe'), cliente: tr('cliente'), visitante: tr('visitante') };
 
-function badgeOf(p: Pick<KvPresencePerson, 'role' | 'status'>): string {
-  return (p.status === 'disponivel' ? (ROLE_BADGE[p.role] ?? '') : STATUS_LABEL[p.status]).toLocaleUpperCase();
+function badgeOf(p: Pick<KvPresencePerson, 'role' | 'status' | 'note'>): string {
+  const base = (p.status === 'disponivel' ? (ROLE_BADGE[p.role] ?? '') : STATUS_LABEL[p.status]).toLocaleUpperCase();
+  // W2: a nota do status (emoji + texto curto) no selo
+  return p.note ? `${p.status === 'disponivel' ? '' : `${base} · `}${kvShortNote(p.note)}` : base;
 }
 
 function infoOf(id: string, p: Pick<KvPresencePerson, 'name' | 'look'>, now: number): AgentInfo {
@@ -147,6 +151,8 @@ export const kvPeople: {
   ctl?: () => { sim: Sim; me: KvMeCtl } | null;
   /** Clicaram num assento (com o meu boneco ativo): furniture.ts abre o menu dele. */
   onSeatClick?: (spot: SpotDef, at: { x: number; y: number }) => void;
+  /** W2: a área de voz e chat que vale para mim — `b:<id>` numa roda privada; undefined = a de `area` (bubble.ts). */
+  callArea?: string | null;
 } = { client: null, inside: false, area: null, resting: false, myDesk: null, following: null, onFrame: new Set() };
 
 interface Puppet {

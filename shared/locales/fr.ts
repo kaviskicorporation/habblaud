@@ -4,10 +4,12 @@
 import { KV_HUMANOS_FR } from './kaviski-humanos'; // fork Kaviski (KAVISKI-HUMANOS.md)
 import { KV_EXTRAS_FR } from './kaviski-extras'; // fork Kaviski (KAVISKI-HUMANOS.md)
 import { KV_W1_FR } from './kaviski-w1'; // fork Kaviski (KAVISKI-HUMANOS.md, W1)
+import { KV_SOCIAL_FR } from './kaviski-social'; // fork Kaviski (KAVISKI-HUMANOS.md, W2)
 export const FR: Readonly<Record<string, string>> = {
   ...KV_HUMANOS_FR, // fork Kaviski (KAVISKI-HUMANOS.md)
   ...KV_EXTRAS_FR, // fork Kaviski (KAVISKI-HUMANOS.md)
   ...KV_W1_FR, // fork Kaviski (W1)
+  ...KV_SOCIAL_FR, // fork Kaviski (KAVISKI-HUMANOS.md, W2)
   // fork Kaviski (KAVISKI.md): client/src/kaviski, server/kaviski
   "Abrir esta sessão no TwiCC": "Ouvrir cette session dans TwiCC",
   "Abrir no TwiCC": "Ouvrir dans TwiCC",
