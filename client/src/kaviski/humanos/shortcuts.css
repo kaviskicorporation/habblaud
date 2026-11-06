@@ -1,0 +1,346 @@
+/* Fork Kaviski (KAVISKI-HUMANOS.md): janela de Atalhos com cores e vida — cartões por grupo na cor dele, teclas 3D em
+   pixel (luz em cima, sombra embaixo, afundam quando acendem), entrada em cascata e o "experimente". */
+
+.kv-sc .kv-ui-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kv-sc-tools {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.kv-sc-tools > .kv-ui-input {
+  flex: 1 1 260px;
+}
+
+/* ---------------------------------------------------------------- experimente */
+.kv-sc-try {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 4px 12px 4px 6px;
+  border-radius: 10px;
+  border: 1px dashed var(--ui-line-strong);
+  background: var(--kv-ui-in);
+  transition: border-color 0.2s, background-color 0.2s;
+}
+.kv-sc-try__hint {
+  font: 600 12px/1.2 var(--font-ui);
+  color: var(--ui-muted);
+}
+.kv-sc-try.is-hit {
+  border: 1px solid var(--st-working);
+  background: color-mix(in srgb, var(--st-working) 14%, transparent);
+}
+.kv-sc-try.is-hit .kv-sc-try__hint {
+  color: var(--st-working);
+}
+.kv-sc-try.is-miss {
+  border-color: var(--lv-crit);
+}
+.kv-sc-try.is-hit .kv-sc-key,
+.kv-sc-try.is-miss .kv-sc-key {
+  animation: kv-sc-press 0.35s var(--ease);
+}
+
+/* ---------------------------------------------------------------- filtro de grupos */
+.kv-sc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.kv-sc-chip {
+  --kv-sc: var(--ui-accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--kv-sc) 45%, transparent);
+  background: color-mix(in srgb, var(--kv-sc) 10%, rgba(255, 255, 255, 0.02));
+  color: var(--ui-text);
+  font: 600 12px/1 var(--font-ui);
+  cursor: pointer;
+  box-shadow: var(--kv-ui-raise);
+}
+.kv-sc-chip:hover {
+  background: color-mix(in srgb, var(--kv-sc) 22%, transparent);
+}
+.kv-sc-chip.is-on {
+  background: var(--kv-sc);
+  color: #11141b;
+  border-color: var(--kv-sc);
+}
+.kv-sc-chip__ico {
+  color: var(--kv-sc);
+  line-height: 0;
+}
+.kv-sc-chip.is-on .kv-sc-chip__ico {
+  color: #11141b;
+}
+
+/* ---------------------------------------------------------------- cartões */
+.kv-sc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.kv-sc-group {
+  --kv-sc: var(--ui-accent);
+  position: relative;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--kv-sc) 38%, var(--ui-line));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--kv-sc) 16%, transparent), transparent 60px),
+    var(--kv-ui-panel);
+  box-shadow: var(--kv-ui-raise);
+  overflow: hidden;
+}
+/* faixa em pixel no topo do cartão, na cor do grupo */
+.kv-sc-group::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: repeating-linear-gradient(90deg, var(--kv-sc) 0 8px, color-mix(in srgb, var(--kv-sc) 60%, #000) 8px 12px);
+}
+.kv-sc-holder.is-in .kv-sc-group {
+  animation: kv-sc-in 0.42s var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+.kv-sc-group__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px 8px;
+}
+.kv-sc-group__ico {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: #11141b;
+  background: var(--kv-sc);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.25),
+    0 2px 0 rgba(0, 0, 0, 0.35);
+  line-height: 0;
+}
+.kv-sc-group__title {
+  margin: 0;
+  flex: 1;
+  font: 500 15px/1.1 var(--font-px);
+  letter-spacing: 0.03em;
+  color: color-mix(in srgb, var(--kv-sc) 70%, #fff);
+}
+.kv-sc-group__n {
+  min-width: 22px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  text-align: center;
+  font: 700 11px/1 var(--font-ui);
+  color: var(--kv-sc);
+  background: color-mix(in srgb, var(--kv-sc) 16%, transparent);
+}
+.kv-sc-list {
+  list-style: none;
+  margin: 0;
+  padding: 2px 8px 10px;
+}
+.kv-sc-row {
+  display: grid;
+  grid-template-columns: minmax(84px, max-content) 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+.kv-sc-row + .kv-sc-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+.kv-sc-row:hover {
+  background: color-mix(in srgb, var(--kv-sc) 8%, transparent);
+}
+.kv-sc-row.is-lit {
+  background: color-mix(in srgb, var(--kv-sc) 26%, transparent);
+  box-shadow: inset 3px 0 0 var(--kv-sc);
+  animation: kv-sc-flash 1.1s var(--ease);
+}
+.kv-sc-row.is-lit .kv-sc-key {
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 0 0 rgba(0, 0, 0, 0.4),
+    0 0 10px color-mix(in srgb, var(--kv-sc) 70%, transparent);
+  border-color: var(--kv-sc);
+  color: #fff;
+}
+.kv-sc-text {
+  font: 13px/1.35 var(--font-ui);
+  color: var(--ui-text);
+}
+
+/* ---------------------------------------------------------------- teclas 3D */
+.kv-sc-keys {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.kv-sc-keys.is-arrows {
+  display: inline-grid;
+  grid-template-columns: repeat(3, 24px);
+  gap: 2px;
+}
+.kv-sc-gap {
+  width: 24px;
+}
+.kv-sc-combo {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.kv-sc-plus,
+.kv-sc-or {
+  font: 600 10.5px/1 var(--font-ui);
+  color: var(--ui-faint);
+}
+.kv-sc-key {
+  --kv-sc-top: color-mix(in srgb, var(--kv-sc, #7cc8ff) 18%, #3a4256);
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px 2px;
+  border-radius: 5px;
+  border: 1px solid rgba(0, 0, 0, 0.55);
+  background: linear-gradient(180deg, var(--kv-sc-top), color-mix(in srgb, var(--kv-sc-top) 70%, #000));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.35),
+    0 2px 0 rgba(0, 0, 0, 0.5);
+  color: #f1f4fb;
+  font: 500 12px/1 var(--font-px);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+  image-rendering: pixelated;
+  transition:
+    transform 0.08s,
+    box-shadow 0.08s,
+    border-color 0.2s;
+}
+.kv-sc-key.is-wide {
+  padding: 0 8px 2px;
+  font: 700 10.5px/1 var(--font-ui);
+  letter-spacing: 0.02em;
+}
+.kv-sc-key.is-space {
+  min-width: 64px;
+}
+.kv-sc-mouse {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px 0 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--kv-sc, #7cc8ff) 40%, transparent);
+  background: color-mix(in srgb, var(--kv-sc, #7cc8ff) 12%, transparent);
+  color: color-mix(in srgb, var(--kv-sc, #7cc8ff) 60%, #fff);
+  font: 600 11px/1 var(--font-ui);
+  white-space: nowrap;
+}
+/* o mouse em pixel antes da palavra */
+.kv-sc-mouse::before {
+  content: '';
+  width: 7px;
+  height: 10px;
+  border-radius: 3px 3px 4px 4px;
+  border: 1.5px solid currentColor;
+  background: linear-gradient(currentColor, currentColor) center 1.5px / 1.5px 3px no-repeat;
+}
+
+.kv-sc-empty {
+  text-align: center;
+  color: var(--ui-muted);
+  padding: 24px;
+}
+.kv-sc-foot {
+  flex: 1;
+  font: 12px/1.35 var(--font-ui);
+  color: var(--ui-muted);
+}
+
+/* ---------------------------------------------------------------- Ajuda do Habblaud (compacto) */
+.kv-keys__help.kv-sc {
+  margin: 4px 0 14px;
+}
+.kv-keys__help.kv-sc > h3 {
+  margin: 0 0 8px;
+}
+.kv-sc-grid.is-compact {
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 8px;
+}
+.kv-sc-grid.is-compact .kv-sc-group__head {
+  padding: 9px 10px 4px;
+}
+.kv-sc-grid.is-compact .kv-sc-group__ico {
+  width: 26px;
+  height: 26px;
+}
+.kv-sc-grid.is-compact .kv-sc-text {
+  font-size: 12px;
+}
+
+@keyframes kv-sc-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes kv-sc-flash {
+  0% {
+    background: color-mix(in srgb, var(--kv-sc) 55%, transparent);
+  }
+}
+@keyframes kv-sc-press {
+  40% {
+    transform: translateY(2px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kv-sc-holder.is-in .kv-sc-group,
+  .kv-sc-row.is-lit,
+  .kv-sc-try .kv-sc-key {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .kv-sc-grid {
+    grid-template-columns: 1fr;
+  }
+  .kv-sc-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .kv-sc-try {
+    display: none;
+  }
+}

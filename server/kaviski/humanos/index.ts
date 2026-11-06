@@ -37,6 +37,7 @@ import { KvRooms, kvRoomsRoute, kvUseRooms, ROOMS_PATH } from './rooms';
 import { KvObjects, kvObjectsRoute } from './objects';
 import { kvCanEditOwnRoom } from '../../../shared/kaviski-rooms';
 import { KvPlanStore, kvIsPlanPath, kvPlanRoute, kvUsePlan } from './plan';
+import { KvOrg, kvOrgRoute } from './org';
 
 export const HUMANOS_API = '/api/kaviski/humanos';
 const USERS_PATH = `${HUMANOS_API}/users`;
@@ -241,6 +242,9 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
     rooms.load();
     kvUseRooms(rooms);
   }
+  // Organograma e agentes fixos (org.ts): áreas e agentes em org.json; cargo/área/gestor na conta (profile.org).
+  const org = new KvOrg(dir ? join(dir, 'org.json') : null);
+  if (enabled) org.load();
   const objects = new KvObjects(
     {
       canAccess: (area, person) => !!kvAreaAllowed(area, person, deps.snapshot()),
@@ -713,6 +717,17 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
         });
         return true;
       }
+      if (
+        kvOrgRoute(req, res, path, whoIs(req), org, {
+          people,
+          profile: (id) => users.profile(id),
+          setProfile: (id, p) => users.setProfile(id, p),
+          snapshot: deps.snapshot,
+          changed: () => presence.emit('org', { at: Date.now() }, () => true),
+          audit: auditNote,
+        })
+      )
+        return true;
       if (path.startsWith(`${HUMANOS_API}/`) && social.route(req, res, path.slice(HUMANOS_API.length + 1), whoIs(req))) return true;
       if (path === USERS_PATH || path.startsWith(`${USERS_PATH}/`)) {
         usersRoute(req, res, path);

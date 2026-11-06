@@ -11,6 +11,7 @@ import { KV_UI_ES } from './kaviski-ui'; // fork Kaviski (KAVISKI-HUMANOS.md, W6
 import { KV_EDITOR_ES } from './kaviski-editor'; // fork Kaviski (planta livre: editor)
 import { KV_TEMAS_ES } from './kaviski-temas'; // fork Kaviski: salas temáticas (planta livre, C)
 import { KV_APROV_ES } from './kaviski-aprovacoes'; // fork Kaviski (KAVISKI.md)
+import { KV_ORG_ES } from './kaviski-organograma'; // fork Kaviski (planta livre: organograma)
 export const ES: Readonly<Record<string, string>> = {
   ...KV_HUMANOS_ES, // fork Kaviski (KAVISKI-HUMANOS.md)
   ...KV_EXTRAS_ES, // fork Kaviski (KAVISKI-HUMANOS.md)
@@ -19,6 +20,7 @@ export const ES: Readonly<Record<string, string>> = {
   ...KV_MEDIA_ES, // fork Kaviski (KAVISKI-HUMANOS.md, W3)
   ...KV_SALAS_ES, // fork Kaviski: salas próprias e objetos
   ...KV_APROV_ES, // fork Kaviski (aprovações do TwiCC)
+  ...KV_ORG_ES, // fork Kaviski (planta livre: organograma e atalhos)
   ...KV_UI_ES, // fork Kaviski (KAVISKI-HUMANOS.md, W6)
   ...KV_EDITOR_ES, // fork Kaviski (planta livre: editor)
   ...KV_TEMAS_ES, // fork Kaviski: salas temáticas (planta livre, C)
