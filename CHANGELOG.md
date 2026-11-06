@@ -53,6 +53,13 @@ do meio (0.**3**.0).
   online, Meu boneco, barra do boneco e as janelas das outras frentes no mesmo visual; o topo manda para o menu **Mais**
   o que não cabe.
 
+### Corrigido (fork Kaviski, `HABBLAUD_HUMANOS=1`)
+
+- **Clicar na grama, fora do prédio, não teletransporta mais o boneco.** O passo de andar do escritório, sem caminho
+  até o destino, punha o personagem lá direto; agora o clique fora do prédio (ou num lugar sem caminho) é ignorado.
+- **A dica "Lounge · você" não fica mais presa na tela.** A dica de quem está numa sala some ao tirar o mouse, ao
+  apertar uma tecla e sozinha depois de 4 s (o CSS dela vencia o `hidden`).
+
 ## [1.0.3] - 2026-10-16
 
 ### Corrigido

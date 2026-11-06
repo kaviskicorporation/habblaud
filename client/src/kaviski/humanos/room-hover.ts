@@ -9,6 +9,8 @@ import { kvAreaLabel } from './bar';
 import { kvPeople } from './world';
 
 const HOVER_MS = 450;
+/** A dica some sozinha depois disto (o mouse parado em cima não a deixa para sempre). */
+const SHOW_MS = 4_000;
 
 export function kvStartRoomHover(store: OfficeStore): void {
   const canvas = document.getElementById('world');
@@ -22,6 +24,9 @@ export function kvStartRoomHover(store: OfficeStore): void {
     timer = null;
     tip.hidden = true;
   };
+  window.addEventListener('keydown', hide);
+  window.addEventListener('blur', hide);
+  document.addEventListener('visibilitychange', hide);
   canvas.addEventListener('pointerdown', () => ((down = true), hide()));
   window.addEventListener('pointerup', () => (down = false));
   canvas.addEventListener('pointerleave', hide);
@@ -87,5 +92,6 @@ export function kvStartRoomHover(store: OfficeStore): void {
     tip.style.left = `${Math.min(cx + 14, window.innerWidth - 240)}px`;
     tip.style.top = `${Math.min(cy + 16, window.innerHeight - 90)}px`;
     tip.hidden = false;
+    timer = setTimeout(hide, SHOW_MS);
   }
 }

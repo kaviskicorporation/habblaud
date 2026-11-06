@@ -1,5 +1,12 @@
 /* Fork Kaviski (KAVISKI-HUMANOS.md): pessoas no escritório. Usa as variáveis dos temas da interface (styles.css). */
 
+/* Elemento nosso com `hidden` some sempre, mesmo quando a classe dele dá `display: flex/grid` (a dica da sala ficava
+   presa na tela: "Lounge · você"). */
+[class^='kv-'][hidden],
+[class*=' kv-'][hidden] {
+  display: none !important;
+}
+
 .kv-role {
   padding: 0 6px;
   border-radius: 999px;

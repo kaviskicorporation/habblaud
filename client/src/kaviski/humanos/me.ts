@@ -30,6 +30,23 @@ interface Seat {
   rest?: boolean;
 }
 
+const pathBuf: number[] = [];
+
+/**
+ * O destino de um passo a pé, se dá para chegar lá: o tile tem de estar dentro do prédio (a grama em volta fica fora
+ * da grade) e ter caminho desde (sx, sy). O passo `go` do Sim, sem caminho, teletransporta o boneco "para não travar":
+ * por isso clicar na grama levava o boneco para fora do prédio. null = não anda.
+ */
+export function kvReachable(sim: Sim, sx: number, sy: number, tx: number, ty: number): { x: number; y: number } | null {
+  const grid = sim.building.grid;
+  if (!grid.inside(tx, ty)) return null;
+  const to = grid.nearestWalkable(tx, ty, 3);
+  const from = grid.nearestWalkable(sx, sy, 6);
+  if (!to || !from) return null;
+  pathBuf.length = 0;
+  return sim.finder.find(from.x, from.y, to.x, to.y, pathBuf) ? to : null;
+}
+
 export interface KvFollow {
   id: string;
   name: string;
@@ -179,12 +196,14 @@ export class KvMeCtl {
     return steps;
   }
 
-  /** Anda até o tile (levanta antes, se preciso). */
+  /** Anda até o tile (levanta antes, se preciso). Fora do prédio ou sem caminho: não anda (nem teleporta). */
   walkTo(sim: Sim, tx: number, ty: number, run = false, keepFollow = false): boolean {
     const v = sim.visitor;
     if (!v || sim.visitorBusy) return false;
+    const to = kvReachable(sim, v.tx, v.ty, tx, ty);
+    if (!to) return false;
     if (!keepFollow) this.follow = null;
-    const go: Step = { t: 'go', tx, ty, run };
+    const go: Step = { t: 'go', tx: to.x, ty: to.y, run };
     if (this.seat || v.atSpot || !canStand(sim.building.grid, v.x, v.y)) this.stand(sim, [go]);
     else {
       v.queue.length = 0;
