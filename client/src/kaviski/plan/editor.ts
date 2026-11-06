@@ -1233,7 +1233,7 @@ class KvPlanEditor {
       if (styles.length) {
         const sel = h('select', { class: 'kv-pe__select', attrs: { 'aria-label': tr('Mobília') } });
         sel.append(h('option', { value: '', text: tr('Padrão'), selected: !it.style }));
-        for (const s of styles) sel.append(h('option', { value: s, text: s, selected: it.style === s }));
+        for (const s of styles) sel.append(h('option', { value: s.value, text: s.label, selected: it.style === s.value }));
         sel.addEventListener('change', () => this.setField(it.id, 'style', sel.value || undefined));
         out.push(field(tr('Mobília'), sel));
       }
@@ -1520,10 +1520,22 @@ function field(label: string, control: HTMLElement): HTMLElement {
 }
 
 /** Estilos de mobília registrados para o tipo (a frente das salas temáticas/motor registra `projeto:<estilo>`...). */
-function furnStyles(it: KvPlanItem): string[] {
+function furnStyles(it: KvPlanItem): { value: string; label: string }[] {
   const keys = kvFurnisherKeys();
   const prefix = it.kind === 'tema' ? `tema:${it.ref}:` : it.kind === 'projeto' ? 'projeto:' : `${it.kind}:`;
-  return keys.filter((k) => k.startsWith(prefix) && k.length > prefix.length).map((k) => k.slice(prefix.length)).filter((s) => /^[a-z0-9_-]+$/.test(s));
+  const out = new Map<string, string>();
+  // os estilos que a mobília das salas de projeto entende (furnish-projeto.ts)
+  if (it.kind === 'projeto') {
+    out.set('ilhas', tr('Ilhas de mesas'));
+    out.set('aberto', tr('Aberto, com sofá'));
+    out.set('baias', tr('Baias'));
+  }
+  for (const k of keys) {
+    if (!k.startsWith(prefix) || k.length <= prefix.length) continue;
+    const s = k.slice(prefix.length);
+    if (/^[a-z0-9_-]+$/.test(s) && !out.has(s)) out.set(s, s);
+  }
+  return [...out].map(([value, label]) => ({ value, label }));
 }
 
 function undoSvg(redo: boolean): string {

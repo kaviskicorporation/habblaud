@@ -591,6 +591,60 @@ com ela desligada ou numa visita a outro prédio (Habblaud World), tudo é o ori
 - Testes: `plan/engine.test.ts` (translado, faixa, vagas, caminho para tudo no Clássico e no exemplo, caminho de pedra,
   recepção que falta, salas de 10x9 a 40x20 com portas nos 4 lados).
 
+### Editor da empresa, planta no servidor e modelos (frente B)
+Botão **Planta da empresa** (régua/esquadro) no topo, só para quem pode editar; também pela maquete da sala temática
+Arquitetura (ação `planta` do "ir e fazer", `kvOpenPlanEditor({focus?, templates?})` em `plan/editor.ts`).
+- **Servidor** (`server/kaviski/humanos/plan.ts` + `plan.test.ts`): `<dataDir>/kaviski/plan.json` (600) com a planta, a
+  versão, quem e quando, e as últimas `KV_PLAN_HISTORY` (40) versões. Rotas em `/api/kaviski/humanos/`: `GET plan`
+  (`KvPlanDoc` + `canEdit`, já filtrada), `POST plan {plan, base, note?, paths?}` (grava só se `base` = versão atual;
+  senão **409** com `{doc}` atual — duas pessoas editando não se apagam), `GET plan/versions`, `POST plan/restore
+  {version, base?}` (a antiga vira uma versão nova; nada se perde). Valida com `kvNormPlan` (devolve `problems`).
+  Quem grava: admin; equipe só com `editors: 'equipe'` (e não troca isso); cliente e visitante nunca. Evento `plan`
+  `{version}` no fluxo de presença; registro "planta gravada"/"planta restaurada".
+- **Filtro por quem vê** (no servidor, `kvPlanFor`): cliente/visitante não recebem item `projeto` de sala que não vê
+  (nem o caminho), `propria` que não vê, nem agentes fixos dessas salas; sala própria "só escolhidos" sai para quem não
+  a vê (equipe inclusive).
+- **Salas fixas**: item `projeto` com `fixed` (planta ligada) entra no snapshot vazio e apagado pelo mesmo caminho das
+  `pinned` do mapa de estilos: `server/kaviski/index.ts` junta `kvPlanPinned()` às entradas do `room-styles.json` (o
+  mapa vence; sala `hidden` não volta). O caminho com as maiúsculas vem do snapshot e da lista de pastas na gravação
+  (`paths`, guardado no `plan.json`). O Habblaud World não as vê vazias: o uplink conta só salas com agentes (teste).
+- **Página**: `plan/store.ts` (`kvPlanDoc`, `kvSavedPlan`, `kvOnPlanDoc`, `kvLoadPlan`, `kvSavePlan`, `kvRestorePlan`,
+  `kvPlanVersions`; recarrega no evento `plan`). O motor (frente A) monta o prédio com `kvSavedPlan()`.
+- **Editor** (`plan/editor.ts`, desenho em `editor-draw.ts`, lógica pura testada em `editor-model.ts`, nomes/cores/ícones
+  em `editor-kinds.ts`, `editor.css`): a planta em blueprint por cima do mundo, alinhada à câmera (`kvPeople.camera`,
+  `kvPlanWorld.origin`), em três vistas (**Planta**, **Misto**, **Mundo**). Arrastar move (grade + ímã que encosta nas
+  paredes vizinhas; Shift sem ímã; vermelho e não solta quando sobrepõe), alças redimensionam nos limites de
+  `KV_PLAN_SIZE`, clique na borda da parede da sala escolhida põe/tira porta e arrastar a porta a move (pelas paredes),
+  Delete apaga (com "Desfazer" no aviso), setas movem 1 tile (Shift: 4), Ctrl+Z/Ctrl+Shift+Z, Ctrl+D duplica, Ctrl+S
+  grava, L trava, F sala fixa, Enter/duplo clique editam o nome, Esc solta/sai; roda = zoom, arrastar o vazio, espaço ou
+  o botão do meio = câmera; arrastando perto da borda a câmera acompanha. **Paleta** à esquerda (arrastar ou clicar):
+  Corredor, Jardim, Vaga, as 12 salas temáticas (catálogo da frente C), salas de projeto (as do prédio + as pastas do
+  Novo agente, com busca), salas próprias e o núcleo. **Painel** à direita: nome na placa, projeto/sala/tema, Sala fixa,
+  Travar, paleta e cor da placa, mobília (estilos do furnisher), portas, largura/altura/X/Y, Duplicar/Apagar; sem nada
+  escolhido: nome da empresa, contagem, Planta ligada ("desligada volta ao prédio original, o desenho fica"), "A equipe
+  também edita" (admin), direção da faixa automática, Ajustar o tamanho, Voltar ao prédio original.
+- **Avisos ao vivo** (`kvPlanWarnings`): sala sem porta para corredor/área aberta, sem caminho até a recepção, fora da
+  planta, planta sem recepção — selo amarelo piscando no item e a lista no painel com **Corrigir** (vai até o item e,
+  quando dá, põe a porta na parede encostada no corredor; recepção que falta volta).
+- **Ao vivo**: cada mudança chama `kvPlanWorld.preview(rascunho)` (120 ms depois); Gravar manda ao servidor (409 abre a
+  escolha "ficar com a de Fulano" / "gravar a minha por cima", com as duas miniaturas); Descartar volta à gravada; sair
+  com mudanças pede confirmação. Se outra pessoa grava e eu não tenho mudanças, o editor adota a versão nova sozinho.
+  **Versões**: lista com quem/quando/quantas peças e "Voltar para esta".
+- **Faixa automática**: a bandeirinha verde "salas novas" arrasta o `KvPlan.auto`; a direção (direita/baixo) no painel.
+- **Modelos — "Monte a sua empresa"** (`plan/templates.ts` + `templates.test.ts`, assistente em `plan/wizard.ts`):
+  abre sozinho na primeira vez (sem planta gravada) e pelo botão Modelos. Nome, quantas pessoas (sugere reuniões e
+  vagas), salas temáticas (as principais marcadas), reuniões a mais, vagas, projetos de hoje e salas próprias, e o
+  estilo com miniatura ao vivo: **Clássico** (o prédio de hoje), **Campus** (pátio com jardim e corredor em anel,
+  salas de 12×16 nas laterais), **Torre** (corredor vertical, alas lado a lado), **Galeria** (corredor em L, ou U com
+  muitas salas, jardim no canto). Todos saem sem sobreposição, aceitos inteiros pelo `kvNormPlan` e sem nenhum aviso
+  (toda sala com porta e caminho até a recepção), testado para 0 a 80 projetos. O rascunho do prédio de hoje é
+  `kvPlanFromClassic` (salas nos slots de agora).
+- **Celular**: o editor abre em modo simples (sem paleta e sem portas; tocar escolhe, arrastar move, painel embaixo) com
+  o aviso de que o editor completo é para tela grande.
+- Traduções em `shared/locales/kaviski-editor.ts`. Testes no navegador (Playwright, instância 4801/4802): assistente,
+  gravar, mover, redimensionar, porta, paleta, desfazer, Misto com o motor, 409 entre admin e equipe, cliente sem o
+  botão e com a planta filtrada, versões.
+
 ## Como desenvolver sem derrubar o escritório
 - Desenvolver numa **segunda instância** (`HABBLAUD_PORT=4757`, `HABBLAUD_REMOTE_PORT=4758`,
   `HABBLAUD_DATA_DIR=~/.habblaud-dev`), sem mexer no serviço `habblaud` em produção.

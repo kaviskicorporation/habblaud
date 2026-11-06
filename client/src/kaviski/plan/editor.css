@@ -5,7 +5,7 @@
 .kv-pe {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: 900;
   pointer-events: none;
   font: 500 13px/1.35 var(--font-ui);
   color: var(--ui-text);

@@ -27,6 +27,14 @@ do meio (0.**3**.0).
   boneco nunca teleporta). O rascunho do editor aparece no mundo na hora, sem derrubar quem está sentado. Planta
   "Clássico" igual ao prédio de hoje.
 
+- **Editor da empresa e "Monte a sua empresa"**: botão Planta da empresa no topo (admin, e a equipe se liberada) abre
+  a planta por cima do mundo — arrastar, redimensionar, portas com um clique na parede, travar, sala fixa (existe sempre,
+  apagada até alguém chegar), paleta com corredores, jardins, vagas, as salas temáticas, os projetos e as salas
+  próprias; avisos ao vivo (sala sem porta, sem caminho até a recepção) com Corrigir; o mundo muda junto enquanto você
+  edita. Gravar com versões (voltar para qualquer uma das últimas 40) e sem uma pessoa apagar a mudança da outra.
+  Assistente com 4 estilos de prédio (Clássico, Campus, Torre, Galeria) que já sai lindo e certinho. Cliente e
+  visitante recebem a planta só com as salas deles.
+
 ### Adicionado (fork Kaviski, `HABBLAUD_HUMANOS=1`): recursos do Gather
 
 - **Boneco, mesa fixa e móveis**: botão **Modo clássico** no topo (o Habblaud como o original; o boneco descansa no
