@@ -57,6 +57,8 @@ export function kvStartHumanos(store: OfficeStore, root: ParentNode = document):
     kvAutoEnhance((document.querySelector('.ui-root') as HTMLElement | null) ?? document.body);
     const status = root.querySelector('.ui-topbar__status');
     if (m.person && status) {
+      // Com pessoas no escritório, a tela "O escritório está vazio — Ver demonstração" (sem agentes) não cobre mais tudo.
+      document.documentElement.classList.add('kv-humanos');
       // Presença ao vivo (fase 1b): o chip do topo abre a lista de quem está online.
       const client = new KvPresenceClient();
       kvPeople.client = client;

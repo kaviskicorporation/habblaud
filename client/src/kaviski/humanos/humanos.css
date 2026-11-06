@@ -542,3 +542,8 @@ select.kv-people__input option {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Com pessoas no escritório, sem agentes o prédio continua à vista (sem a tela "O escritório está vazio"). */
+.kv-humanos .ui-empty {
+  display: none !important;
+}
