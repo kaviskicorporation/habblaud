@@ -31,6 +31,7 @@ import { discoverClaudeDirs } from '../server/accounts/detect';
 import { HOST_WAIT_MS } from '../server/host-wait';
 import { readFileSync } from 'node:fs';
 import { twiccLoop } from '../server/kaviski/twicc-bridge'; // fork Kaviski (KAVISKI.md)
+import { twiccApprovalsLoop } from '../server/kaviski/twicc-approvals-bridge'; // fork Kaviski (KAVISKI.md)
 
 export const DEFAULT_PORT = 4747;
 /** Intervalo entre as rodadas. */
@@ -371,6 +372,7 @@ async function main(): Promise<void> {
     }
   }
   if (!parsed.once) void twiccLoop(post, log); // fork Kaviski (KAVISKI.md): mensagens às sessões do TwiCC
+  if (!parsed.once) void twiccApprovalsLoop(post, log); // fork Kaviski (KAVISKI.md): pedidos das sessões do TwiCC
   let last = '';
   // Agentes novos desligados no Habblaud (sem HABBLAUD_PTY=1): pergunta de novo só a cada minuto.
   let spawnRetryAt = 0;

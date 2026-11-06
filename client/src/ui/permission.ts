@@ -15,6 +15,7 @@ import { formatClock, formatDuration } from './format';
 import { ICONS } from './icons';
 import { diffLineKind, moreLabel, previewText, showToolInput, splitToolTitle } from './terminal';
 import { tr } from '../../../shared/i18n';
+import { kvTwiccCard } from '../kaviski/twicc-perm'; // fork Kaviski (KAVISKI.md)
 
 /** Evento (em ctx.root) que pede para o cartão de um agente aparecer: rolar até ele e receber o foco. */
 export const PERMISSION_FOCUS_EVENT = 'habblaud:permission-focus';
@@ -401,6 +402,7 @@ export class PermissionCard {
     this.syncDeny();
     setAttr(this.denyBtn, 'aria-expanded', String(this.phase === 'deny'));
     this.denyBtn.classList.toggle('is-on', this.phase === 'deny');
+    kvTwiccCard(p, { what: this.what, timer: this.timer, terminalBtn: this.terminalBtn, interruptRow: this.interruptRow }, ask); // fork Kaviski (KAVISKI.md): pedido de sessão do TwiCC
 
     if (this.pendingFocus === agent.id) {
       this.pendingFocus = null;

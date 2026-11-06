@@ -1,0 +1,55 @@
+// Fork Kaviski (KAVISKI.md): traduções dos pedidos das sessões do TwiCC respondidos pelo escritório
+// (server/kaviski/twicc-approvals*.ts). Entram nos dicionários com uma linha `...KV_APROV_XX` em en.ts, es.ts e fr.ts.
+export const KV_APROV_EN: Readonly<Record<string, string>> = {
+  "Aqui ou no TwiCC: vale a primeira resposta": "Here or in TwiCC: the first answer counts",
+  "sessão do TwiCC": "TwiCC session",
+  "Pedido de uma sessão do TwiCC: responda aqui ou na página do TwiCC.": "Request from a TwiCC session: answer here or on the TwiCC page.",
+  "Responder no TwiCC": "Answer in TwiCC",
+  "Some daqui: o pedido continua esperando na página do TwiCC": "Hide it here: the request keeps waiting on the TwiCC page",
+  "pedidos das sessões do TwiCC desligados (precisa do Habblaud só pelo próprio computador; HABBLAUD_TWICC_APPROVALS=0 desliga)": "TwiCC session requests are off (needs Habblaud reachable only from this computer; HABBLAUD_TWICC_APPROVALS=0 turns them off)",
+  "TwiCC: os pedidos das sessões do TwiCC (perguntas e aprovações) aparecem no escritório.": "TwiCC: requests from TwiCC sessions (questions and approvals) show up in the office.",
+  "TwiCC: a sessão do auxiliar expirou; entrando de novo.": "TwiCC: the helper's login expired; signing in again.",
+  "TwiCC: sem o arquivo da senha ({0}): pedidos das sessões do TwiCC só no TwiCC.": "TwiCC: no password file ({0}): TwiCC session requests stay in TwiCC only.",
+  "TwiCC: não achei o endereço local (twicc.info.json ou HABBLAUD_TWICC_LOCAL_URL).": "TwiCC: couldn't find the local address (twicc.info.json or HABBLAUD_TWICC_LOCAL_URL).",
+  "TwiCC: a senha do arquivo {0} foi recusada (confira e grave de novo).": "TwiCC: the password in {0} was rejected (check it and save it again).",
+  "TwiCC: tentativas de login demais; espero 5 min.": "TwiCC: too many login attempts; waiting 5 min.",
+  "TwiCC: este TwiCC não tem senha; a aprovação pelo escritório precisa dela.": "TwiCC: this TwiCC has no password; approving from the office needs one.",
+  "TwiCC: o Habblaud não aceita os pedidos das sessões do TwiCC ({0}).": "TwiCC: Habblaud doesn't accept TwiCC session requests ({0}).",
+  "✓ resposta do escritório entregue à sessão {0}… do TwiCC": "✓ office answer delivered to TwiCC session {0}…",
+};
+
+export const KV_APROV_ES: Readonly<Record<string, string>> = {
+  "Aqui ou no TwiCC: vale a primeira resposta": "Aquí o en TwiCC: vale la primera respuesta",
+  "sessão do TwiCC": "sesión de TwiCC",
+  "Pedido de uma sessão do TwiCC: responda aqui ou na página do TwiCC.": "Solicitud de una sesión de TwiCC: responde aquí o en la página de TwiCC.",
+  "Responder no TwiCC": "Responder en TwiCC",
+  "Some daqui: o pedido continua esperando na página do TwiCC": "Desaparece de aquí: la solicitud sigue esperando en la página de TwiCC",
+  "pedidos das sessões do TwiCC desligados (precisa do Habblaud só pelo próprio computador; HABBLAUD_TWICC_APPROVALS=0 desliga)": "solicitudes de las sesiones de TwiCC desactivadas (requiere Habblaud accesible solo desde este equipo; HABBLAUD_TWICC_APPROVALS=0 las desactiva)",
+  "TwiCC: os pedidos das sessões do TwiCC (perguntas e aprovações) aparecem no escritório.": "TwiCC: las solicitudes de las sesiones de TwiCC (preguntas y aprobaciones) aparecen en la oficina.",
+  "TwiCC: a sessão do auxiliar expirou; entrando de novo.": "TwiCC: la sesión del auxiliar expiró; entrando de nuevo.",
+  "TwiCC: sem o arquivo da senha ({0}): pedidos das sessões do TwiCC só no TwiCC.": "TwiCC: sin el archivo de la contraseña ({0}): las solicitudes de las sesiones de TwiCC quedan solo en TwiCC.",
+  "TwiCC: não achei o endereço local (twicc.info.json ou HABBLAUD_TWICC_LOCAL_URL).": "TwiCC: no encontré la dirección local (twicc.info.json o HABBLAUD_TWICC_LOCAL_URL).",
+  "TwiCC: a senha do arquivo {0} foi recusada (confira e grave de novo).": "TwiCC: la contraseña del archivo {0} fue rechazada (revísala y guárdala de nuevo).",
+  "TwiCC: tentativas de login demais; espero 5 min.": "TwiCC: demasiados intentos de inicio de sesión; espero 5 min.",
+  "TwiCC: este TwiCC não tem senha; a aprovação pelo escritório precisa dela.": "TwiCC: este TwiCC no tiene contraseña; aprobar desde la oficina la necesita.",
+  "TwiCC: o Habblaud não aceita os pedidos das sessões do TwiCC ({0}).": "TwiCC: Habblaud no acepta las solicitudes de las sesiones de TwiCC ({0}).",
+  "✓ resposta do escritório entregue à sessão {0}… do TwiCC": "✓ respuesta de la oficina entregada a la sesión {0}… de TwiCC",
+};
+
+export const KV_APROV_FR: Readonly<Record<string, string>> = {
+  "Aqui ou no TwiCC: vale a primeira resposta": "Ici ou dans TwiCC : la première réponse compte",
+  "sessão do TwiCC": "session TwiCC",
+  "Pedido de uma sessão do TwiCC: responda aqui ou na página do TwiCC.": "Demande d'une session TwiCC : répondez ici ou sur la page TwiCC.",
+  "Responder no TwiCC": "Répondre dans TwiCC",
+  "Some daqui: o pedido continua esperando na página do TwiCC": "Disparaît d'ici : la demande reste en attente sur la page TwiCC",
+  "pedidos das sessões do TwiCC desligados (precisa do Habblaud só pelo próprio computador; HABBLAUD_TWICC_APPROVALS=0 desliga)": "demandes des sessions TwiCC désactivées (Habblaud doit être accessible uniquement depuis cet ordinateur ; HABBLAUD_TWICC_APPROVALS=0 les désactive)",
+  "TwiCC: os pedidos das sessões do TwiCC (perguntas e aprovações) aparecem no escritório.": "TwiCC : les demandes des sessions TwiCC (questions et approbations) apparaissent dans le bureau.",
+  "TwiCC: a sessão do auxiliar expirou; entrando de novo.": "TwiCC : la session de l'assistant a expiré ; reconnexion.",
+  "TwiCC: sem o arquivo da senha ({0}): pedidos das sessões do TwiCC só no TwiCC.": "TwiCC : pas de fichier de mot de passe ({0}) : les demandes des sessions TwiCC restent dans TwiCC.",
+  "TwiCC: não achei o endereço local (twicc.info.json ou HABBLAUD_TWICC_LOCAL_URL).": "TwiCC : adresse locale introuvable (twicc.info.json ou HABBLAUD_TWICC_LOCAL_URL).",
+  "TwiCC: a senha do arquivo {0} foi recusada (confira e grave de novo).": "TwiCC : le mot de passe du fichier {0} a été refusé (vérifiez-le et enregistrez-le à nouveau).",
+  "TwiCC: tentativas de login demais; espero 5 min.": "TwiCC : trop de tentatives de connexion ; attente de 5 min.",
+  "TwiCC: este TwiCC não tem senha; a aprovação pelo escritório precisa dela.": "TwiCC : ce TwiCC n'a pas de mot de passe ; l'approbation depuis le bureau en a besoin.",
+  "TwiCC: o Habblaud não aceita os pedidos das sessões do TwiCC ({0}).": "TwiCC : Habblaud n'accepte pas les demandes des sessions TwiCC ({0}).",
+  "✓ resposta do escritório entregue à sessão {0}… do TwiCC": "✓ réponse du bureau livrée à la session TwiCC {0}…",
+};

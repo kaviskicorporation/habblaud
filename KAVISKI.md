@@ -33,6 +33,7 @@ nos arquivos originais só há **ganchos de 1 linha**, marcados com `fork Kavisk
 | Nome da sala pelo mapa | `"name"` no mapa | Usado quando não há apelido manual (Renomear vence). |
 | Marca | `HABBLAUD_BRAND=Kaviski Corporation` | Linha pequena acima do logotipo no topo (a versão continua), título da aba `<marca> · Habblaud`, tela de login remota com o nome da empresa e "escritório virtual · Habblaud". |
 | Mensagens às sessões do TwiCC | `HABBLAUD_TWICC_MESSAGES=1` + `npm run codex:bridge` | Sessões que o TwiCC está rodando (Claude Code e Codex) recebem a caixa "Mandar mensagem"; o auxiliar do host entrega com `twicc send-message --no-expand -- <id> <texto>`. Ver abaixo. |
+| Responder pelo escritório às sessões do TwiCC | senha do TwiCC em `~/.habblaud/twicc-senha` + `npm run codex:bridge` (`HABBLAUD_TWICC_APPROVALS=0` desliga) | Perguntas (AskUserQuestion), aprovação de ferramenta e de plano das sessões do TwiCC aparecem no cartão "pede permissão" do agente e são respondidas no Habblaud, sem abrir o TwiCC. Ver abaixo. |
 | Terminal interativo pela porta remota | `HABBLAUD_REMOTE_PTY=1` (modo Node, fora do Docker, com `HABBLAUD_PTY=1`) | Com login, a porta remota também abre/assume/encerra sessões do Claude Code (terminal interativo), edita personagem e renomeia sala. Só para instalação atrás de VPN: quem passa no login tem um shell na máquina. Confere Origin/Sec-Fetch-Site. `server/kaviski/remote-pty.ts`. Na VM kc-dev-01 o Habblaud roda fora do Docker (serviço `habblaud` do systemd do usuário, `kc-habblaud.py subir`) justamente para isso. |
 
 ### URL da sessão no TwiCC
@@ -96,6 +97,32 @@ As sessões do TwiCC rodam pelo SDK (sem terminal): o plugin `habblaud-mensagens
 - Binário: `HABBLAUD_TWICC_BIN` ou `twicc` do PATH (ou `~/.local/bin/twicc`). Depois de mudar o auxiliar:
   `systemctl --user restart habblaud-codex-bridge`.
 
+### Responder pelo escritório às sessões do TwiCC
+
+As sessões do TwiCC rodam pelo SDK: o hook `PermissionRequest` do plugin `habblaud-permissoes` não roda nelas, e o
+pedido fica só na página do TwiCC. O CLI do TwiCC responde perguntas (`answer-questions`), mas **aprovar ferramenta ou
+plano só quem entrou com a senha** (de propósito, no TwiCC). Então o auxiliar do host entra como a página do TwiCC faz.
+
+- `server/kaviski/twicc-approvals-bridge.ts` (auxiliar): lê a senha de `HABBLAUD_TWICC_PASSWORD_FILE` ou
+  `~/.habblaud/twicc-senha` (fora do git, `chmod 600`; nunca vai a log nem ao Habblaud), faz `POST /api/auth/login/` no
+  TwiCC local (porta de `~/.twicc/twicc.info.json` ou `HABBLAUD_TWICC_LOCAL_URL`) e abre o WebSocket `/ws/` com o
+  cookie. Os `pending_requests` vêm de `active_processes`/`process_state`; a resposta vai como
+  `claude_code:pending_request_response` (o mesmo que a página do TwiCC manda). Senha recusada: espera 10 min ou o
+  arquivo mudar (o TwiCC bloqueia depois de 5 tentativas em 5 min).
+- `server/kaviski/twicc-approvals.ts` (servidor): `POST /api/host/twicc/requests` `{connected, requests}` →
+  `{decisions: [{id, session, request_id, payload}]}` (trava de `/api/host/*`), a cada 1,5 s. Cada pedido vira um
+  `PermissionRequestInfo` (id `tw-...`) do agente principal da sessão. O `PermissionRegistry` original não é tocado: o
+  fork embrulha `snapshot/detail/decide` em tempo de execução; a rota `/api/permissions/:id/decision` e a trava de quem
+  pode responder (`canAnswer`, papéis das pessoas) são as mesmas.
+- Aprovar, recusar com motivo, "sempre permitir" (as sugestões do próprio Claude Code, mandadas como
+  `updated_permissions`), responder as perguntas (por texto; múltipla escolha junta por ", ") ou "Responder no TwiCC"
+  (some do escritório e continua esperando lá). Vale a primeira resposta, aqui ou no TwiCC: o pedido some quando o
+  TwiCC deixa de listá-lo.
+- Fica no TwiCC: formulários de MCP (elicitation), sessões **ocultas** no TwiCC (o WebSocket não fala delas) e o Codex
+  rodando pelo TwiCC. A recusa não interrompe o agente (o TwiCC não tem isso).
+- Página: `client/src/kaviski/twicc-perm.ts` troca os textos "terminal" por "TwiCC" no cartão.
+- Depois de mudar o auxiliar: `systemctl --user restart habblaud-codex-bridge`.
+
 ## Pontos de toque nos arquivos originais
 
 | Arquivo | Linhas | O quê | No conflito do merge |
@@ -104,7 +131,10 @@ As sessões do TwiCC rodam pelo SDK (sem terminal): o plugin `habblaud-mensagens
 | `server/http/static.ts` | +3/−2 | import; objeto `headers` de `send` embrulhado em `kvFrameHeaders({...})` | idem |
 | `server/http/remote.ts` | +8/−6 | imports; `sendHtml` com `kvFrameHeaders`; `kvSameSite(secure)` no `cookieHeader`; `kvKeepRoomQuery` nos dois redirecionamentos (`/` e `/login`); `location.replace('/' + location.search)` no JS da tela de login; `kvBrandLogin(loginPage(...))` | idem |
 | `server/index.ts` | +6 | import; `createKaviski({..., roomAlias})` + `kaviski.attach(office)` logo depois do `new Office(...)`; `kaviski.attachMessages(messages, office)` depois de `late.messages = messages`; `kaviski,` no `createApiHandler` | idem |
-| `scripts/codex-bridge.ts` | +2 | import; `if (!parsed.once) void twiccLoop(post, log)` antes do laço principal | idem |
+| `scripts/codex-bridge.ts` | +4 | imports; `if (!parsed.once) void twiccLoop(post, log)` e `void twiccApprovalsLoop(post, log)` antes do laço principal | idem |
+| `server/index.ts` (aprovações do TwiCC) | +1 | `kaviski.attachApprovals(permissions, office)` depois de `late.permissions = permissions` | idem |
+| `client/src/ui/permission.ts` | +2 | import; `kvTwiccCard(p, {...}, ask)` no fim do `render` (textos do TwiCC no cartão) | idem |
+| `shared/locales/{en,es,fr}.ts` (aprovações do TwiCC) | +2 cada | import e `...KV_APROV_XX` (`shared/locales/kaviski-aprovacoes.ts`) | idem; juntar as linhas dos dois lados |
 | `client/src/app.ts` | +4 | imports; `kvStartRoomLink(...)` e `kvStartBrand(store)` depois do `createUI` | idem |
 | `client/src/ui/notify.ts` | +2/−1 | import; título da aba com `kvTitle(BASE_TITLE)` | idem |
 | `client/src/ui/model.ts` | +3/−1 | import; `c.rooms = kvRoomCount(snap)`; `if (!agents.length) continue;` em `groupRooms` (sala vazia fora da lista lateral) | idem |
@@ -133,8 +163,8 @@ As sessões do TwiCC rodam pelo SDK (sem terminal): o plugin `habblaud-mensagens
 `server/model/office.ts` **não** foi tocado: `kaviski.attach(office)` embrulha `office.commit()` em tempo de execução e
 decora cada snapshot novo. Se o original renomear `commit`, o teste `server/kaviski/kaviski.test.ts` acusa.
 
-Arquivos só do fork: `shared/kaviski.ts` (+ teste), `server/kaviski/{index,frame,remote,room-styles,pinned,twicc-messages,twicc-bridge}.ts`
-(+ `kaviski.test.ts`, `kaviski-extra.test.ts`), `client/src/kaviski/{twicc,room-link,room-style,brand,empty-rooms}.ts`
+Arquivos só do fork: `shared/kaviski.ts` (+ teste), `server/kaviski/{index,frame,remote,room-styles,pinned,twicc-messages,twicc-bridge,twicc-approvals,twicc-approvals-bridge}.ts`
+(+ `kaviski.test.ts`, `kaviski-extra.test.ts`), `client/src/kaviski/{twicc,twicc-perm,room-link,room-style,brand,empty-rooms}.ts`
 (+ `kaviski.test.ts`) e `kaviski.css`, este `KAVISKI.md`.
 
 O `CHANGELOG.md` do original **não** recebe as mudanças do fork (evita conflito a cada versão): o histórico fica aqui.

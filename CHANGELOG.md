@@ -10,6 +10,12 @@ do meio (0.**3**.0).
 
 ## [Não lançado]
 
+### Adicionado (fork Kaviski)
+
+- **Responder pelo escritório às sessões do TwiCC**: perguntas, aprovação de ferramenta e de plano das sessões que rodam
+  no TwiCC aparecem no cartão "pede permissão" do agente e são respondidas no Habblaud (aprovar, recusar com motivo,
+  "sempre permitir", responder), sem abrir o TwiCC. Precisa da senha do TwiCC em `~/.habblaud/twicc-senha`.
+
 ### Adicionado (fork Kaviski, `HABBLAUD_HUMANOS=1`)
 
 - **Convite por link para visitantes sem conta** (1 h, 1 dia ou 7 dias; uso único ou várias pessoas; salas

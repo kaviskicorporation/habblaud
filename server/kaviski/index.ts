@@ -6,6 +6,8 @@
 // - HABBLAUD_TWICC_URL: vai no snapshot em meta.kaviski.twiccUrl (o cliente monta "Abrir no TwiCC");
 // - HABBLAUD_BRAND: nome da empresa em meta.kaviski.brand (topo e título da aba) e na tela de login (kaviski/remote.ts);
 // - HABBLAUD_TWICC_MESSAGES=1: mensagens às sessões do TwiCC pelo auxiliar do host (kaviski/twicc-messages.ts);
+// - pedidos das sessões do TwiCC (perguntas, aprovações) respondidos pelo escritório (kaviski/twicc-approvals.ts;
+//   HABBLAUD_TWICC_APPROVALS=0 desliga);
 // - HABBLAUD_FRAME_ANCESTORS: ver kaviski/frame.ts.
 // Sem variáveis e sem estilos gravados, o snapshot sai idêntico ao original.
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -18,6 +20,7 @@ import { HttpError, readJson, sendJson } from '../http/app';
 import { parseRoomStyles, RoomStyles } from './room-styles';
 import { kvDecorateRooms } from './pinned';
 import { isTruthy } from '../config';
+import { attachTwiccApprovals, TWICC_REQUESTS_PATH, type KvApprovalsOffice, type KvPermissionRegistry, type KvTwiccApprovals } from './twicc-approvals';
 import { attachTwiccMessages, TWICC_ACK_PATH, TWICC_POLL_PATH, type KvMessageRegistry, type KvTwiccMessages, type KvTwiccOffice } from './twicc-messages';
 
 export const ROOM_STYLE_PATH = '/api/rooms/style';
@@ -46,6 +49,10 @@ export interface Kaviski {
   twicc?: KvTwiccMessages;
   /** Liga a entrega às sessões do TwiCC no registro de mensagens (nada sem HABBLAUD_TWICC_MESSAGES=1). */
   attachMessages(registry: KvMessageRegistry | undefined, office: KvTwiccOffice): void;
+  /** Pedidos das sessões do TwiCC no cartão de permissão (só depois de attachApprovals). */
+  approvals?: KvTwiccApprovals;
+  /** Liga os pedidos das sessões do TwiCC no registro de permissões (nada sem ele ou com HABBLAUD_TWICC_APPROVALS=0). */
+  attachApprovals(registry: KvPermissionRegistry | undefined, office: KvApprovalsOffice): void;
   /** Põe estilos e o meta do fork em cada snapshot novo do Office (e re-emite quando os estilos mudam). */
   attach(office: KvOffice): void;
   /** Acrescenta os campos do fork a um snapshot (no lugar). */
@@ -95,6 +102,16 @@ export function createKaviski(opts: { dataDir: string | null; env?: NodeJS.Proce
       } else kv.twicc.route(req, res, path);
       return true;
     }
+    if (path === TWICC_REQUESTS_PATH) {
+      if (!kv.approvals) {
+        req.resume();
+        sendJson(res, 404, { error: tr('pedidos das sessões do TwiCC desligados (precisa do Habblaud só pelo próprio computador; HABBLAUD_TWICC_APPROVALS=0 desliga)') });
+      } else if (!access.host) {
+        req.resume();
+        sendJson(res, 403, { error: tr('rota só do auxiliar do host (npm run codex:bridge)') });
+      } else kv.approvals.route(req, res);
+      return true;
+    }
     if (path !== ROOM_STYLE_PATH) return false;
     const method = req.method ?? 'GET';
     if (method !== 'GET' && method !== 'HEAD' && method !== 'POST') {
@@ -137,6 +154,10 @@ export function createKaviski(opts: { dataDir: string | null; env?: NodeJS.Proce
     attachMessages(registry, o) {
       if (!registry || !isTruthy(env.HABBLAUD_TWICC_MESSAGES?.trim())) return;
       kv.twicc = attachTwiccMessages(registry, o, { now });
+    },
+    attachApprovals(registry, o) {
+      if (!registry || env.HABBLAUD_TWICC_APPROVALS?.trim() === '0') return;
+      kv.approvals = attachTwiccApprovals(registry, o, { now });
     },
     attach(o) {
       office = o;
