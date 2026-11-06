@@ -139,9 +139,9 @@ export function kvDefaultLook(id: string): KvLook {
 
 /** Tamanho máximo de uma mensagem de chat. */
 export const KV_CHAT_MAX = 300;
-/** Quantas mensagens o histórico de cada sala guarda (e por quanto tempo). */
-export const KV_CHAT_HISTORY = 50;
-export const KV_CHAT_HISTORY_MS = 24 * 60 * 60 * 1000;
+/** Quantas mensagens o histórico de cada sala guarda (e por quanto tempo): cada sala é uma conversa, como no Teams. */
+export const KV_CHAT_HISTORY = 300;
+export const KV_CHAT_HISTORY_MS = 30 * 24 * 60 * 60 * 1000;
 
 /**
  * Uma fala no escritório (evento `chat` do fluxo de presença): texto ou cumprimento (ids do Habblaud World,

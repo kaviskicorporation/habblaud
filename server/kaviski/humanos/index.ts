@@ -47,6 +47,8 @@ const CHAT_PATH = `${HUMANOS_API}/chat`;
 const CONTACTS_PATH = `${HUMANOS_API}/contacts`;
 const DM_PATH = `${HUMANOS_API}/dm`;
 const DM_READ_PATH = `${HUMANOS_API}/dm/read`;
+const DM_TYPING_PATH = `${HUMANOS_API}/dm/typing`;
+const DM_SEARCH_PATH = `${HUMANOS_API}/dm/search`;
 const SUMMON_PATH = `${HUMANOS_API}/summon`;
 const AUDIT_PATH = `${HUMANOS_API}/audit`;
 const DESK_PATH = `${HUMANOS_API}/desk`;
@@ -197,8 +199,13 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
     }
     if (path === DM_PATH && isRead) {
       req.resume();
-      const list = direct.history(person, url.searchParams.get('with'));
-      return list ? sendJson(res, 200, { messages: list }) : sendJson(res, 404, { error: tr('pessoa não encontrada') });
+      const num = (k: string) => (url.searchParams.has(k) ? Number(url.searchParams.get(k)) : undefined);
+      const page = direct.page(person, url.searchParams.get('with'), { before: num('before'), limit: num('limit') });
+      return page ? sendJson(res, 200, page) : sendJson(res, 404, { error: tr('pessoa não encontrada') });
+    }
+    if (path === DM_SEARCH_PATH) {
+      req.resume();
+      return isRead ? sendJson(res, 200, { results: direct.search(person, url.searchParams.get('q')) }) : sendJson(res, 405, { error: tr('método não permitido') });
     }
     if (method !== 'POST') {
       req.resume();
@@ -209,6 +216,10 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
       .then((body) => {
         if (path === DM_READ_PATH) {
           if (!direct.read(person, (body as { with?: unknown })?.with)) throw new HttpError(404, tr('pessoa não encontrada'));
+          return sendJson(res, 200, { ok: true });
+        }
+        if (path === DM_TYPING_PATH) {
+          if (!direct.typing(person, (body as { to?: unknown })?.to)) throw new HttpError(404, tr('pessoa não encontrada'));
           return sendJson(res, 200, { ok: true });
         }
         const r = direct.send(person, body);
@@ -651,7 +662,7 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
         else sendJson(res, 200, { entries: audit.recent(300) });
         return true;
       }
-      if (path === CONTACTS_PATH || path === DM_PATH || path === DM_READ_PATH) {
+      if (path === CONTACTS_PATH || path === DM_PATH || path === DM_READ_PATH || path === DM_TYPING_PATH || path === DM_SEARCH_PATH) {
         directRoute(req, res, path, url);
         return true;
       }

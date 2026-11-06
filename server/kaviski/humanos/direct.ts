@@ -1,14 +1,18 @@
 // Fork Kaviski (KAVISKI-HUMANOS.md): conversa 1:1 entre pessoas (estilo Teams) e a lista de contatos.
 //
 // GET  /api/kaviski/humanos/contacts        quem eu posso chamar para conversar (online ou não), com não lidas e a última fala
-// GET  /api/kaviski/humanos/dm?with=<id>    a conversa com a pessoa
+// GET  /api/kaviski/humanos/dm?with=<id>[&before=<ms>&limit=<n>]
+//                                           a conversa com a pessoa, em páginas (as mais novas primeiro: `before` busca
+//                                           as anteriores); {messages, more}
 // POST /api/kaviski/humanos/dm              {to, text, urgent?}: manda; evento `dm` (KvDirectMessage) do fluxo de presença
 //                                           para as páginas de quem manda e de quem recebe
 // POST /api/kaviski/humanos/dm/read         {with}: li até agora
+// POST /api/kaviski/humanos/dm/typing       {to}: estou escrevendo; evento `typing` ({from, at}) SÓ para a outra pessoa
+// GET  /api/kaviski/humanos/dm/search?q=    busca nas MINHAS conversas (as das outras pessoas nunca entram)
 //
 // Quem fala com quem: equipe e admin com todos; cliente com a equipe/admin e com os clientes da mesma empresa (as
-// salas de um cobrem as do outro). Guardado em <dataDir>/kaviski/dm.json (600): as últimas 200 falas de cada conversa,
-// por até 90 dias, e até onde cada um leu. Limite: 30 por minuto por pessoa.
+// salas de um cobrem as do outro). Guardado em <dataDir>/kaviski/dm.json (600): cada conversa separada (como no
+// Teams), as últimas 1000 falas de cada uma, por até 180 dias, e até onde cada um leu. Limite: 30 por minuto por pessoa.
 import { randomBytes } from 'node:crypto';
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -16,8 +20,13 @@ import { kvRestricted, kvRoomAllowed, type KvPerson } from '../../../shared/kavi
 import { kvChatText, kvDefaultLook, type KvContact, type KvDirectMessage, type KvLook, type KvStatus } from '../../../shared/kaviski-presence';
 import { tr } from '../../../shared/i18n';
 
-const KEEP = 200;
-const KEEP_MS = 90 * 24 * 60 * 60 * 1000;
+const KEEP = 1000;
+const KEEP_MS = 180 * 24 * 60 * 60 * 1000;
+/** Página padrão (e máxima) da conversa. */
+const PAGE = 100;
+const PAGE_MAX = 200;
+const TYPING_GAP = 1_500;
+const SEARCH_MAX = 40;
 const SAVE_MS = 2_000;
 
 interface FileShape {
@@ -56,6 +65,7 @@ export type KvDirectResult = { ok: true; message: KvDirectMessage } | { ok: fals
 export class KvDirect {
   private data: FileShape = { convs: {}, read: {} };
   private readonly sent = new Map<string, number[]>();
+  private readonly typed = new Map<string, number>();
   private timer: ReturnType<typeof setTimeout> | null = null;
   private readonly now: () => number;
 
@@ -90,7 +100,7 @@ export class KvDirect {
     const key = pairKey(from.id, to.id);
     const list = (this.data.convs[key] ??= []);
     list.push(msg);
-    while (list.length > KEEP) list.shift();
+    while (list.length > KEEP || (list.length && t - list[0]!.at >= KEEP_MS)) list.shift();
     this.markRead(from.id, to.id, t);
     this.deps.emit('dm', msg, (viewer) => viewer.id === from.id || viewer.id === to.id);
     return { ok: true, message: msg };
@@ -102,6 +112,45 @@ export class KvDirect {
     if (!other || !kvCanTalk(person, other)) return undefined;
     const t = this.now();
     return (this.data.convs[pairKey(person.id, other.id)] ?? []).filter((m) => t - m.at < KEEP_MS);
+  }
+
+  /** Uma página da conversa: as `limit` falas antes de `before` (padrão: as mais novas), em ordem de tempo. */
+  page(person: KvPerson, withId: unknown, opts: { before?: unknown; limit?: unknown } = {}): { messages: KvDirectMessage[]; more: boolean } | undefined {
+    const all = this.history(person, withId);
+    if (!all) return undefined;
+    const before = typeof opts.before === 'number' && Number.isFinite(opts.before) ? opts.before : Infinity;
+    const n = typeof opts.limit === 'number' && opts.limit >= 1 ? Math.min(PAGE_MAX, Math.floor(opts.limit)) : PAGE;
+    const older = all.filter((m) => m.at < before);
+    return { messages: older.slice(-n), more: older.length > n };
+  }
+
+  /** "Estou escrevendo": vai só para a outra pessoa (no máximo um a cada TYPING_GAP). */
+  typing(from: KvPerson, toId: unknown): boolean {
+    const to = this.person(toId);
+    if (!to || !kvCanTalk(from, to)) return false;
+    const t = this.now();
+    const key = `${from.id}>${to.id}`;
+    if (t - (this.typed.get(key) ?? 0) < TYPING_GAP) return true;
+    this.typed.set(key, t);
+    this.deps.emit('typing', { from: from.id, at: t }, (viewer) => viewer.id === to.id);
+    return true;
+  }
+
+  /** Busca nas conversas de `person` (só as dela, e só com quem ela ainda pode conversar), as mais novas primeiro. */
+  search(person: KvPerson, q: unknown): { with: { id: string; name: string }; message: KvDirectMessage }[] {
+    if (typeof q !== 'string') return [];
+    const norm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
+    const needle = norm(q.trim()).slice(0, 100);
+    if (needle.length < 2) return [];
+    const t = this.now();
+    const out: { with: { id: string; name: string }; message: KvDirectMessage }[] = [];
+    for (const other of this.deps.people()) {
+      if (!kvCanTalk(person, other)) continue;
+      for (const m of this.data.convs[pairKey(person.id, other.id)] ?? []) {
+        if (t - m.at < KEEP_MS && norm(m.text).includes(needle)) out.push({ with: { id: other.id, name: other.name }, message: m });
+      }
+    }
+    return out.sort((a, b) => b.message.at - a.message.at).slice(0, SEARCH_MAX);
   }
 
   read(person: KvPerson, withId: unknown): boolean {
@@ -123,7 +172,8 @@ export class KvDirect {
     const out: KvContact[] = [];
     for (const p of this.deps.people()) {
       if (!kvCanTalk(person, p)) continue;
-      const conv = this.data.convs[pairKey(person.id, p.id)] ?? [];
+      const t = this.now();
+      const conv = (this.data.convs[pairKey(person.id, p.id)] ?? []).filter((m) => t - m.at < KEEP_MS);
       const last = conv[conv.length - 1];
       const since = read[p.id] ?? 0;
       const unread = conv.filter((m) => m.from.id === p.id && m.at > since).length;
