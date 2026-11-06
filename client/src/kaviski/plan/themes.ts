@@ -170,7 +170,7 @@ function wallDecor(P: KvPlacer, kinds: ('window' | 'clock' | 'painting' | 'shelf
 const ROOMS: Record<KvThemeKey, (P: KvPlacer) => void> = {
   // RH: balcão com a ficha (Pessoas), organograma na parede, arquivo (Registro), mesa de convites, cadeiras de espera.
   rh(P) {
-    floor(P, 'carpet', '#f3dccb', '#ead0bb');
+    floor(P, 'carpet', '#f2cdb0', '#ebc1a1');
     wallOr(P, [['shelf_wall', 3, 'kv-orgchart'], ['shelf_wall', 2, 'kv-orgchart-small']], 'organograma', 'kv-easel-org', P.x0 + 2.5);
     const desk = P.put('reception_desk', P.north(3, P.cx - 1, P.y0 + 1).concat(P.around(P.cx - 1, P.cy, 4)), 'kv-hr-desk', { use: 'pessoas', order: 0.4 });
     if (desk) {
@@ -207,7 +207,7 @@ const ROOMS: Record<KvThemeKey, (P: KvPlacer) => void> = {
 
   // Reunião: telão e o calendário (agenda) na parede, mesa grande com banquetas em volta.
   reuniao(P) {
-    floor(P, 'carpet', '#d7e2f2', '#c9d7ec');
+    floor(P, 'carpet', '#c9daf2', '#bccfee');
     wallOr(P, [['shelf_wall', 2, 'kv-calendar']], 'agenda', 'kv-easel-cal', P.x0 + 1.5);
     P.wall('tv', 3, 'kv-bigtv', { near: P.w / 2 + 1 });
     const n = Math.max(1, Math.min(3, Math.floor((P.iw - 4) / 3)));
@@ -252,7 +252,7 @@ const ROOMS: Record<KvThemeKey, (P: KvPlacer) => void> = {
 
   // Provador: espelhos de camarim (Meu boneco), espelho de corpo inteiro, arara de roupas e um puff.
   provador(P) {
-    floor(P, 'carpet', '#f6dce8', '#efcfdd');
+    floor(P, 'carpet', '#f5cde0', '#efc0d6');
     P.wall('mirror', 1, 'kv-vanity', { near: P.cx, use: 'boneco' });
     P.wall('mirror', 1, 'kv-vanity', { near: P.cx - 3, use: 'boneco' });
     if (P.iw >= 10) P.wall('mirror', 1, 'kv-vanity', { near: P.cx + 3, use: 'boneco' });
@@ -268,7 +268,7 @@ const ROOMS: Record<KvThemeKey, (P: KvPlacer) => void> = {
 
   // Foco: o relógio do pomodoro e cabines de mesa separadas por vidro.
   foco(P) {
-    floor(P, 'carpet', '#d8ecd6', '#cbe3c8');
+    floor(P, 'carpet', '#cde8c9', '#c0e0bb');
     P.put('filing_cabinet', P.around(P.cx, P.y1 - 1, 5), 'kv-timer', { use: 'foco', order: 0.35 });
     const cab = (y: number) => {
       for (let x = P.x0; x + 1 <= P.x1; x += 3) {
@@ -307,7 +307,7 @@ const ROOMS: Record<KvThemeKey, (P: KvPlacer) => void> = {
   // Central dos agentes: terminal (novo agente), TV do timelapse, painel do meu dia, estante do histórico, impressora
   // do feed e mesas.
   agentes(P) {
-    floor(P, 'carpet', '#cfe8e8', '#c0dede');
+    floor(P, 'carpet', '#c4e6e5', '#b5dedd');
     P.wall('tv', 3, 'kv-bigtv', { near: P.w / 2 + 2, use: 'timelapse' });
     wallOr(P, [['shelf_wall', 3, 'kv-chart']], 'meu-dia', 'kv-easel-chart', P.x0 + 2);
     P.put('filing_cabinet', P.around(P.cx, P.cy, 5), 'kv-terminal', { use: 'novo-agente', order: 0.4 });
@@ -324,7 +324,7 @@ const ROOMS: Record<KvThemeKey, (P: KvPlacer) => void> = {
   // TI: sino dos avisos, pôster das teclas (atalhos), engrenagem ("ir andando até o lugar"), bancada de voz e vídeo e o
   // rack das configurações.
   ti(P) {
-    floor(P, 'carpet', '#d9dde6', '#cdd2de');
+    floor(P, 'carpet', '#d0d6e4', '#c4cbdd');
     P.wall('clock', 1, 'kv-bell', { near: P.x0 + 1, use: 'avisos' });
     P.wall('shelf_wall', 2, 'kv-keys', { near: P.cx, use: 'atalhos' });
     P.wall('clock', 1, 'kv-gear', { near: P.x1 - 1, use: 'ir-andando' });
@@ -341,7 +341,7 @@ const ROOMS: Record<KvThemeKey, (P: KvPlacer) => void> = {
 
   // Arquitetura: a maquete da empresa (editar a planta), a prancheta (salas), a planta emoldurada e estantes.
   arquitetura(P) {
-    floor(P, 'carpet', '#dcebf6', '#cfe2f1');
+    floor(P, 'carpet', '#cfe3f5', '#c2daf1');
     P.wall('shelf_wall', 2, 'kv-blueprint', { near: P.cx, use: 'planta' });
     P.put('meeting_table', P.around(P.cx - 1, P.cy, 4), 'kv-model', { use: 'planta', order: 0.4 });
     P.put('coffee_table', P.west(1, P.cy).concat(P.east(2, 1, P.cy)).concat(P.around(P.x0 + 1, P.y1, 4)), 'kv-drafting', { use: 'salas', order: 0.4 });
@@ -357,7 +357,7 @@ const ROOMS: Record<KvThemeKey, (P: KvPlacer) => void> = {
 
   // Correio: caixa de correio e telefone (conversas), escaninho das entregas e um banco.
   correio(P) {
-    floor(P, 'carpet', '#eedbcf', '#e4cdbf');
+    floor(P, 'carpet', '#f0d2c0', '#e8c5b0');
     P.put('bookshelf', P.north(2, P.cx - 1), 'kv-cubbies', { use: 'entregas', order: 0.3 });
     P.put('filing_cabinet', P.around(P.cx - 2, P.cy + 1, 4), 'kv-mailbox', { use: 'conversas', order: 0.4 });
     P.put('filing_cabinet', P.east(1, 1, P.cy).concat(P.west(1, P.cy)), 'kv-phone', { use: 'conversas', order: 0.35 });

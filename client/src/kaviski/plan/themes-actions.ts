@@ -115,6 +115,8 @@ export const KV_ACTION_DEFS: KvActionDef[] = [
   { key: 'pessoas', label: () => tr('Pessoas'), icon: '👥', button: '.kv-btn-people', pose: 'read' },
   { key: 'registro', label: () => tr('Registro'), icon: '🗄️', open: () => openPeopleTab(tr('Registro')), can: () => !!document.querySelector('.kv-btn-people') || !!seen.get('pessoas'), pose: 'read' },
   { key: 'convites', label: () => tr('Convidar visitantes'), icon: '✉️', button: '.kv-btn-invite', pose: 'use' },
+  // a ação 'organograma' é da frente D (kvOpenOrgChart); aqui só o botão dela no topo, para passar pelo "ir e fazer"
+  { key: 'organograma', label: () => tr('Organograma'), icon: '🧭', button: '.kv-btn-org', pose: 'read' },
   { key: 'visao', label: () => tr('Visão geral do prédio'), icon: '🔭', button: '.ui-topbar button', match: (el) => label(el, tr('Visão geral (O)')), pose: 'use' },
   { key: 'agenda', label: () => tr('Minha agenda'), icon: '📅', button: '.kv-btn-agenda', pose: 'read' },
   { key: 'presenca', label: () => tr('Quem está online'), icon: '🟢', button: '.kv-me', pose: 'read' },

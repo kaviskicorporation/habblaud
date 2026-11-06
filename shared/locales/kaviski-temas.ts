@@ -41,6 +41,7 @@ const T: readonly (readonly [string, string, string, string])[] = [
   ['Atalhos', 'Shortcuts', 'Atajos', 'Raccourcis'],
   ['Ajustes de voz e vídeo', 'Voice and video settings', 'Ajustes de voz y vídeo', 'Réglages voix et vidéo'],
   ['Ir andando até o lugar', 'Walk to the place', 'Ir caminando hasta el lugar', 'Aller à pied jusqu’à l’endroit'],
+  ['Organograma', 'Org chart', 'Organigrama', 'Organigramme'],
   ['Modo clássico (descansar)', 'Classic mode (rest)', 'Modo clásico (descansar)', 'Mode classique (se reposer)'],
 ];
 
