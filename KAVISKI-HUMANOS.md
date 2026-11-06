@@ -486,6 +486,48 @@ lugar de guardar).
   `shared/locales/kaviski-extras.ts`, `client/src/kaviski/humanos/{extras,invites,agenda,focus,minimap,shortcuts,
   shortcuts-list,welcome,room-hover,walk,auto-status}.ts` + `extras.css`.
 
+### Interface no tema do Habblaud e conversas estilo Teams (frente W6)
+Pedido do Vitor: "a tela de criar user está horrível, os selects são os feios do HTML; o sistema de chats é feio;
+salve chats por conversa como Teams; pode usar o tema do Habblaud".
+- **Kit de interface** (`client/src/kaviski/humanos/ui/`): `kit.ts` (botões primário/secundário/perigo/fantasma em 3D,
+  `kvField` com erro em linha, `kvInput`, `kvPassword` com mostrar/ocultar e gerador, `kvToggle`, `kvTabs`, `kvAvatar` —
+  boneco ou iniciais na cor do crachá, com bolinha de status —, `kvRoleBadge`, `kvEmpty`, `kvChip`, `kvTitle` que só usa
+  a Pixelify quando o texto não tem "C" maiúsculo nem dígitos), `select.ts` (`KvSelect` e `KvMultiSelect` com chips:
+  teclado, busca a partir de 8 opções, digitar pula; abre dentro do `<dialog>` aberto), `modal.ts` (`KvModal`,
+  `kvConfirm`), `toast.ts` (`kvToast`, um por chave), `icons.ts` (ícones em pixel), `kit.css`.
+- **Ponte de tema** (`ui/bridge.css` + `ui/enhance.ts`): as janelas das outras frentes (convites, agenda, salas próprias,
+  quadro, mural, atalhos, nota do status, mesa fixa, barra do boneco) ganham o visual do kit sem mexer no código delas, e
+  todo `<select>` das telas das pessoas (classe `kv-*` nele ou num pai) vira o select do kit sozinho — o nativo fica
+  escondido e continua a fonte da verdade (`value`, `change`, opções novas). Os do Habblaud original não mudam.
+- **Topo que cabe** (`ui/topfit.ts`): quando os botões das pessoas não cabem numa linha, os de maior `order` vão para o
+  menu **Mais** (com o nome de cada um; contadores aparecem lá). Conversas é o último a sair.
+- **Pessoas** (`people.ts` + `people.css`): contas em cartões (boneco, papel, @usuário, salas em chips, "pede tarefas"),
+  busca e filtro por papel; formulário com papel num select com explicação e a lista do que cada papel pode, salas com
+  busca e chips (aceita colar uma pasta), senha com gerador (copia), validação em linha (`kvValidatePerson`, testada) e
+  confirmação ao apagar. Abas **Contas**, **Convites** (o conteúdo da janela de convites, `kvMountInvites` em
+  `invites.ts`) e **Registro** (agrupado por dia, com busca).
+- **Conversas** (`chat.ts` + `chat-format.ts` + `chat.css`): lista à esquerda — "Aqui" (a área; roda privada `b:` da W2
+  incluída), "Recentes" (cada 1:1 e cada sala de projeto em que estive, lembradas no navegador) e "Online agora"; busca
+  em pessoas e, com 2+ letras, nas mensagens das minhas conversas (no servidor; clicar leva até a fala e a destaca); Nova
+  conversa escolhendo a pessoa. À direita, **abas** das conversas abertas (até 6, lembradas), dias separados, falas
+  agrupadas (5 min), bolhas minhas e dos outros com boneco e nome, links só http/https (`kvLinkify`, testado), emojis,
+  urgente, "digitando…", Carregar anteriores. Sala em que não estou: só leitura, com "Ir até a sala".
+- **Servidor** (`direct.ts`, `index.ts`): 1:1 guardada por conversa (1000 falas, 180 dias), `GET /dm?with=&before=&limit=`
+  em páginas (`{messages, more}`), `POST /dm/typing {to}` (evento `typing` só para a outra pessoa, 1 a cada 1,5 s),
+  `GET /dm/search?q=` (só nas conversas de quem busca e com quem ainda pode conversar, até 40). Salas: 300 falas por 30
+  dias (`KV_CHAT_HISTORY*`). Testes em `server/kaviski/humanos/conversas.test.ts`. O fluxo de presença liga sozinho os
+  eventos novos que alguém ouvir (`presence.ts` `bind`).
+- **Cartão da pessoa** (`person-card.ts` + `.css`): faixa na cor do crachá com xadrez em pixel, boneco grande com o
+  status, papel, status com nota (W2) e onde está; ações do registro em botões grandes de ícone (a primeira em azul);
+  **mensagem rápida** (Enter manda a 1:1 e abre a conversa numa aba).
+- **Quem está online** (`online.ts` + `online.css`): eu com o status num select próprio (a nota da W2 entra logo abaixo),
+  Modo clássico (W1), Meu boneco, busca e as pessoas "Perto de você", "No escritório" e "Fora do escritório", com
+  atalhos de Mensagem e Ir até. **Meu boneco** no `KvModal`, cores do crachá em amostras e a Minha mesa (W1).
+- Celular: conversas em uma coluna (lista ou conversa, com voltar), Pessoas em uma coluna, o joystick e o E somem com a
+  conversa/lista/cartão abertos, o Mais não sai da tela.
+- Traduções em `shared/locales/kaviski-ui.ts`. Ganchos novos só em arquivos do fork: uma linha em `humanos/index.ts`
+  (`kvAutoEnhance` e `kvTopFit`) e `kvMountInvites`/`refresh` no fim de `invites.ts`.
+
 ### Testes da integração (2026-11-06)
 Instância própria da integradora (build de produção, `HABBLAUD_PORT=4771`/`4772`, `~/.habblaud-dev-int`, LiveKit local
 `ws://127.0.0.1:7880`), Chromium headless (Playwright) com 2 a 4 pessoas ao mesmo tempo (admin, equipe, cliente,

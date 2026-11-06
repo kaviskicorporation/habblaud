@@ -44,6 +44,14 @@ do meio (0.**3**.0).
   reunião" quando o local cita uma sala (de projeto ou sala de reunião própria).
 - **Mini-mapa** (tecla N), **modo foco** (pomodoro de 25/50 min, "🎧 Focado até…"), **atalhos** das pessoas na Ajuda,
   **boas-vindas** na primeira entrada e a dica de quem está na sala.
+- **Interface no tema do Habblaud** (pedido do Vitor): kit próprio com botões 3D, selects e multisseleção próprios
+  (nunca o select nativo), campos com erro em linha, senha com gerador, abas, caixas de confirmação e avisos. **Pessoas**
+  refeita (cartões com boneco, papel e salas; formulário com o que cada papel pode; abas Contas, Convites e Registro).
+  **Conversas estilo Teams**: cada conversa salva no servidor (1:1 por 180 dias, salas por 30), abas das conversas
+  abertas, bolhas com boneco e nome, dias separados, links seguros, emojis, "digitando…", urgente, busca nas mensagens e
+  Nova conversa. **Cartão da pessoa** com faixa na cor do crachá, ações em ícones grandes e mensagem rápida. Lista de
+  online, Meu boneco, barra do boneco e as janelas das outras frentes no mesmo visual; o topo manda para o menu **Mais**
+  o que não cabe.
 
 ## [1.0.3] - 2026-10-16
 

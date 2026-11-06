@@ -158,6 +158,7 @@ plano só quem entrou com a senha** (de propósito, no TwiCC). Então o auxiliar
 | `client/src/world/sim/sim.ts` (salas próprias) | ±4 | import de `layoutProjectRoom` trocado por `kvLayoutRoom` (rooms-layout.ts); as 3 chamadas (`createRoom`, sala fantasma e nova vaga no `moveRoom`) passam o `RoomInfo` | aceitar o original e trocar de novo `layoutProjectRoom(...)` por `kvLayoutRoom(..., info)` |
 | `client/src/world/render/renderer.ts` (salas próprias) | +2 | import; `kvDrawWallExtras(this.ctx, this.art, vis, rise, now)` logo depois do laço dos itens de parede em `drawWalls` | idem |
 | `shared/locales/{en,es,fr}.ts` (salas próprias) | +2 cada | import e `...KV_SALAS_XX` (`shared/locales/kaviski-salas.ts`) no fim da lista do fork | idem |
+| `shared/locales/{en,es,fr}.ts` (interface, W6) | +2 cada | import e `...KV_UI_XX` (`shared/locales/kaviski-ui.ts`: kit, Pessoas, conversas, cartão, online) no fim da lista do fork | idem |
 | `docker-compose.yml` | +5 | `HABBLAUD_FRAME_ANCESTORS`, `HABBLAUD_TWICC_URL`, `HABBLAUD_TWICC_MESSAGES` e `HABBLAUD_BRAND` no `environment:` | manter os dois lados |
 
 `server/model/office.ts` **não** foi tocado: `kaviski.attach(office)` embrulha `office.commit()` em tempo de execução e
