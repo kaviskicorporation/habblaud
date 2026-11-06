@@ -509,8 +509,8 @@ salve chats por conversa como Teams; pode usar o tema do Habblaud".
   quadro, mural, atalhos, nota do status, mesa fixa, barra do avatar) ganham o visual do kit sem mexer no código delas, e
   todo `<select>` das telas das pessoas (classe `kv-*` nele ou num pai) vira o select do kit sozinho — o nativo fica
   escondido e continua a fonte da verdade (`value`, `change`, opções novas). Os do Habblaud original não mudam.
-- **Topo que cabe** (`ui/topfit.ts`): quando os botões das pessoas não cabem numa linha, os de maior `order` vão para o
-  menu **Mais** (com o nome de cada um; contadores aparecem lá). Conversas é o último a sair.
+- **Topo que cabe**: substituído pelo **topo em grupos** (`client/src/kaviski/topbar-groups.ts`, ver `KAVISKI.md`): grupos
+  com divisória, menu **Mais** fixo para os pouco usados e o que não cabe; Conversas continua o último a sair.
 - **Pessoas** (`people.ts` + `people.css`): contas em cartões (avatar, papel, @usuário, salas em chips, "pede tarefas"),
   busca e filtro por papel; formulário com papel num select com explicação e a lista do que cada papel pode, salas com
   busca e chips (aceita colar uma pasta), senha com gerador (copia), validação em linha (`kvValidatePerson`, testada) e

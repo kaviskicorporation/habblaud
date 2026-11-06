@@ -71,7 +71,7 @@ export function kvActionButton(def: KvActionDef): HTMLElement | null {
     seen.set(def.key, now);
     return now;
   }
-  // fora do documento = guardado no menu Mais (topfit.ts): continua o mesmo botão
+  // fora do documento (guardado por um módulo): continua o mesmo botão; os do menu Mais ficam no documento (topbar-groups.ts)
   return seen.get(def.key) ?? null;
 }
 

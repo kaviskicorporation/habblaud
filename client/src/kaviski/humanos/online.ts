@@ -12,6 +12,7 @@ import type { OfficeStore } from '../../net/store';
 import { AppearanceFields } from '../../ui/appearance-fields';
 import { changedParts } from '../../ui/character-model';
 import { h } from '../../ui/dom';
+import { access, onAccessChange, remoteLogout } from '../../net/access';
 import { ROLE_LABEL } from './people';
 import { kvPeople, kvRandomSeed, STATUS_LABEL } from './world';
 import { kvOpenPersonCard } from './person-card';
@@ -75,6 +76,11 @@ export class KvOnline {
     });
     this.walkBtn = kvBtn('', { size: 'sm', icon: KV_ICONS.walk, onClick: () => kvSetClassic(!kvPeople.resting) });
     const lookBtn = kvBtn(tr('Meu avatar'), { size: 'sm', icon: KV_ICONS.user, onClick: () => kvOpenProfile() });
+    // Sair (só quem entrou com login pela porta remota; pelo próprio computador não há login)
+    const outBtn = kvBtn(tr('Sair'), { size: 'sm', icon: KV_ICONS.door, title: tr('Sair deste aparelho'), onClick: () => void remoteLogout().then((ok) => ok || kvToast(tr('Não foi possível sair: sem resposta do servidor.'), { kind: 'warn' })) });
+    outBtn.classList.add('kv-ol__out');
+    outBtn.hidden = !access().remote;
+    onAccessChange(() => (outBtn.hidden = !access().remote));
     this.meBox = h('div', { class: 'kv-ol__me-who' });
     this.search = kvInput({ placeholder: tr('Buscar pessoa'), icon: KV_ICONS.search, type: 'search', onInput: () => this.render(true) });
     this.list = h('div', { class: 'kv-ol__list' });
@@ -86,7 +92,7 @@ export class KvOnline {
       h('div', { class: 'kv-ol__me' }, this.meBox, h('div', { class: 'kv-ol__me-status' }, this.status.el)),
       // a nota do status (W2, status.ts KvStatusEditor) entra logo depois deste marcador
       h('div', { class: 'kv-online__status kv-ol__note-slot' }),
-      h('div', { class: 'kv-ol__actions' }, this.walkBtn, lookBtn),
+      h('div', { class: 'kv-ol__actions' }, this.walkBtn, lookBtn, outBtn),
       h('p', { class: 'kv-ol__hint', text: tr('Andando: setas ou WASD (Shift corre) ou clique no chão.') }),
       h('div', { class: 'kv-ol__search' }, this.search.el),
       this.list,

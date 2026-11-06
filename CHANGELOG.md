@@ -28,6 +28,14 @@ do meio (0.**3**.0).
   5 h e semana) com o % nas cores de alerta e o tempo até renovar. Quando falta espaço, somem primeiro o nome e os
   horários (a letra da conta vai para a logo) e, por fim, fica só a logo com o % da semana. E-mail, plano, horários
   exatos e origem dos números continuam na dica do cartão.
+- **Barra do topo organizada em grupos.** Os quase 20 ícones soltos da direita viraram grupos com uma divisória
+  sutil — Escritório (conversas, pessoas, salas, agenda, foco), Agentes e o dia (feed, Meu dia, timelapse, histórico)
+  e Sistema (avisos, configurações, ajuda) — e um menu **Mais** (⋯) com ícone, nome e atalho para os pouco usados
+  (convidar visitantes, modo clássico, organograma, planta da empresa, Habblaud World) e para o que não couber. Com
+  isso os cartões de uso aparecem completos em 1920 px e no nível médio em 1440 px, sem segunda linha. Cada botão
+  mostra o atalho na dica. O chip da pessoa logada foi para o canto direito e abre o menu da conta (status, avatar,
+  modo clássico e **Sair** no acesso remoto); "Conectado" e a versão viraram uma cápsula só. Corrigido o chip da
+  pessoa por cima do logotipo em telas estreitas e no celular.
 - **Responder pelo escritório às sessões do TwiCC**: perguntas, aprovação de ferramenta e de plano das sessões que rodam
   no TwiCC aparecem no cartão "pede permissão" do agente e são respondidas no Habblaud (aprovar, recusar com motivo,
   "sempre permitir", responder), sem abrir o TwiCC. Precisa da senha do TwiCC em `~/.habblaud/twicc-senha`.

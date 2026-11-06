@@ -9,6 +9,7 @@ import { KV_SOCIAL_ES } from './kaviski-social'; // fork Kaviski (KAVISKI-HUMANO
 import { KV_MEDIA_ES } from './kaviski-media'; // fork Kaviski (KAVISKI-HUMANOS.md, W3)
 import { KV_UI_ES } from './kaviski-ui'; // fork Kaviski (KAVISKI-HUMANOS.md, W6)
 import { KV_EDITOR_ES } from './kaviski-editor'; // fork Kaviski (planta livre: editor)
+import { KV_TOPO_ES } from './kaviski-topo'; // fork Kaviski (topo em grupos)
 import { KV_MARCA_ES } from './kaviski-marca'; // fork Kaviski (marca Voxtrin, empresa)
 import { KV_TEMAS_ES } from './kaviski-temas'; // fork Kaviski: salas temáticas (planta livre, C)
 import { KV_APROV_ES } from './kaviski-aprovacoes'; // fork Kaviski (KAVISKI.md)
@@ -26,6 +27,7 @@ export const ES: Readonly<Record<string, string>> = {
   ...KV_PLANTA_ES, // fork Kaviski (planta livre: motor do prédio)
   ...KV_UI_ES, // fork Kaviski (KAVISKI-HUMANOS.md, W6)
   ...KV_EDITOR_ES, // fork Kaviski (planta livre: editor)
+  ...KV_TOPO_ES, // fork Kaviski (topo em grupos)
   ...KV_MARCA_ES, // fork Kaviski (marca Voxtrin, empresa)
   ...KV_TEMAS_ES, // fork Kaviski: salas temáticas (planta livre, C)
   // fork Kaviski (KAVISKI.md): client/src/kaviski, server/kaviski

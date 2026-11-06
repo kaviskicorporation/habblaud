@@ -1,0 +1,341 @@
+/* Fork Kaviski (KAVISKI.md, "Barra do topo em grupos"): divisórias entre os grupos de botões, o menu "Mais" (⋯), o
+   chip da conta no fim da barra e a conexão + versão numa cápsula só (topbar-groups.ts). Só com a classe .kv-topo na
+   raiz (ligada pelo módulo): sem ela, o topo é o original. */
+
+/* ---- divisória sutil entre os grupos */
+.kv-tg-sep {
+  flex: none;
+  align-self: center;
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: linear-gradient(180deg, transparent, var(--ui-line-strong) 25%, var(--ui-line-strong) 75%, transparent);
+}
+
+/* ---- botão "Mais" e o depósito dos botões que moram nele */
+.kv-tg-more-wrap {
+  position: relative;
+  display: inline-grid;
+}
+
+.kv-tg-more-wrap[hidden] {
+  display: none;
+}
+
+.kv-tg-more {
+  position: relative;
+}
+
+.kv-tg-more__dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 7px;
+  height: 7px;
+  background: #e5484d;
+  box-shadow: 0 0 0 2px #161a24;
+}
+
+.kv-tg-more__dot[hidden] {
+  display: none;
+}
+
+/* Invisível, mas no documento e em cima do ⋯: a janela que o botão abre ancorada nele abre embaixo do ⋯. */
+.kv-tg-stash {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.kv-tg-stash > * {
+  position: absolute !important;
+  inset: 0;
+  margin: 0;
+}
+
+/* ---- menu "Mais" */
+.kv-tg-menu {
+  position: fixed;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 260px;
+  max-height: calc(100vh - var(--top-h, 60px) - 24px);
+  overflow-y: auto;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--ui-line-strong);
+  background: var(--kv-ui-panel, var(--ui-bg-solid));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 4px 0 rgba(0, 0, 0, 0.35),
+    0 18px 44px rgba(5, 7, 12, 0.6);
+  color: var(--ui-text);
+  font: 13px/1.3 var(--font-ui);
+  animation: kv-ui-pop-in 0.14s var(--ease);
+}
+
+.kv-tg-menu[hidden] {
+  display: none;
+}
+
+.kv-tg-menu__title {
+  padding: 8px 10px 3px;
+  font: 700 9.5px/1 var(--font-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-faint);
+}
+
+.kv-tg-menu__title:not(:first-child) {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ui-line);
+}
+
+.kv-tg-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  color: var(--ui-text);
+  text-align: left;
+}
+
+.kv-tg-menu__item:hover,
+.kv-tg-menu__item:focus-visible {
+  background: var(--ui-bg-hover);
+  outline: none;
+}
+
+.kv-tg-menu__item:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--ui-accent);
+}
+
+.kv-tg-menu__item.is-on {
+  background: var(--ui-accent-soft);
+  color: var(--ui-accent);
+}
+
+.kv-tg-menu__ico {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  flex: none;
+  color: var(--ui-muted);
+}
+
+.kv-tg-menu__item.is-on .kv-tg-menu__ico {
+  color: var(--ui-accent);
+}
+
+.kv-tg-menu__label {
+  flex: 1;
+  white-space: nowrap;
+}
+
+.kv-tg-menu__key {
+  flex: none;
+  min-width: 20px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  border: 1px solid var(--ui-line-strong);
+  border-bottom-width: 2px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ui-muted);
+  font: 600 10.5px/1.2 var(--font-mono);
+  text-align: center;
+}
+
+/* ---- conexão + versão numa cápsula só ("● Conectado │ v1.0.3") */
+.kv-topo .ui-topbar__status {
+  gap: 0;
+}
+
+.kv-topo .ui-topbar__status > .ui-pill:has(+ .ui-version:not([hidden])) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.kv-topo .ui-topbar__status > .ui-pill + .ui-version:not(.is-new) {
+  height: 18px;
+  padding: 0 7px 0 6px;
+  border: 1px solid var(--ui-line);
+  border-left: 0;
+  border-radius: 0 999px 999px 0;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.kv-topo .ui-topbar__status > .ui-pill + .ui-version.is-new {
+  border-left: 0;
+  border-radius: 0 999px 999px 0;
+}
+
+.kv-topo .ui-topbar__status > :not(.ui-pill, .ui-version) {
+  margin-left: 6px;
+}
+
+/* ---- chip da conta no fim da barra (menu: nome, papel, status, meu avatar, modo clássico, sair) */
+.kv-tg-acct {
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+
+.kv-tg-acct .kv-me {
+  height: 38px;
+  max-width: 190px;
+  margin-left: 0;
+  padding: 0 10px 0 4px;
+  gap: 7px;
+  border-radius: 9px;
+}
+
+.kv-me__ini {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: linear-gradient(180deg, rgba(124, 200, 255, 0.28), rgba(124, 200, 255, 0.12));
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25);
+  color: var(--ui-text);
+  font: 800 13px/1 var(--font-ui);
+}
+
+.kv-me.kv-role--admin .kv-me__ini {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--st-waiting) 38%, transparent), color-mix(in srgb, var(--st-waiting) 14%, transparent));
+}
+
+.kv-me.kv-role--cliente .kv-me__ini {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--st-working) 38%, transparent), color-mix(in srgb, var(--st-working) 14%, transparent));
+}
+
+/* O ponto do status vira um selo no canto da inicial. */
+.kv-tg-acct .kv-me {
+  position: relative;
+}
+
+.kv-tg-acct .kv-me__dot {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #161a24;
+  box-sizing: content-box;
+  transform: translate(19px, 19px);
+}
+
+/* Nome em cima, papel embaixo (o chip fica estreito). */
+.kv-tg-acct .kv-me {
+  display: grid;
+  grid-template-columns: auto minmax(0, auto);
+  grid-template-rows: auto auto;
+  column-gap: 7px;
+  row-gap: 3px;
+  align-content: center;
+  align-items: center;
+}
+
+.kv-tg-acct .kv-me__ini {
+  grid-row: 1 / 3;
+}
+
+.kv-tg-acct .kv-me__name {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.kv-tg-acct .kv-me__role {
+  grid-column: 2;
+  grid-row: 2;
+  font-size: 8.5px;
+}
+
+.kv-tg-acct .kv-me__count {
+  display: none;
+}
+
+/* ---- larguras */
+@media (max-width: 1500px) {
+  .kv-tg-acct .kv-me {
+    max-width: 150px;
+  }
+}
+
+/* Passos de aperto (KV_TOP_STEPS em topbar-model.ts, ligados por topbar-groups.ts quando a barra não cabe). */
+.kv-tg-acct-mini .kv-tg-acct .kv-me {
+  display: inline-grid;
+  grid-template-columns: auto;
+  padding: 0 4px;
+}
+
+.kv-tg-acct-mini .kv-tg-acct .kv-me__name,
+.kv-tg-acct-mini .kv-tg-acct .kv-me__role {
+  display: none;
+}
+
+.kv-tg-counters-mini :is(.ui-counter--rooms, .ui-counter--subagents) {
+  display: none;
+}
+
+.kv-tg-waiting-mini .ui-counter--waiting {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+}
+
+.kv-tg-waiting-mini .ui-counter--waiting .ui-counter__label {
+  display: none;
+}
+
+.kv-tg-waiting-mini .ui-counter--waiting .ui-counter__icon {
+  display: block;
+}
+
+@media (max-width: 600px) {
+  .kv-tg-acct .kv-me {
+    display: inline-grid;
+    grid-template-columns: auto;
+    height: 34px;
+    padding: 0 3px;
+  }
+
+  .kv-tg-acct .kv-me__name,
+  .kv-tg-acct .kv-me__role {
+    display: none;
+  }
+
+  .kv-me__ini {
+    width: 26px;
+    height: 26px;
+  }
+
+  .kv-tg-acct .kv-me__dot {
+    transform: translate(17px, 17px);
+  }
+
+  .kv-tg-sep {
+    display: none;
+  }
+}
+
+/* "Sair" no menu da conta (online.ts): menor que os outros dois. */
+.kv-ol__actions .kv-ui-btn.kv-ol__out {
+  flex: none;
+}
+
+.kv-ol__actions {
+  flex-wrap: wrap;
+}
