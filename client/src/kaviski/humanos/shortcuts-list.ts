@@ -71,6 +71,7 @@ export const KV_SHORTCUTS: KvShortcutGroup[] = [
     items: [
       { keys: ['E'], text: tr('Usar o que está perto: sentar, café, quadro, mural, itens das salas temáticas') },
       { keys: ['E'], text: tr('Sentado: levantar (andar também levanta)') },
+      { keys: ['Tab'], text: tr('Perto de várias coisas (ou sentado): escolher qual ação o E usa; clicar na ação também usa') },
       { keys: [{ m: tr('clique num item') }], text: tr('Usar o item, com o avatar perto dele') },
       { keys: [{ m: tr('clique numa cadeira') }], text: tr('Sentar, minha mesa ou fixar um agente de IA nela') },
       { keys: ['Shift+' + tr('clique')], text: tr('Num botão do topo: abrir direto, sem o avatar andar até a sala') },
@@ -94,6 +95,7 @@ export const KV_SHORTCUTS: KvShortcutGroup[] = [
     color: '#ff8a4c',
     icon: 'window',
     items: [
+      { keys: ['Ctrl+K'], text: tr('Busca rápida: pessoas, agentes, salas e ações') },
       { keys: ['?'], text: tr('Ajuda do Habblaud (com estas teclas no começo)') },
       { keys: ['T'], text: tr('Terminal do agente selecionado'), only: 'team' },
       { keys: ['L'], text: tr('Timelapse do dia'), only: 'team' },

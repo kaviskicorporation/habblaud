@@ -1,6 +1,6 @@
 // Fork Kaviski (KAVISKI-HUMANOS.md): móveis que o meu boneco usa — regras puras (sem DOM nem Sim), testadas em
-// seats.test.ts. Sentar (cadeira de mesa, banqueta, poltrona, sofá, puff, banco), usar uma máquina (café, água),
-// jogar fliperama, ler na estante; qual assento serve de mesa fixa; qual lugar do lounge para descansar; e um tile
+// seats.test.ts. Sentar (cadeira de mesa, banqueta, poltrona, sofá, puff, banco), usar uma máquina (café, água,
+// lanche, geladeira), lavar as mãos, jogar fliperama e pingue-pongue, torcer na partida, ler na estante; qual assento serve de mesa fixa; qual lugar do lounge para descansar; e um tile
 // livre ao lado de alguém (para ir até, teleportar ou levantar).
 import type { SpotDef, SpotKind } from '../../world/layout/types';
 import { FREE, type WalkGrid } from '../../world/path/grid';
@@ -16,17 +16,28 @@ export const KV_LOUNGE = 'core:lounge';
 
 /** Coisas em pé: o que fazer ali (pose, item na mão, quanto tempo de "usar" antes). */
 export interface KvUseDef {
-  pose: 'drink' | 'game' | 'read';
-  held: 'coffee' | 'water' | 'controller' | 'book';
+  pose: 'drink' | 'game' | 'read' | 'play' | 'cheer' | 'use';
+  held: 'coffee' | 'water' | 'controller' | 'book' | 'paddle' | 'none';
   /** ms da pose 'use' (operando a máquina) antes. */
   useMs: number;
+  /** Segura a pose só por estes ms e solta o lugar (sem: até andar; 'drink' tem o tempo dele). */
+  ms?: number;
 }
 export const KV_USE: Partial<Record<SpotKind, KvUseDef>> = {
   coffee: { pose: 'drink', held: 'coffee', useMs: 1900 },
   water: { pose: 'drink', held: 'water', useMs: 1000 },
+  // lanche da máquina: "beber" sem copo = a mão vai à boca (comendo)
+  snack: { pose: 'drink', held: 'none', useMs: 1500 },
+  fridge: { pose: 'drink', held: 'water', useMs: 1400 },
+  sink: { pose: 'use', held: 'none', useMs: 0, ms: 2600 },
   arcade: { pose: 'game', held: 'controller', useMs: 0 },
+  pingpong: { pose: 'play', held: 'paddle', useMs: 0 },
+  watch: { pose: 'cheer', held: 'none', useMs: 0 },
   shelf: { pose: 'read', held: 'book', useMs: 600 },
 };
+
+/** Poses de quem está sentado (alternativas da tecla E sentado): cochilar, olhar o celular, digitar. */
+export type KvSeatPose = 'sit' | 'sleep' | 'phone' | 'type';
 
 /** Até quantos px (do meu boneco ao lugar) a tecla E alcança. */
 export const KV_REACH_PX = 1.6 * TILE;

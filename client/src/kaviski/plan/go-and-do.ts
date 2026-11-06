@@ -483,7 +483,9 @@ export function kvStartGoAndDo(): void {
     if (!best) return null;
     const s = best;
     const room = roomName(s);
-    return { id: `kv-gd:${s.action}:${s.tx},${s.ty}`, label: room ? `${actionLabel(s.action)} (${room})` : actionLabel(s.action), dist: bd, run: () => kvGoAndDo(s.action, { spot: s }) };
+    const icon = kvAction(s.action)?.icon ?? '';
+    // o ícone da ação vem como emoji ou nome de ícone do kit (esse não cabe na barra: fica a estrela)
+    return { id: `kv-gd:${s.action}:${s.tx},${s.ty}`, label: actionLabel(s.action), sub: room || undefined, icon: icon && !/^[\w-]+$/.test(icon) ? icon : '✨', tone: 'work', dist: bd, run: () => kvGoAndDo(s.action, { spot: s }) };
   });
 
   // clicar num item: o boneco vai até ele e usa

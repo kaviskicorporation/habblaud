@@ -5,6 +5,7 @@ import { KV_HUMANOS_FR } from './kaviski-humanos'; // fork Kaviski (KAVISKI-HUMA
 import { KV_SALAS_FR } from './kaviski-salas'; // fork Kaviski: salas próprias e objetos
 import { KV_EXTRAS_FR } from './kaviski-extras'; // fork Kaviski (KAVISKI-HUMANOS.md)
 import { KV_W1_FR } from './kaviski-w1'; // fork Kaviski (KAVISKI-HUMANOS.md, W1)
+import { KV_UX_FR } from './kaviski-ux'; // fork Kaviski (KAVISKI.md, detalhes de UX)
 import { KV_SOCIAL_FR } from './kaviski-social'; // fork Kaviski (KAVISKI-HUMANOS.md, W2)
 import { KV_MEDIA_FR } from './kaviski-media'; // fork Kaviski (KAVISKI-HUMANOS.md, W3)
 import { KV_UI_FR } from './kaviski-ui'; // fork Kaviski (KAVISKI-HUMANOS.md, W6)
@@ -19,6 +20,7 @@ export const FR: Readonly<Record<string, string>> = {
   ...KV_HUMANOS_FR, // fork Kaviski (KAVISKI-HUMANOS.md)
   ...KV_EXTRAS_FR, // fork Kaviski (KAVISKI-HUMANOS.md)
   ...KV_W1_FR, // fork Kaviski (W1)
+  ...KV_UX_FR, // fork Kaviski (detalhes de UX)
   ...KV_SOCIAL_FR, // fork Kaviski (KAVISKI-HUMANOS.md, W2)
   ...KV_MEDIA_FR, // fork Kaviski (KAVISKI-HUMANOS.md, W3)
   ...KV_SALAS_FR, // fork Kaviski: salas próprias e objetos

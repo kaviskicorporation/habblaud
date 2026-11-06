@@ -393,7 +393,8 @@ export function kvStartObjects(client: KvPresenceClient, person: KvPerson): void
     const a = best.a;
     const fresh = a.kind === 'mural' ? kvNewNotes(a.area) : 0;
     const label = a.kind === 'link' ? tr('Abrir “{0}”', [a.link!.title]) : fresh ? tr('{0} ({1} novo)', [LABEL.mural(), fresh]) : LABEL[a.kind]();
-    return { id: `${a.kind}:${a.area}:${a.link?.id ?? ''}`, label, dist: best.d, run: () => use(a) };
+    const look = a.kind === 'link' ? { icon: '🔗', tone: 'link' as const } : a.kind === 'mural' ? { icon: fresh ? '📬' : '📌', tone: 'door' as const } : { icon: '🖍️', tone: 'board' as const };
+    return { id: `${a.kind}:${a.area}:${a.link?.id ?? ''}`, label, sub: a.name, ...look, dist: best.d, run: () => use(a) };
   });
 
   // clique no objeto (com o meu boneco na mesma área): usa, e o clique não vira "andar até lá"

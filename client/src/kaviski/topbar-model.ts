@@ -63,6 +63,7 @@ export const KV_TOP_SLOTS: KvTopSlot[] = [
   { cls: 'kv-btn-org', group: 'empresa', order: 10, name: () => tr('Organograma'), more: true },
   { cls: 'kv-btn-plan', group: 'empresa', order: 20, name: () => tr('Planta da empresa'), more: true },
 
+  { cls: 'kv-btn-search', group: 'sistema', order: 5, name: () => tr('Busca rápida'), key: 'Ctrl+K' }, // ux/spotlight.ts: sempre à vista, como a lupa do Mac
   { cls: 'kv-btn-alerts', group: 'sistema', order: 10, name: () => tr('Avisos'), drop: 10 },
   { label: () => tr('Configurações'), group: 'sistema', order: 20, name: () => tr('Configurações') },
   { label: () => tr('Ajuda (?)'), group: 'sistema', order: 30, name: () => tr('Ajuda'), key: '?' },

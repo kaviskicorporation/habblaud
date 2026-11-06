@@ -93,8 +93,9 @@ export function kvStartTouch(): void {
     const t = show ? kvInteractTarget() : null;
     act.hidden = !show;
     act.disabled = !t;
-    const label = t?.label ?? '';
+    const label = t ? `${t.icon ?? ''} ${t.label}`.trim() : '';
     if (actText.textContent !== label) actText.textContent = label;
+    act.dataset.tone = t?.tone ?? '';
   };
   requestAnimationFrame(tick);
 }

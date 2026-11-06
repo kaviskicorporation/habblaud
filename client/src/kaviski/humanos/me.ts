@@ -11,7 +11,7 @@ import type { Character } from '../../world/sim/character';
 import type { Sim } from '../../world/sim/sim';
 import type { Step } from '../../world/sim/steps';
 import { canStand, NO_INTENT, VISITOR_ID, type VisitorIntent } from '../../world/sim/visitor';
-import { followNeedsRepath, freeTileAt, freeTileNear, KV_LOUNGE, KV_USE, restSeat, type KvUseDef } from './seats';
+import { followNeedsRepath, freeTileAt, freeTileNear, KV_LOUNGE, KV_USE, restSeat, type KvSeatPose, type KvUseDef } from './seats';
 
 /** Dono de reserva da mesa fixa de uma pessoa (agente nenhum a escolhe como lugar). */
 export const DESK_OWNER = 'kvdesk:';
@@ -147,8 +147,9 @@ export class KvMeCtl {
     } else {
       steps.push({ t: 'go', tx: spot.tx, ty: spot.ty, fx: spot.x, fy: spot.y, dir: spot.dir });
       if (use?.useMs) steps.push({ t: 'act', pose: 'use', ms: use.useMs, machine: spot.furnitureId });
-      if (use?.pose === 'drink') {
-        seat.hold = { t: 'until', cond: () => this.seat !== seat, minMs: DRINK_MS, maxMs: DRINK_MS, pose: 'drink', held: use.held };
+      const ms = use?.pose === 'drink' ? DRINK_MS : use?.ms; // fork Kaviski: usos com tempo (lanche, pia)
+      if (use && ms) {
+        seat.hold = { t: 'until', cond: () => this.seat !== seat, minMs: ms, maxMs: ms, pose: use.pose, held: use.held };
         steps.push(seat.hold, { t: 'do', fn: () => this.seat === seat && this.release(sim) });
       } else {
         seat.hold = { t: 'until', cond: () => this.seat !== seat, minMs: 0, maxMs: 1e12, pose: use?.pose ?? 'stand', held: use?.held ?? 'none' };
@@ -162,6 +163,27 @@ export class KvMeCtl {
     v.step = null;
     sim.visitorIntent = { ...NO_INTENT };
     v.queue.push(...steps);
+    this.dirty = true;
+    return true;
+  }
+
+  /** Pose de quem está sentado agora (o que a tecla E oferece trocar). */
+  seatPose(sim: Sim): KvSeatPose | null {
+    const v = sim.visitor;
+    if (!v || !this.seated(sim)) return null;
+    if (v.pose === 'sleep') return 'sleep';
+    if (v.pose === 'type') return 'type';
+    return v.held === 'phone' ? 'phone' : 'sit';
+  }
+
+  /** Sentado: cochilar, olhar o celular, digitar ou só sentar. false = não estou sentado. */
+  setSeatPose(sim: Sim, pose: KvSeatPose): boolean {
+    const v = sim.visitor;
+    const hold = this.seat?.hold;
+    if (!v || !hold || hold.t !== 'until' || !this.seated(sim)) return false;
+    hold.pose = pose === 'phone' ? 'sit' : pose;
+    hold.held = pose === 'phone' ? 'phone' : 'none';
+    v.setPose(hold.pose, hold.held);
     this.dirty = true;
     return true;
   }

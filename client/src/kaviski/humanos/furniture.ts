@@ -1,8 +1,8 @@
 // Fork Kaviski (KAVISKI-HUMANOS.md): usar os móveis com o meu boneco e escolher a mesa fixa.
-// - Tecla E (interact.ts): perto de um assento livre, "Sentar"; da máquina de café/água, do fliperama, da estante,
-//   "Tomar café" etc.; sentado, "Levantar" (andar também levanta).
+// - Tecla E (interact.ts): perto de um assento livre, "Sentar no sofá", "Afundar no puff"...; das máquinas e brinquedos
+//   "Tomar café", "Pegar um lanche", "Lavar as mãos", "Jogar pingue-pongue", "Torcer"...; sentado, "Levantar" e as
+//   alternativas (Tab): cochilar, olhar o celular, digitar (na mesa) e "Definir como minha mesa".
 // - Clique num assento: menu pequeno com "Sentar aqui" e, nas cadeiras das salas, "Definir como minha mesa".
-// - Sentado numa cadeira de sala que não é a minha mesa: botão flutuante "Definir como minha mesa".
 // - "Minha mesa" na janela Meu avatar (deskSection): ir até ela, usar a cadeira onde estou, tirar.
 // O servidor valida a mesa (POST /api/kaviski/humanos/desk: só salas que a pessoa vê, uma cadeira por pessoa).
 import { tr } from '../../../../shared/i18n';
@@ -10,18 +10,44 @@ import type { KvPos } from '../../../../shared/kaviski-presence';
 import type { SpotDef, SpotKind } from '../../world/layout/types';
 import { VISITOR_ID } from '../../world/sim/visitor';
 import { h } from '../../ui/dom';
-import { kvRegisterInteract } from './interact';
+import { kvRegisterInteract, type KvInteractable, type KvInteractTone } from './interact';
 import { DESK_OWNER } from './me';
-import { KV_DESK_KINDS, KV_REACH_PX, KV_SIT_KINDS, KV_USE, nearestSpot } from './seats';
+import { KV_DESK_KINDS, KV_REACH_PX, KV_SIT_KINDS, KV_USE, nearestSpot, type KvSeatPose } from './seats';
 import { kvPeople } from './world';
 
-const USE_LABEL: Partial<Record<SpotKind, () => string>> = {
-  coffee: () => tr('Tomar café'),
-  water: () => tr('Beber água'),
-  arcade: () => tr('Jogar fliperama'),
-  shelf: () => tr('Pegar um livro'),
+/** Como cada móvel aparece na barra de ações: nome, ícone e cor. */
+interface UseLook {
+  label: () => string;
+  icon: string;
+  tone: KvInteractTone;
+}
+const LOOK: Partial<Record<SpotKind, UseLook>> = {
+  desk: { label: () => tr('Sentar à mesa'), icon: '💺', tone: 'seat' },
+  stool: { label: () => tr('Sentar na banqueta'), icon: '🪑', tone: 'seat' },
+  nook: { label: () => tr('Sentar na poltrona'), icon: '🛋️', tone: 'seat' },
+  cafe_seat: { label: () => tr('Sentar à mesa da copa'), icon: '🪑', tone: 'seat' },
+  sofa: { label: () => tr('Sentar no sofá'), icon: '🛋️', tone: 'rest' },
+  armchair: { label: () => tr('Sentar na poltrona'), icon: '🛋️', tone: 'rest' },
+  beanbag: { label: () => tr('Afundar no puff'), icon: '🫘', tone: 'rest' },
+  bench: { label: () => tr('Sentar no banco'), icon: '🪑', tone: 'seat' },
+  coffee: { label: () => tr('Tomar café'), icon: '☕', tone: 'food' },
+  water: { label: () => tr('Beber água'), icon: '💧', tone: 'care' },
+  snack: { label: () => tr('Pegar um lanche'), icon: '🍪', tone: 'food' },
+  fridge: { label: () => tr('Abrir a geladeira'), icon: '🧃', tone: 'food' },
+  sink: { label: () => tr('Lavar as mãos'), icon: '🫧', tone: 'care' },
+  arcade: { label: () => tr('Jogar fliperama'), icon: '🕹️', tone: 'fun' },
+  pingpong: { label: () => tr('Jogar pingue-pongue'), icon: '🏓', tone: 'fun' },
+  watch: { label: () => tr('Torcer na partida'), icon: '📣', tone: 'fun' },
+  shelf: { label: () => tr('Pegar um livro'), icon: '📚', tone: 'read' },
 };
 const USE_KINDS = Object.keys(KV_USE) as SpotKind[];
+
+/** Sentado: as poses que dá para trocar (a que estou agora some da lista). */
+const SEAT_POSES: { pose: KvSeatPose; label: () => string; icon: string; tone: KvInteractTone; desk?: boolean }[] = [
+  { pose: 'type', label: () => tr('Trabalhar no computador'), icon: '⌨️', tone: 'work', desk: true },
+  { pose: 'phone', label: () => tr('Olhar o celular'), icon: '📱', tone: 'link' },
+  { pose: 'sleep', label: () => tr('Cochilar'), icon: '😴', tone: 'rest' },
+];
 
 type Warn = (text: string) => void;
 
@@ -59,7 +85,7 @@ function freeForMe(s: SpotDef): boolean {
 }
 
 /** Itens a mais no menu da cadeira (planta livre: "Fixar um agente aqui", fixed-agents.ts). */
-export const kvSeatMenuExtras: ((s: SpotDef) => { label: string; run: () => void } | null)[] = [];
+export const kvSeatMenuExtras: ((s: SpotDef) => { label: string; icon?: string; run: () => void } | null)[] = [];
 
 export function kvStartFurniture(warn: Warn): void {
   const setDesk = async (s: SpotDef) => {
@@ -78,11 +104,26 @@ export function kvStartFurniture(warn: Warn): void {
   kvRegisterInteract((me) => {
     const c = kvPeople.ctl?.();
     if (!c || !kvPeople.inside) return null;
-    if (c.me.using(c.sim)) return { id: `kv-stand`, label: c.me.seat?.spot.seated ? tr('Levantar') : tr('Parar'), dist: 0, run: () => c.me.stand(c.sim) };
+    if (c.me.using(c.sim)) {
+      const spot = c.me.seat?.spot;
+      const seated = !!spot?.seated;
+      const out: KvInteractable[] = [{ id: `kv-stand`, label: seated ? tr('Levantar') : tr('Parar'), icon: seated ? '🧍' : '✋', tone: 'stand', dist: 0, run: () => c.me.stand(c.sim) }];
+      const now = c.me.seatPose(c.sim);
+      if (spot && now) {
+        // a pose de agora volta como "Só sentar"; as outras viram alternativas (Tab)
+        if (now !== 'sit') out.unshift({ id: 'kv-pose:sit', label: now === 'sleep' ? tr('Acordar') : tr('Só sentar'), icon: now === 'sleep' ? '☀️' : '🙂', tone: 'seat', dist: -1, run: () => c.me.setSeatPose(c.sim, 'sit') });
+        for (const p of SEAT_POSES) {
+          if (p.pose === now || (p.desk && !KV_DESK_KINDS.includes(spot.kind))) continue;
+          out.push({ id: `kv-pose:${p.pose}`, label: p.label(), icon: p.icon, tone: p.tone, dist: 1 + out.length, run: () => c.me.setSeatPose(c.sim, p.pose) });
+        }
+        if (deskable(spot) && kvPeople.client?.state?.me && !isMyDesk(spot)) out.push({ id: 'kv-desk-set', label: tr('Definir como minha mesa'), icon: '📌', tone: 'door', dist: 0.5, run: () => void setDesk(spot) });
+      }
+      return out;
+    }
     const s = nearestSpot(c.sim.spots.all(), me.x, me.y, [...KV_SIT_KINDS, ...USE_KINDS], KV_REACH_PX, freeForMe);
     if (!s) return null;
-    const label = USE_LABEL[s.kind]?.() ?? tr('Sentar');
-    return { id: `kv-seat:${s.id}`, label, dist: Math.hypot(s.x - me.x, s.y - me.y), run: () => sit(s) };
+    const look = LOOK[s.kind];
+    return { id: `kv-seat:${s.id}`, label: look?.label() ?? tr('Sentar'), icon: look?.icon ?? '🪑', tone: look?.tone ?? 'seat', dist: Math.hypot(s.x - me.x, s.y - me.y), run: () => sit(s) };
   });
 
   // ---- clique num assento: menu
@@ -97,39 +138,17 @@ export function kvStartFurniture(warn: Warn): void {
   });
   kvPeople.onSeatClick = (s, at) => {
     const r = document.getElementById('world')?.getBoundingClientRect();
-    const item = (text: string, fn: () => void) => h('button', { class: 'ui-btn ui-btn--sm', type: 'button', text, attrs: { role: 'menuitem' }, on: { click: () => (closeMenu(), fn()) } });
-    const items = [item(tr('Sentar aqui'), () => sit(s))];
-    if (deskable(s) && kvPeople.client?.state?.me) items.push(item(tr('Definir como minha mesa'), () => void setDesk(s)));
-    for (const x of kvSeatMenuExtras) for (const it of [x(s)]) if (it) items.push(item(it.label, it.run));
+    const item = (icon: string, text: string, fn: () => void) =>
+      h('button', { class: 'ui-btn ui-btn--sm kv-seat-menu__item', type: 'button', attrs: { role: 'menuitem' }, on: { click: () => (closeMenu(), fn()) } }, h('span', { class: 'kv-seat-menu__ico', text: icon, attrs: { 'aria-hidden': 'true' } }), h('span', { text }));
+    const items = [item(LOOK[s.kind]?.icon ?? '🪑', tr('Sentar aqui'), () => sit(s))];
+    if (deskable(s) && kvPeople.client?.state?.me) items.push(item('📌', tr('Definir como minha mesa'), () => void setDesk(s)));
+    for (const x of kvSeatMenuExtras) for (const it of [x(s)]) if (it) items.push(item(it.icon ?? '🤖', it.label, it.run));
     menu.replaceChildren(...items);
     menu.style.left = `${Math.round((r?.left ?? 0) + at.x)}px`;
     menu.style.top = `${Math.round((r?.top ?? 0) + at.y + 8)}px`;
     menu.hidden = false;
     (menu.firstElementChild as HTMLElement | null)?.focus();
   };
-
-  // ---- sentado numa cadeira de sala que não é a minha: "Definir como minha mesa"
-  const pin = h('button', { class: 'kv-desk-pin ui-btn ui-btn--sm', type: 'button', hidden: true, text: `📌 ${tr('Definir como minha mesa')}` });
-  pin.addEventListener('click', () => {
-    const s = kvPeople.ctl?.()?.me.seat?.spot;
-    if (s) void setDesk(s);
-  });
-  (document.querySelector('.ui-root') ?? document.body).append(pin);
-  const tick = () => {
-    requestAnimationFrame(tick);
-    const c = kvPeople.ctl?.();
-    const s = c && kvPeople.inside && c.me.seated(c.sim) ? c.me.seat?.spot : undefined;
-    const mine = s && c ? c.sim.spots.ownerOf(s.id) === VISITOR_ID && isMyDesk(s) : false;
-    const where = s ? kvPeople.locate?.(null) : null;
-    if (!s || !where || !deskable(s) || mine) {
-      pin.hidden = true;
-      return;
-    }
-    pin.hidden = false;
-    pin.style.left = `${Math.round(where.sx)}px`;
-    pin.style.top = `${Math.round(where.sy + 10 * where.zoom)}px`;
-  };
-  requestAnimationFrame(tick);
 }
 
 /** O assento é a minha mesa fixa? (a posição guardada cai neste lugar) */

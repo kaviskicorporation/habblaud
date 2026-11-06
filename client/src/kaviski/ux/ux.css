@@ -1,0 +1,254 @@
+/* Fork Kaviski (KAVISKI.md, "Detalhes de UX"): Busca rápida (spotlight.ts) e o toque dos botões. */
+
+/* ---- botões que respondem ao toque: afundam um pouquinho ao apertar (como no iPhone) ---- */
+.ui-btn:active:not(:disabled),
+.ui-icon-btn:active:not(:disabled),
+.kv-ui-btn:active:not(:disabled),
+.kv-seat-menu__item:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.ui-btn,
+.ui-icon-btn,
+.kv-ui-btn {
+  transition-property: background-color, border-color, color, transform;
+  transition-duration: 0.15s, 0.15s, 0.15s, 0.08s;
+}
+
+/* foco do teclado sempre visível (o do mouse não) */
+.ui-btn:focus-visible,
+.ui-icon-btn:focus-visible,
+.kv-act__chip:focus-visible {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 2px;
+}
+
+/* ---- Busca rápida ---- */
+.kv-spot {
+  position: fixed;
+  top: 14vh;
+  bottom: auto;
+  height: fit-content;
+  width: min(620px, calc(100vw - 24px));
+  max-height: min(560px, 76vh);
+  margin: 0 auto;
+  padding: 0;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--ui-line-strong);
+  border-radius: 16px;
+  background: rgba(20, 24, 34, 0.94);
+  backdrop-filter: blur(18px) saturate(1.3);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  color: var(--ui-text);
+  font-family: var(--font-ui);
+}
+
+.kv-spot[open] {
+  display: flex;
+  animation: kv-spot-in 0.18s var(--ease);
+}
+
+.kv-spot::backdrop {
+  background: rgba(6, 8, 14, 0.42);
+  backdrop-filter: blur(2px);
+}
+
+@keyframes kv-spot-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+}
+
+.kv-spot__box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--ui-line);
+}
+
+.kv-spot__glass {
+  display: grid;
+  color: var(--ui-accent);
+}
+
+.kv-spot__glass svg {
+  width: 20px;
+  height: 20px;
+}
+
+.kv-spot__input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ui-text);
+  font: 500 17px/1.3 var(--font-ui);
+}
+
+.kv-spot__input::placeholder {
+  color: var(--ui-faint);
+}
+
+.kv-spot__input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.kv-spot kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 5px;
+  border: 1px solid var(--ui-line-strong);
+  border-bottom-width: 2px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ui-muted);
+  font: 600 10.5px/1 var(--font-mono);
+}
+
+.kv-spot__list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+  overscroll-behavior: contain;
+}
+
+.kv-spot__section {
+  padding: 10px 10px 4px;
+  color: var(--ui-faint);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.kv-spot__row {
+  --tone: var(--ui-accent);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.kv-spot__row.is-sel {
+  background: color-mix(in srgb, var(--tone) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 35%, transparent);
+}
+
+.kv-spot--person { --tone: #7c9cff; }
+.kv-spot--agent { --tone: #4fd18b; }
+.kv-spot--room { --tone: #ffd166; }
+.kv-spot--action { --tone: #ff8a4c; }
+.kv-spot--status { --tone: #c08cff; }
+.kv-spot--cmd { --tone: #7cc8ff; }
+
+.kv-spot__ico {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--tone) 22%, rgba(255, 255, 255, 0.03));
+  font-size: 16px;
+  line-height: 1;
+}
+
+.kv-spot__txt {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.kv-spot__title,
+.kv-spot__sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kv-spot__title {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.kv-spot__title mark {
+  background: none;
+  color: var(--tone);
+  font-weight: 700;
+}
+
+.kv-spot__sub {
+  color: var(--ui-muted);
+  font-size: 11.5px;
+}
+
+.kv-spot__go {
+  color: var(--ui-faint);
+  opacity: 0;
+  font-size: 13px;
+}
+
+.kv-spot__row.is-sel .kv-spot__go {
+  opacity: 1;
+}
+
+.kv-spot__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 16px;
+  color: var(--ui-muted);
+  font-size: 13px;
+}
+
+.kv-spot__empty[hidden] {
+  display: none;
+}
+
+.kv-spot__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--ui-line);
+  color: var(--ui-faint);
+  font-size: 11px;
+}
+
+.kv-spot__foot span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+@media (max-width: 640px) {
+  .kv-spot {
+    top: 8px;
+    max-height: calc(100dvh - 16px);
+  }
+  .kv-spot__foot {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kv-spot[open] {
+    animation: none;
+  }
+  .ui-btn:active:not(:disabled),
+  .ui-icon-btn:active:not(:disabled),
+  .kv-ui-btn:active:not(:disabled) {
+    transform: none;
+  }
+}

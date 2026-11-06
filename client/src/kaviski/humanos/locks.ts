@@ -212,7 +212,7 @@ export class KvLocks {
     }
     if (!best) return null;
     const area = `r:${best.id}`;
-    return { id: `knock:${area}`, label: tr('Bater na porta'), dist: best.dist, run: () => void this.knock(area) };
+    return { id: `knock:${area}`, label: tr('Bater na porta'), icon: '🚪', tone: 'door' as const, sub: tr('sala trancada'), dist: best.dist, run: () => void this.knock(area) };
   }
 
   private async knock(area: string): Promise<void> {

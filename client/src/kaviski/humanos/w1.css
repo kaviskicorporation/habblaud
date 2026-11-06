@@ -34,7 +34,7 @@
   color: #ffd166;
 }
 
-/* ---- menu do assento e "Definir como minha mesa" ---- */
+/* ---- menu do assento ---- */
 .kv-seat-menu {
   position: fixed;
   z-index: 60;
@@ -50,18 +50,20 @@
 }
 
 .kv-seat-menu[hidden],
-.kv-desk-pin[hidden],
 .kv-following[hidden],
 .kv-stick[hidden],
 .kv-touch-act[hidden] {
   display: none;
 }
 
-.kv-desk-pin {
-  position: fixed;
-  z-index: 41;
-  transform: translate(-50%, 0);
-  white-space: nowrap;
+.kv-seat-menu__item {
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.kv-seat-menu__ico {
+  width: 18px;
+  text-align: center;
 }
 
 .kv-desk {
@@ -147,6 +149,20 @@
   touch-action: manipulation;
 }
 
+/* a cor do botão segue a família da ação (interact.ts) */
+.kv-touch-act[data-tone='seat'] { background: rgba(124, 156, 255, 0.9); }
+.kv-touch-act[data-tone='rest'] { background: rgba(167, 139, 250, 0.9); }
+.kv-touch-act[data-tone='food'] { background: rgba(255, 180, 84, 0.92); }
+.kv-touch-act[data-tone='fun'] { background: rgba(255, 111, 181, 0.9); }
+.kv-touch-act[data-tone='read'] { background: rgba(192, 140, 255, 0.9); }
+.kv-touch-act[data-tone='board'] { background: rgba(79, 209, 165, 0.9); }
+.kv-touch-act[data-tone='door'] { background: rgba(255, 209, 102, 0.92); }
+.kv-touch-act[data-tone='stand'] { background: rgba(154, 167, 189, 0.9); }
+
+.kv-touch-act:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
 .kv-touch-act:disabled {
   background: rgba(16, 20, 32, 0.45);
   color: rgba(255, 255, 255, 0.6);
@@ -174,8 +190,7 @@
   }
 
   .kv-seat-menu .ui-btn,
-  .kv-following .ui-btn,
-  .kv-desk-pin {
+  .kv-following .ui-btn {
     min-height: 40px;
   }
 }

@@ -267,9 +267,9 @@ export function kvStartFixedAgents(s: OfficeStore, edit: (draft: Partial<KvOrgAg
     if (!canEdit() || !kvFixable(spot)) return null;
     const sim = kvPeople.sim?.();
     const taken = sim ? kvOrg()?.agents.find((a) => kvFixedSeat(sim, a)?.id === spot.id) : undefined;
-    if (taken) return { label: tr('Mesa de {0}: editar o agente', [taken.name]), run: () => edit(taken) };
+    if (taken) return { label: tr('Mesa de {0}: editar o agente', [taken.name]), icon: '✏️', run: () => edit(taken) };
     const seat = kvSeatOf(spot);
     if (!seat) return null;
-    return { label: `🤖 ${tr('Fixar um agente aqui')}`, run: () => edit({ ...seat, match: 'main' }) };
+    return { label: tr('Fixar um agente aqui'), icon: '🤖', run: () => edit({ ...seat, match: 'main' }) };
   });
 }

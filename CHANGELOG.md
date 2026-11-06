@@ -12,6 +12,21 @@ do meio (0.**3**.0).
 
 ### Adicionado (fork Kaviski)
 
+- **Barra de ações nova (tecla E).** Perto de um móvel ou objeto, sobre o avatar aparece uma pílula com o ícone
+  colorido da ação (azul para sentar, laranja para comer e beber, rosa para jogos, verde para o quadro...), o nome e a
+  tecla **E**; com várias coisas por perto, as outras ações vêm embaixo, menores: **Tab** escolhe qual o E usa e um
+  clique (ou toque) usa direto. A ação pula de leve ao aparecer, afunda ao usar e o celular dá um tique.
+- **Mais coisas para usar no escritório:** pegar um lanche na máquina, abrir a geladeira, lavar as mãos na pia, jogar
+  pingue-pongue e torcer na partida, além de nomes melhores para cada assento ("Sentar no sofá", "Afundar no puff").
+  Sentado, a barra oferece **cochilar**, **olhar o celular**, **trabalhar no computador** (na mesa) e **definir como
+  minha mesa** — e os outros veem a pose.
+- **Busca rápida (Ctrl+K / ⌘K ou a lupa no topo).** Acha qualquer coisa pelo nome, sem ligar para acento: pessoas
+  online (ir até elas), agentes (abre a gaveta), salas, as ações das salas temáticas, o seu status e os comandos das
+  teclas. Vazia, mostra primeiro os agentes que pedem você e o que você usou por último.
+- **Saudação do dia e "Enquanto você estava fora".** A primeira vez no dia, "Bom dia, Ana ☀️" com o resumo de agora;
+  voltando para a aba depois de alguns minutos, um aviso só com o que mudou (quem terminou, quem passou a pedir você,
+  quem chegou) e um botão para ir direto. Nada mudou, nada aparece.
+- Botões que afundam um pouquinho ao apertar e foco do teclado sempre visível; tudo respeita "reduzir movimento".
 - **Novo nome: Voxtrin.** O escritório passa a se chamar Voxtrin em toda a interface (topo, título da aba, abertura,
   Sobre, avisos, tela de login, convites, plugins do Claude Code e os quatro idiomas), com a logo do site voxtrin.com:
   o logotipo no topo e na abertura, o "V" no favicon, nos ícones do app e no ícone do projeto no TwiCC, a placa da
