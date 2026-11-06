@@ -64,6 +64,11 @@ export function kvFurnisher(key: string): KvFurnisher | undefined {
   return furnishers.get(key);
 }
 
+/** As chaves registradas (o editor lista os estilos de mobília de cada tipo: `projeto:<estilo>`, `tema:<chave>:<estilo>`). */
+export function kvFurnisherKeys(): string[] {
+  return [...furnishers.keys()];
+}
+
 /** Item interativo achado no prédio (o motor preenche a partir dos `tag`). */
 export interface KvActionSpot {
   action: string;
