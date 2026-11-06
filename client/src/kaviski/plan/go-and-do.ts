@@ -27,6 +27,9 @@ const PREF = 'habblaud.kv.irAndando';
 const REACH = 1.7 * TILE;
 /** Longe assim (tiles), o boneco corre. */
 const RUN_TILES = 9;
+/** Mais longe que isto (tiles, em linha reta), o boneco aparece com um brilho perto do item e anda o resto (numa planta
+ * grande, correr até o outro lado levava quase um minuto). */
+const FAR_TILES = 32;
 
 interface Pending {
   key: string;
@@ -176,7 +179,9 @@ export function kvGoAndDo(key: string, opts: { direct?: boolean; spot?: KvAction
   ];
   if (near) c.me.stand(c.sim, steps);
   else {
-    const run = Math.hypot(feet.x - at.x, feet.y - at.y) > RUN_TILES * TILE;
+    let dist = Math.hypot(feet.x - at.x, feet.y - at.y);
+    if (dist > FAR_TILES * TILE && c.me.teleport(c.sim, feet.x, feet.y, Date.now())) dist = 0;
+    const run = dist > RUN_TILES * TILE;
     if (!kvPeople.walkTo?.(spot.tx, spot.ty, run)) return runNow(key);
     v.queue.push(...steps);
     showChip(tr('Indo até {0}…', [roomName(spot) || actionLabel(key)]), true);
