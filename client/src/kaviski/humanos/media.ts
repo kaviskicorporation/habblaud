@@ -14,6 +14,7 @@ import { ICONS, pixelIcon } from '../../ui/icons';
 import { TILE } from '../../world/constants';
 import { kvPeople } from './world';
 import type { KvBar } from './bar';
+import { kvHeads, kvScreenMini } from './heads';
 
 type LK = typeof import('livekit-client');
 
@@ -343,9 +344,11 @@ export class KvMedia {
     (document.querySelector('.ui-root') ?? document.body).append(el);
     this.screens.set(id, el);
     this.stackScreens();
+    kvHeads.set(p ? p.identity : '', 'screen', kvScreenMini(track, p ? tr('Tela de {0}', [p.name || p.identity]) : tr('Você está compartilhando a tela'), () => el.classList.add('is-big')), { order: 10 }); // miniatura ao lado da cabeça
   }
 
   private dropScreen(id: string): void {
+    kvHeads.drop(id === ME ? '' : id, 'screen');
     this.screens.get(id)?.remove();
     this.screens.delete(id);
     this.stackScreens();

@@ -22,6 +22,7 @@ import { modalOpen } from '../../world/input';
 import { GreetingWheel, pickGreetTarget, RateGate, BALLOON_MS } from '../../world/city/greetings';
 import '../../world/city/social.css';
 import { kvAreaLabel, type KvBar } from './bar';
+import { kvHeads, kvMessageMini } from './heads';
 import type { KvPresenceClient } from './presence';
 import { ROLE_LABEL } from './people';
 import { kvPeople, STATUS_LABEL } from './world';
@@ -164,6 +165,7 @@ export class KvChatPanel {
   }
 
   openDirect(id: string): void {
+    kvHeads.drop(id, 'dm');
     this.toggle(true);
     this.select({ kind: 'dm', id });
   }
@@ -464,6 +466,8 @@ export class KvChatPanel {
       if (c) c.unread++;
       this.showToast(m);
     }
+    // ao lado da cabeça de quem mandou (só aqui, para quem recebe): o começo da mensagem; clique abre a conversa
+    if (m.from.id !== meId) kvHeads.set(m.from.id, 'dm', kvMessageMini(m.text, tr('Mensagem de {0}', [m.from.name]), () => this.openDirect(m.from.id), m.urgent), { order: 20, ttlMs: m.urgent ? 60_000 : 12_000 });
     const c = this.contacts.find((x) => x.id === other);
     if (c) c.last = { text: m.text, at: m.at, mine: m.from.id === meId };
     this.contacts.sort((a, b) => b.unread - a.unread || (b.last?.at ?? 0) - (a.last?.at ?? 0));

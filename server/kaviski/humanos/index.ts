@@ -115,7 +115,8 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
         const area = (body as { area?: unknown })?.area;
         const name = kvAreaAllowed(area, person, deps.snapshot());
         if (!name) throw new HttpError(403, tr('essa chamada não é sua'));
-        const room = kvCallName(String(area));
+        // a pasta de dados entra no nome: duas instâncias no mesmo LiveKit (teste e produção) nunca dividem chamada
+        const room = kvCallName(`${deps.dataDir ?? ''}\u0000${String(area)}`);
         sendJson(res, 200, { url: cfg.url, room, name, token: kvLiveKitToken(cfg, person, room) });
       })
       .catch((err) => fail(res, err));

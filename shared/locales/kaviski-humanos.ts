@@ -142,6 +142,7 @@ export const KV_HUMANOS_EN: Readonly<Record<string, string>> = {
   "Por proximidade: só quem está perto lê.": "By proximity: only people nearby can read it.",
   "Abrir o cartão de {0}": "Open {0}'s card",
   "Ir até": "Go to",
+  "Mensagem de {0}": "Message from {0}",
 };
 export const KV_HUMANOS_ES: Readonly<Record<string, string>> = {
   "Pessoas: contas, papéis e salas": "Personas: cuentas, roles y salas",
@@ -285,6 +286,7 @@ export const KV_HUMANOS_ES: Readonly<Record<string, string>> = {
   "Por proximidade: só quem está perto lê.": "Por proximidad: solo lo lee quien está cerca.",
   "Abrir o cartão de {0}": "Abrir la tarjeta de {0}",
   "Ir até": "Ir hacia",
+  "Mensagem de {0}": "Mensaje de {0}",
 };
 export const KV_HUMANOS_FR: Readonly<Record<string, string>> = {
   "Pessoas: contas, papéis e salas": "Personnes : comptes, rôles et salles",
@@ -428,4 +430,5 @@ export const KV_HUMANOS_FR: Readonly<Record<string, string>> = {
   "Por proximidade: só quem está perto lê.": "Par proximité : seules les personnes proches le lisent.",
   "Abrir o cartão de {0}": "Ouvrir la fiche de {0}",
   "Ir até": "Aller vers",
+  "Mensagem de {0}": "Message de {0}",
 };

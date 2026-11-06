@@ -196,6 +196,17 @@ Liga com `HABBLAUD_HUMANOS=1` (e a porta remota configurada, como hoje). Sem a v
   desligar; antes a tela compartilhada caía ao andar); quem compartilha vê a própria tela com **Parar**; "Requested
   device not found" virou "Nenhuma câmera encontrada neste aparelho" (e bloqueada / em uso por outro programa).
 
+### Coisas saindo da cabeça do boneco (2026-11-06) ✅ (pedido do Vitor, como no Gather)
+- `client/src/kaviski/humanos/heads.ts`: pilha de miniaturas **ao lado da cabeça** de cada pessoa, acompanhando o boneco
+  e a câmera (a bolinha da câmera continua em cima da cabeça). Hoje: a **tela compartilhada** ao vivo em miniatura
+  (clique amplia o quadro grande; o quadro do canto continua) e o **começo de uma mensagem 1:1** que acabou de chegar
+  (só quem recebe vê, some em 12 s — urgente, 60 s; clique abre a conversa). A conversa da área já aparecia como balão
+  do Sim em cima da cabeça. API para outros módulos: `kvHeads.set(pessoa, chave, elemento, {order, ttlMs})` /
+  `kvHeads.drop(pessoa, chave)` (`''` = eu).
+- **Chamadas separadas por instância**: o nome da chamada no LiveKit passa a incluir a pasta de dados
+  (`HABBLAUD_DATA_DIR`). Antes, a instância de teste (4757/4758) e a produção, no mesmo LiveKit, caíam na mesma chamada
+  da mesma área.
+
 ### Endereço público: https://escritorio.kaviski.com.br (2026-11-06)
 Decisão do Vitor: **sem VPS**. O nome só funciona na rede local e pela VPN (Tailscale, que roteia 192.168.1.0/24).
 Infraestrutura feita pela sessão `01.Geral` (rede/proxy: não mexer sem avisar):
