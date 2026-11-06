@@ -7,10 +7,16 @@
 // Continua valendo: login obrigatório (http/remote.ts), corpo JSON nos POST e Origin da mesma origem.
 import type { IncomingMessage } from 'node:http';
 import { tr } from '../../shared/i18n';
+import { kvIsCliente } from './humanos/request';
 
 /** HABBLAUD_REMOTE_PTY ligado? */
 export function kvRemotePty(env: NodeJS.ProcessEnv = process.env): boolean {
   return /^(1|true|yes|sim|on)$/i.test(env.HABBLAUD_REMOTE_PTY?.trim() ?? '');
+}
+
+/** HABBLAUD_REMOTE_PTY ligado para quem fez a requisição (cliente de HABBLAUD_HUMANOS nunca). */
+export function kvRemotePtyFor(req: IncomingMessage | undefined, env: NodeJS.ProcessEnv = process.env): boolean {
+  return kvRemotePty(env) && !kvIsCliente(req);
 }
 
 /**

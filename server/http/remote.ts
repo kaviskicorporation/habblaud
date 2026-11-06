@@ -268,6 +268,7 @@ const PUBLIC_STATIC = /^\/(manifest\.webmanifest|assets\/brand\/[\w.@-]+\.png)$/
 export function isRemoteRequest(req: IncomingMessage): boolean {
   return remoteRequests.has(req);
 }
+export const kvMarkRemote = (req: IncomingMessage): void => void remoteRequests.add(req); // fork Kaviski (KAVISKI-HUMANOS.md)
 
 function sendJson(res: ServerResponse, status: number, body: unknown, headers: Record<string, string | string[]> = {}): void {
   const data = JSON.stringify(body);

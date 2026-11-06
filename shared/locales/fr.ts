@@ -1,7 +1,9 @@
 // Tradução para o francês. Chave = texto original em PT (exatamente como passado a tr()); valor = francês.
 // As lacunas {0}, {1}... (e as nomeadas, como {sala}) precisam aparecer na tradução, em qualquer ordem.
 // Chave ausente = o texto fica em PT. `npm run i18n:check` lista os textos sem tradução e as chaves que sobraram.
+import { KV_HUMANOS_FR } from './kaviski-humanos'; // fork Kaviski (KAVISKI-HUMANOS.md)
 export const FR: Readonly<Record<string, string>> = {
+  ...KV_HUMANOS_FR, // fork Kaviski (KAVISKI-HUMANOS.md)
   // fork Kaviski (KAVISKI.md): client/src/kaviski, server/kaviski
   "Abrir esta sessão no TwiCC": "Ouvrir cette session dans TwiCC",
   "Abrir no TwiCC": "Ouvrir dans TwiCC",

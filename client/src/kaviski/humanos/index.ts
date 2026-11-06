@@ -1,0 +1,59 @@
+// Fork Kaviski (KAVISKI-HUMANOS.md): pessoas no escritório, lado da página. Pergunta ao servidor quem está aqui
+// (GET /api/kaviski/humanos/me; 404 = HABBLAUD_HUMANOS desligado e nada muda) e:
+// - mostra "Nome · papel" na linha de status do topo;
+// - para quem é admin (ou pela porta local, no próprio computador), o botão Pessoas no grupo de painéis.
+// O filtro das salas é do servidor: a página só mostra o que recebe.
+import type { KvMe } from '../../../../shared/kaviski-humanos';
+import { tr } from '../../../../shared/i18n';
+import { h, iconButton } from '../../ui/dom';
+import { pixelIcon } from '../../ui/icons';
+import { PeopleDialog, ROLE_LABEL } from './people';
+import './humanos.css';
+
+const PEOPLE_ICON = pixelIcon(['..##....##..', '.####..####.', '.####..####.', '..##....##..', '............', '.####..####.', '######.#####', '######.#####', '######.#####']);
+
+let me: KvMe | null = null;
+
+/** Quem está nesta página (null até o servidor responder ou com HABBLAUD_HUMANOS desligado). */
+export function kvMe(): KvMe | null {
+  return me;
+}
+
+export async function kvLoadMe(fetchImpl: typeof fetch = fetch): Promise<KvMe | null> {
+  try {
+    const res = await fetchImpl('/api/kaviski/humanos/me', { credentials: 'same-origin', cache: 'no-store' });
+    if (!res.ok) return null;
+    const body = (await res.json()) as KvMe;
+    return body?.enabled ? body : null;
+  } catch {
+    return null;
+  }
+}
+
+export function kvStartHumanos(root: ParentNode = document): void {
+  void kvLoadMe().then((m) => {
+    me = m;
+    if (!m) return;
+    const status = root.querySelector('.ui-topbar__status');
+    if (m.person && status) {
+      status.append(
+        h('span', { class: `kv-me kv-role--${m.person.role}`, title: tr('Você: {0} ({1})', [m.person.name, m.person.user]) }, h('span', { class: 'kv-me__name', text: m.person.name }), h('span', { class: 'kv-me__role', text: ROLE_LABEL[m.person.role] })),
+      );
+    }
+    if (m.person?.role === 'cliente') {
+      // O servidor recusa o timelapse e o Meu dia ao cliente (são da empresa toda): os botões somem.
+      const day = tr('Meu dia: para onde foi o tempo (M)');
+      root.querySelectorAll<HTMLElement>('.ui-btn-timelapse, .ui-topbar button[aria-label]').forEach((b) => {
+        if (b.classList.contains('ui-btn-timelapse') || b.getAttribute('aria-label') === day) b.hidden = true;
+      });
+    }
+    const admin = m.local || m.person?.role === 'admin';
+    const group = root.querySelector('.ui-btn-feed')?.parentElement;
+    if (admin && group) {
+      let dialog: PeopleDialog | null = null;
+      const btn = iconButton(PEOPLE_ICON, tr('Pessoas: contas, papéis e salas'), () => void (dialog ??= new PeopleDialog()).open(), 'kv-btn-people');
+      btn.setAttribute('aria-haspopup', 'dialog');
+      group.prepend(btn);
+    }
+  });
+}

@@ -18,6 +18,7 @@ nos arquivos originais só há **ganchos de 1 linha**, marcados com `fork Kavisk
 `room-styles.json`), o comportamento é o original.
 
 > Plano em andamento: **pessoas no escritório** (estilo Gather, equipe + clientes, voz e vídeo) — ver `KAVISKI-HUMANOS.md`.
+> Ligado com `HABBLAUD_HUMANOS=1` (contas por pessoa, papéis, filtro de salas): detalhes e ganchos em `KAVISKI-HUMANOS.md`.
 
 ## Recursos
 
@@ -112,6 +113,12 @@ As sessões do TwiCC rodam pelo SDK (sem terminal): o plugin `habblaud-mensagens
 | `client/src/ui/history.ts` | +2/−1 | import; `group.append(kvHistoryItem(this.item(s, now), s, ...))` | idem |
 | `client/src/world/render/overlay.ts` | +4/−1 | import; `kvDrawSignStyle(...)` depois do `drawSignText`; `kvAccent(room.info, room.theme.accent)` e `kvDrawPillBadge(...)` na pílula | idem |
 | `shared/locales/{en,es,fr}.ts` | +15 cada | bloco "fork Kaviski" logo no começo do objeto | manter os dois lados; rodar `npm run i18n:check` |
+| `server/http/app.ts` (humanos) | ±7 | `allows(feature, req)` no tipo `remote` e no `trusted()`; `kvRemotePty()` → `kvRemotePtyFor(req)` (5 linhas já marcadas) | idem |
+| `server/http/pty.ts` | ±2 | `kvRemotePtyFor(req)` | idem |
+| `server/http/remote.ts` (humanos) | +1 | `export const kvMarkRemote` (marca a requisição como remota, para o login por pessoa) | idem |
+| `server/index.ts` (humanos) | +9/−3 | imports; `createHumanos(...)` depois do `Hub`; `kvRemoteAllows(...)` no `canAnswer` e no `allows`; `kvSessions` + `kvHumanos.gate(createRemoteGate(...))`; `kvHumanos.before(...)` antes do `api(...)` nas duas portas | idem |
+| `client/src/app.ts` (humanos) | +2 | import; `kvStartHumanos()` | idem |
+| `shared/locales/{en,es,fr}.ts` (humanos) | +2 cada | import e `...KV_HUMANOS_XX` no começo do objeto | idem |
 | `docker-compose.yml` | +5 | `HABBLAUD_FRAME_ANCESTORS`, `HABBLAUD_TWICC_URL`, `HABBLAUD_TWICC_MESSAGES` e `HABBLAUD_BRAND` no `environment:` | manter os dois lados |
 
 `server/model/office.ts` **não** foi tocado: `kaviski.attach(office)` embrulha `office.commit()` em tempo de execução e

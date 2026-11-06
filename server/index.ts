@@ -59,6 +59,8 @@ import { BuildingTokens } from './world/tokens';
 import { BuildingUplink } from './world/uplink';
 import { WorldViewer } from './world/viewer';
 import { createKaviski } from './kaviski'; // fork Kaviski (KAVISKI.md)
+import { createHumanos } from './kaviski/humanos'; // fork Kaviski (KAVISKI-HUMANOS.md)
+import { kvRemoteAllows } from './kaviski/humanos/request'; // fork Kaviski (KAVISKI-HUMANOS.md)
 
 const config = loadConfig();
 const startedAt = Date.now();
@@ -149,8 +151,9 @@ late.office = office;
 late.agents = agents;
 // Página que pode responder pelo escritório: Host local na porta local; na remota, só com permissions liberado.
 const hub = new Hub(office, {
-  canAnswer: (req) => (isRemoteRequest(req) ? !!config.remote?.allow.has('permissions') : isLoopbackHost(req.headers.host)),
+  canAnswer: (req) => (isRemoteRequest(req) ? kvRemoteAllows(!!config.remote?.allow.has('permissions'), req) : isLoopbackHost(req.headers.host)), // fork Kaviski: kvRemoteAllows
 });
+const kvHumanos = createHumanos({ dataDir: config.dataDir, snapshot: () => hub.current() }); // fork Kaviski: HABBLAUD_HUMANOS
 // "Meu dia": amostra o escritório a cada segundo e persiste em <dataDir>/stats/ (ver history/daystats.ts).
 const stats = new DayStatsService({ dir: join(config.dataDir, 'stats'), snapshot: () => hub.current() });
 stats.load();
@@ -380,7 +383,7 @@ const api = createApiHandler({
   codexLive,
   stats,
   updates,
-  remote: config.remote ? { is: isRemoteRequest, allows: (f) => config.remote!.allow.has(f) } : undefined,
+  remote: config.remote ? { is: isRemoteRequest, allows: (f, req) => kvRemoteAllows(config.remote!.allow.has(f), req) } : undefined, // fork Kaviski: kvRemoteAllows
   world: world ? createWorldRoutes(world, worldViewer, worldSocial) : undefined,
 });
 
@@ -419,6 +422,7 @@ server.on('request', (req, res) => {
   const url = parseUrl(req);
   try {
     if (guard(req, res)) return;
+    if (kvHumanos.before(req, res, url)) return; // fork Kaviski: HABBLAUD_HUMANOS
     if (!api(req, res, url)) fallback(req, res, url);
   } catch (err) {
     log.warn(tr('Erro ao responder {0} {1}: {2}', [req.method, url.pathname, errMsg(err)]));
@@ -440,12 +444,13 @@ server.on('error', (err: NodeJS.ErrnoException) => {
 let remoteListener: RemoteListener | undefined;
 if (config.remote) {
   const remote = config.remote;
-  const gate = createRemoteGate({
+  const kvSessions = new RemoteSessions(loadSecret(join(config.dataDir, 'remote-secret')), remote, Date.now, join(config.dataDir, 'remote-revoked.json')); // fork Kaviski
+  const gate = kvHumanos.gate(createRemoteGate({ // fork Kaviski: login por pessoa (HABBLAUD_HUMANOS)
     config: remote,
-    sessions: new RemoteSessions(loadSecret(join(config.dataDir, 'remote-secret')), remote, Date.now, join(config.dataDir, 'remote-revoked.json')),
+    sessions: kvSessions, // fork Kaviski
     secure: !!remote.tls,
     caFile: remote.tls?.caFile,
-  });
+  }), kvSessions, remote); // fork Kaviski
   remoteListener = startRemoteListener(
     remote,
     (req, res) => {
@@ -453,6 +458,7 @@ if (config.remote) {
       try {
         if (guard(req, res)) return;
         if (gate(req, res, url)) return;
+        if (kvHumanos.before(req, res, url)) return; // fork Kaviski: HABBLAUD_HUMANOS
         if (!api(req, res, url)) fallback(req, res, url);
       } catch (err) {
         log.warn(tr('Erro ao responder (remoto) {0} {1}: {2}', [req.method, url.pathname, errMsg(err)]));

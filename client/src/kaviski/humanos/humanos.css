@@ -1,0 +1,191 @@
+/* Fork Kaviski (KAVISKI-HUMANOS.md): pessoas no escritório. Usa as variáveis dos temas da interface (styles.css). */
+
+.kv-me {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--ui-line-strong);
+  background: var(--ui-bg-soft);
+  font: 500 11px/1.4 var(--font-px);
+  color: var(--ui-text);
+  max-width: 180px;
+  white-space: nowrap;
+}
+
+.kv-me__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kv-me__role {
+  color: var(--ui-muted);
+}
+
+.kv-role {
+  padding: 0 6px;
+  border-radius: 999px;
+  font: 500 11px/1.6 var(--font-px);
+  border: 1px solid var(--ui-line-strong);
+  color: var(--ui-muted);
+}
+
+.kv-role--admin.kv-role,
+.kv-me.kv-role--admin .kv-me__role {
+  color: var(--st-waiting);
+}
+
+.kv-role--equipe.kv-role,
+.kv-me.kv-role--equipe .kv-me__role {
+  color: var(--ui-accent);
+}
+
+.kv-role--cliente.kv-role,
+.kv-me.kv-role--cliente .kv-me__role {
+  color: var(--st-working);
+}
+
+.kv-people__body {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+}
+
+@media (max-width: 720px) {
+  .kv-people__body {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kv-people__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.kv-people__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'who actions' 'meta actions';
+  gap: 2px 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--ui-line);
+  background: var(--ui-bg-soft);
+}
+
+.kv-people__item.is-on {
+  border-color: rgba(124, 200, 255, 0.55);
+  background: var(--ui-accent-soft);
+}
+
+.kv-people__who {
+  grid-area: who;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.kv-people__who strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kv-people__tag {
+  font: 11px/1.4 var(--font-mono);
+  color: var(--ui-faint);
+}
+
+.kv-people__meta {
+  grid-area: meta;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--ui-muted);
+}
+
+.kv-people__row-actions {
+  grid-area: actions;
+  display: flex;
+  gap: 6px;
+}
+
+.kv-people__row-actions .is-danger {
+  border-color: var(--lv-crit);
+  color: var(--lv-crit);
+}
+
+.kv-people__form {
+  display: flex;
+  flex-direction: column;
+}
+
+.kv-people__label {
+  display: block;
+  margin: 10px 0 4px;
+  font: 500 12.5px/1.2 var(--font-px);
+  color: var(--ui-muted);
+}
+
+.kv-people__input {
+  width: 100%;
+  padding: 7px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--ui-line-strong);
+  background: var(--ui-bg-soft);
+  color: var(--ui-text);
+  font: inherit;
+}
+
+.kv-people__input:disabled {
+  opacity: 0.6;
+}
+
+select.kv-people__input option {
+  background: #141821;
+}
+
+.kv-people__rooms {
+  resize: vertical;
+  font: 12px/1.45 var(--font-mono);
+}
+
+.kv-people__hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--ui-faint);
+}
+
+.kv-people__known {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.kv-people__error {
+  min-height: 18px;
+  margin: 10px 0 0;
+  color: var(--lv-crit);
+  font-size: 12.5px;
+}
+
+.kv-people__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.kv-people__actions .ui-btn {
+  height: 34px;
+}
