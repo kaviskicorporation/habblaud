@@ -12,10 +12,14 @@ do meio (0.**3**.0).
 
 ### Adicionado (fork Kaviski)
 
-- **Novo nome e nova logo: Kubo.** O escritório passa a se chamar Kubo em toda a interface (topo, título da aba,
-  abertura, Sobre, avisos, tela de login, convites e os quatro idiomas), com uma logo circular nova feita por IA: um
-  cubo isométrico em pixel art com as janelas acesas dos agentes. Favicon, ícones do app, placa da recepção e prévia do
-  link foram refeitos (`scripts/kaviski/marca.py`). O "Habblaud World" mantém o nome (serviço de terceiros).
+- **Novo nome: Voxtrin.** O escritório passa a se chamar Voxtrin em toda a interface (topo, título da aba, abertura,
+  Sobre, avisos, tela de login, convites, plugins do Claude Code e os quatro idiomas), com a logo do site voxtrin.com:
+  o logotipo no topo e na abertura, o "V" no favicon, nos ícones do app e no ícone do projeto no TwiCC, a placa da
+  recepção e a prévia do link refeitas (`scripts/kaviski/marca.py`). A tela de login ganhou o logotipo e as cores do
+  site. O "Habblaud World" mantém o nome (serviço de terceiros).
+- **Nome da empresa pela tela** (Configurações › Empresa, só admin): vai no título da aba ("<empresa> · Voxtrin"), na
+  tela de login, nos convites e nas notificações do navegador. `HABBLAUD_BRAND` continua como valor inicial. A linha
+  pequena com o nome da empresa acima do logotipo, no topo, saiu.
 - **Responder pelo escritório às sessões do TwiCC**: perguntas, aprovação de ferramenta e de plano das sessões que rodam
   no TwiCC aparecem no cartão "pede permissão" do agente e são respondidas no Habblaud (aprovar, recusar com motivo,
   "sempre permitir", responder), sem abrir o TwiCC. Precisa da senha do TwiCC em `~/.habblaud/twicc-senha`.

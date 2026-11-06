@@ -2,7 +2,7 @@
 // de progresso.
 import type { AccountInfo, Activity, AgentInfo, AgentStatus, Provider } from '../../../shared/types';
 import { h, setAttr, setHidden, setStyleVar, setText, setTitle, setVariant } from './dom';
-import { KV_PRODUTO, KV_WORDMARK as WORDMARK } from '../kaviski/marca'; // fork Kaviski: logotipo Kubo
+import { KV_PRODUTO, KV_WORDMARK as WORDMARK } from '../kaviski/marca'; // fork Kaviski: logotipo Voxtrin
 import { shellDoneKind, shellLine, shellStage, statusLabel, type ShellWait } from './model';
 import { accountChipLabel, accountProvider, fallbackShort, showsProviderTag } from './provider';
 import { tr } from '../../../shared/i18n';

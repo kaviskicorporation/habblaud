@@ -11,6 +11,7 @@ import type { SoundControl } from './sound';
 import { AboutGroup } from './version';
 import type { WorldThemeLink } from './world/world-dialog';
 import { LOCALE_STORAGE_KEY, LOCALES, normalizeLocale, tr, type Locale } from '../../../shared/i18n';
+import { kvRenderSettingsGroups, kvSettingsGroups } from '../kaviski/settings-groups'; // fork Kaviski
 
 type LanguageChoice = 'auto' | Locale;
 
@@ -197,6 +198,7 @@ export class SettingsPopover implements UiComponent {
       { class: 'ui-popover ui-settings', role: 'dialog', tabIndex: -1, attrs: { 'aria-label': tr('Configurações'), id: 'ui-settings', popover: 'auto' } },
       h('div', { class: 'ui-popover__head' }, h('h2', { text: tr('Configurações') }), close),
       h('div', { class: 'ui-set-group' }, h('h3', { text: tr('Aparência') }), this.theme.row),
+      ...kvSettingsGroups(), // fork Kaviski: grupos do fork (kaviski/settings-groups.ts)
       h(
         'div',
         { class: 'ui-set-group' },
@@ -222,6 +224,7 @@ export class SettingsPopover implements UiComponent {
       this.anchor?.setAttribute('aria-expanded', String(this.isOpen));
       this.syncRootClass();
       if (this.isOpen) this.render();
+      if (this.isOpen) kvRenderSettingsGroups(); // fork Kaviski
     });
   }
 

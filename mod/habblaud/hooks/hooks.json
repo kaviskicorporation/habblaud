@@ -1,4 +1,4 @@
 {
-  "description": "Módulo de hooks do mod do Kubo (uso do plano, aviso embaixo do prompt e /habblaud)",
+  "description": "Módulo de hooks do mod do Voxtrin (uso do plano, aviso embaixo do prompt e /habblaud)",
   "modules": ["./register.ts"]
 }

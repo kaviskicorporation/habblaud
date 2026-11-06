@@ -82,7 +82,7 @@ describe('pedidos das sessões do TwiCC', () => {
     expect(s.registry.decide(second.id, { behavior: 'terminal' })).toBe('ok');
     expect(s.registry.snapshot().size).toBe(0);
     const out = s.kv.round({ connected: true, requests: [{ session: SESSION, ...bash }, { session: SESSION, ...bash, request_id: 'r2' }] }).decisions;
-    expect(out.map((d) => d.payload)).toEqual([{ request_type: 'tool_approval', decision: 'deny', message: 'Recusado pelo usuário no Kubo: agora não' }]);
+    expect(out.map((d) => d.payload)).toEqual([{ request_type: 'tool_approval', decision: 'deny', message: 'Recusado pelo usuário no Voxtrin: agora não' }]);
   });
 
   it('responde perguntas pelo texto (e recusa vira "cancel")', () => {

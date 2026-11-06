@@ -1,4 +1,4 @@
-// Fork Kaviski (KAVISKI.md): o nome do produto na tela é "Kubo". Os textos do original continuam escritos com
+// Fork Kaviski (KAVISKI.md): o nome do produto na tela é "Voxtrin". Os textos do original continuam escritos com
 // "Habblaud" (são as chaves das traduções e o que os testes do original conferem); tr() passa a saída por kvProduto,
 // então a troca vale para a interface, as respostas do servidor e os quatro idiomas sem mexer em cada texto.
 // Fica de fora:
@@ -6,7 +6,7 @@
 // - nomes técnicos (HABBLAUD_*, ~/.habblaud, npm run …, mod habblaud): têm outra grafia e não casam com a troca.
 // Nos testes (VITEST) a troca fica desligada, para os textos do original seguirem iguais; KV_PRODUTO_TEST=1 liga.
 
-export const KV_PRODUTO = 'Kubo';
+export const KV_PRODUTO = 'Voxtrin';
 
 const ORIGINAL = /Habblaud(?! World)/g;
 

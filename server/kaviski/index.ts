@@ -4,7 +4,8 @@
 //   (mesma trava de /api/rooms/rename), persistido em <dataDir>/room-styles.json e posto no snapshot em
 //   RoomInfo.kaviski; as salas fixas vazias entram no snapshot (kaviski/pinned.ts);
 // - HABBLAUD_TWICC_URL: vai no snapshot em meta.kaviski.twiccUrl (o cliente monta "Abrir no TwiCC");
-// - HABBLAUD_BRAND: nome da empresa em meta.kaviski.brand (topo e título da aba) e na tela de login (kaviski/remote.ts);
+// - nome da empresa (Configurações › Empresa, kaviski/empresa.ts; HABBLAUD_BRAND é o valor inicial) em meta.kaviski.brand
+//   (título da aba, Sobre, notificações) e na tela de login (kaviski/remote.ts);
 // - HABBLAUD_TWICC_MESSAGES=1: mensagens às sessões do TwiCC pelo auxiliar do host (kaviski/twicc-messages.ts);
 // - pedidos das sessões do TwiCC (perguntas, aprovações) respondidos pelo escritório (kaviski/twicc-approvals.ts;
 //   HABBLAUD_TWICC_APPROVALS=0 desliga);
@@ -18,6 +19,7 @@ import { tr } from '../../shared/i18n';
 import { log } from '../log';
 import { HttpError, readJson, sendJson } from '../http/app';
 import { parseRoomStyles, RoomStyles } from './room-styles';
+import { EMPRESA_PATH, KvEmpresa, kvEmpresaRoute, kvSetEmpresaAtual } from './empresa';
 import { kvDecorateRooms } from './pinned';
 import { kvOnPlanPinned, kvPlanPinned } from './humanos/plan';
 import { isTruthy } from '../config';
@@ -65,7 +67,9 @@ export interface Kaviski {
 export function createKaviski(opts: { dataDir: string | null; env?: NodeJS.ProcessEnv; roomAlias?: (path: string) => string | undefined; now?: () => number }): Kaviski {
   const env = opts.env ?? process.env;
   const now = opts.now ?? Date.now;
-  const brand = kvBrand(env.HABBLAUD_BRAND);
+  const empresa = new KvEmpresa(opts.dataDir ? join(opts.dataDir, 'kaviski', 'empresa.json') : null, kvBrand(env.HABBLAUD_BRAND));
+  empresa.load();
+  kvSetEmpresaAtual(empresa);
   const startedAt = now();
   const styles = new RoomStyles(opts.dataDir ? join(opts.dataDir, 'room-styles.json') : null);
   styles.load();
@@ -96,6 +100,7 @@ export function createKaviski(opts: { dataDir: string | null; env?: NodeJS.Proce
       }
       snap.rooms = kvDecorateRooms(snap.rooms, entries, { alias: opts.roomAlias, createdAt: startedAt });
     }
+    const brand = empresa.get();
     if (twiccUrl || brand) {
       const meta: KvMeta = {};
       if (twiccUrl) meta.twiccUrl = twiccUrl;
@@ -123,6 +128,10 @@ export function createKaviski(opts: { dataDir: string | null; env?: NodeJS.Proce
         req.resume();
         sendJson(res, 403, { error: tr('rota só do auxiliar do host (npm run codex:bridge)') });
       } else kv.approvals.route(req, res);
+      return true;
+    }
+    if (path === EMPRESA_PATH) {
+      kvEmpresaRoute(req, res, empresa, access.trusted, () => office?.markDirty());
       return true;
     }
     if (path !== ROOM_STYLE_PATH) return false;
@@ -161,7 +170,9 @@ export function createKaviski(opts: { dataDir: string | null; env?: NodeJS.Proce
   const kv: Kaviski = {
     styles,
     twiccUrl,
-    brand,
+    get brand() {
+      return empresa.get();
+    },
     decorate,
     route,
     attachMessages(registry, o) {
@@ -183,7 +194,7 @@ export function createKaviski(opts: { dataDir: string | null; env?: NodeJS.Proce
         return r;
       };
       kvOnPlanPinned(() => o.markDirty());
-      if (styles.size || twiccUrl || brand || kvPlanPinned().length) o.markDirty();
+      if (styles.size || twiccUrl || empresa.get() || kvPlanPinned().length) o.markDirty();
     },
   };
   return kv;

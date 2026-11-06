@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { hookCommand, hookEntry, STATUS_MESSAGE } from '../../scripts/hooks-install';
 import { MAX_TIMEOUT_MS } from '../permissions/registry';
 import { posixShell } from './fixtures';
-import { kvProduto } from '../../shared/kaviski-marca'; // fork Kaviski: o plugin já mostra "Kubo"
+import { kvProduto } from '../../shared/kaviski-marca'; // fork Kaviski: o plugin já mostra "Voxtrin"
 
 const ROOT = resolve(__dirname, '../..');
 const SH = posixShell();

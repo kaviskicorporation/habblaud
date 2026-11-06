@@ -1,44 +1,36 @@
-// Fork Kaviski (KAVISKI.md): a marca da empresa (HABBLAUD_BRAND, vinda em meta.kaviski.brand). No topo, uma linha
-// pequena com o nome da empresa logo acima do logotipo "Habblaud" (que continua, com a versão embaixo); no título da
-// aba, "<marca> · Habblaud". Sem a variável nada muda. Os mesmos pontos de corte do logotipo escondem a linha (ela fica
-// dentro de .ui-brand__name).
+// Fork Kaviski (KAVISKI.md): o nome da empresa (Configurações › Empresa, ou HABBLAUD_BRAND; vem em meta.kaviski.brand).
+// Vai no título da aba ("<empresa> · Voxtrin"), nas notificações do navegador e no grupo Empresa das Configurações.
+// No topo não aparece mais (a linha acima do logotipo saiu: o logotipo do Voxtrin fica sozinho).
 import type { KvSnapshotMeta } from '../../../shared/kaviski';
 import type { OfficeStore } from '../net/store';
 import './kaviski.css';
 
 let brand: string | undefined;
+const listeners = new Set<(b: string | undefined) => void>();
 
-/** Título da aba com a marca (o notify.ts chama com o título original). */
+/** O nome da empresa em uso (undefined = sem nome). */
+export function kvBrandName(): string | undefined {
+  return brand;
+}
+
+/** Avisa quando o nome da empresa muda. Devolve a função que desliga. */
+export function kvOnBrand(fn: (b: string | undefined) => void): () => void {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
+/** Título com a empresa na frente (o notify.ts chama com o título original). */
 export function kvTitle(base: string): string {
   return brand ? `${brand} · ${base}` : base;
 }
 
-function paint(root: ParentNode): void {
-  const name = root.querySelector('.ui-topbar .ui-brand__name');
-  if (!name) return;
-  let el = name.querySelector<HTMLElement>('.kv-brand');
-  if (!brand) {
-    el?.remove();
-    return;
-  }
-  if (!el) {
-    el = document.createElement('span');
-    el.className = 'kv-brand';
-    name.prepend(el);
-  }
-  if (el.textContent !== brand) {
-    el.textContent = brand;
-    el.title = brand;
-  }
-}
-
-/** Acompanha o snapshot ao vivo e põe/tira a marca do topo (o título da aba vem do notify.ts, com kvTitle). */
-export function kvStartBrand(store: OfficeStore, root: ParentNode = document): void {
+/** Acompanha o snapshot ao vivo (o título da aba vem do notify.ts, com kvTitle). */
+export function kvStartBrand(store: OfficeStore): void {
   const update = (): void => {
     const next = (store.liveSnapshot?.meta as KvSnapshotMeta | undefined)?.kaviski?.brand;
-    if (next === brand && !!brand === !!root.querySelector('.kv-brand')) return;
+    if (next === brand) return;
     brand = next;
-    paint(root);
+    for (const fn of listeners) fn(brand);
   };
   store.on('snapshot', update);
   update();

@@ -56,7 +56,7 @@ export class Notifier implements UiComponent {
     else if (n.level === 'success') this.sounds.play('pop');
     if (n.level === 'alert' && prefs.browserNotifications && document.hidden && notificationState() === 'granted') {
       try {
-        const notification = new Notification(tr('Habblaud — precisa de você'), {
+        const notification = new Notification(kvTitle(tr('Habblaud — precisa de você')), { // fork Kaviski: kvTitle (empresa)
           body: n.text,
           tag: n.agentId ?? n.id,
           icon: '/assets/brand/favicon-32.png',

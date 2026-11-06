@@ -1,11 +1,13 @@
-"""Fork Kaviski (KAVISKI.md): gera a marca Kubo a partir da logo circular feita por IA.
+"""Fork Kaviski (KAVISKI.md): gera a marca Voxtrin (https://voxtrin.com) a partir das duas imagens mestre do site.
 
-Entrada: a logo mestre (PNG quadrado com alfa, o círculo ocupando o quadro), guardada em
-client/public/assets/brand/kubo-1024.png. Saída: os mesmos arquivos de client/public/assets/brand/ que o original usa
-(favicon, ícones do app, mark do topo) e a placa da recepção e o og-image com o nome, na fonte bitmap do pixelart.py.
+Entradas (PNG com alfa), guardadas em client/public/assets/brand/:
+- voxtrin-mark.png: o "V" (símbolo, quadrado);
+- voxtrin-wordmark.png: o logotipo inteiro (o "V" + "OXTRIN").
+Saída: os arquivos de client/public/assets/brand/ que o original usa (favicon, ícones do app, mark do topo), o
+logotipo do topo (wordmark.png), a placa da recepção (fonte bitmap do pixelart.py) e o og-image.
 
 Uso (precisa de Pillow e numpy):
-    python3 scripts/kaviski/marca.py [logo-mestre.png]
+    python3 scripts/kaviski/marca.py [mark.png wordmark.png]
 """
 
 from __future__ import annotations
@@ -13,26 +15,30 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts" / "assets"))
-from pixelart import draw_text, hex_rgba, text_image, text_width  # noqa: E402
+from pixelart import draw_text, hex_rgba, text_width  # noqa: E402
 
-NOME = "Kubo"
+NOME = "Voxtrin"
 BRAND = ROOT / "client" / "public" / "assets" / "brand"
-FUNDO = "#12151d"
+FUNDO = "#090909"  # o preto do site
+VERMELHO = "#e22c3f"
+FONTE = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
 
-def mestre(path: Path) -> Image.Image:
-    """Logo recortada no círculo (caixa do alfa) e centralizada num quadrado."""
-    img = Image.open(path).convert("RGBA")
-    box = img.getchannel("A").point(lambda a: 255 if a > 8 else 0).getbbox()
+def recortar(img: Image.Image, quadrado: bool) -> Image.Image:
+    """Recorta na caixa do alfa (ignora poeira quase transparente); `quadrado` centraliza num quadrado."""
+    img = img.convert("RGBA")
+    box = img.getchannel("A").point(lambda a: 255 if a > 24 else 0).getbbox()
     img = img.crop(box)
+    if not quadrado:
+        return img
     lado = max(img.size)
-    quadrado = Image.new("RGBA", (lado, lado), (0, 0, 0, 0))
-    quadrado.paste(img, ((lado - img.width) // 2, (lado - img.height) // 2))
-    return quadrado
+    out = Image.new("RGBA", (lado, lado), (0, 0, 0, 0))
+    out.paste(img, ((lado - img.width) // 2, (lado - img.height) // 2))
+    return out
 
 
 def reduzir(img: Image.Image, size: int, fundo: str | None = None, margem: float = 0.0) -> Image.Image:
@@ -43,12 +49,16 @@ def reduzir(img: Image.Image, size: int, fundo: str | None = None, margem: float
     return out
 
 
+def altura(img: Image.Image, h: int) -> Image.Image:
+    return img.resize((round(img.width * h / img.height), h), Image.LANCZOS)
+
+
 def signage() -> Image.Image:
-    """Placa da recepção, 64x16: a mesma chapa do original, com "Kubo" ("Ku" claro, "bo" na cor das janelas)."""
+    """Placa da recepção, 64x16: chapa escura com bisel, parafusos e "Voxtrin" ("Vox" claro, "trin" vermelho)."""
     w, h = 64, 16
     img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     px = img.load()
-    outline, top, face, bottom = hex_rgba("#1c2541"), hex_rgba("#3a4a70"), hex_rgba("#2a3656"), hex_rgba("#222b47")
+    outline, top, face, bottom = hex_rgba("#121214"), hex_rgba("#3a3a40"), hex_rgba("#232327"), hex_rgba("#1a1a1d")
     for y in range(h):
         for x in range(w):
             if x in (0, w - 1) and y in (0, h - 1):
@@ -62,55 +72,62 @@ def signage() -> Image.Image:
             else:
                 px[x, y] = face
     for sx in (3, w - 4):
-        px[sx, 7] = hex_rgba("#c9d3e3")
-        px[sx, 8] = hex_rgba("#7d8aa3")
-    a, b = NOME[:2], NOME[2:]
+        px[sx, 7] = hex_rgba("#c9ccd3")
+        px[sx, 8] = hex_rgba("#7d8089")
+    a, b = NOME[:3], NOME[3:]
     tx, ty = (w - text_width(NOME)) // 2, 4
     bx = tx + text_width(a) + 1
-    draw_text(img, tx, ty + 1, a, "#151c33")
-    draw_text(img, bx, ty + 1, b, "#151c33")
-    draw_text(img, tx, ty, a, "#f4f1ea")
-    draw_text(img, bx, ty, b, "#7cc8ff")
+    draw_text(img, tx, ty + 1, a, "#050506")
+    draw_text(img, bx, ty + 1, b, "#050506")
+    draw_text(img, tx, ty, a, "#eef0f4")
+    draw_text(img, bx, ty, b, "#ff4a5c")
     return img
 
 
-def og_image(logo: Image.Image) -> Image.Image:
-    """Prévia do link (1200x630): fundo da página, a logo à esquerda, o nome e a frase em pixels à direita."""
+def og_image(mark: Image.Image, wordmark: Image.Image) -> Image.Image:
+    """Prévia do link (1200x630): fundo preto com brilho vermelho, o logotipo do site e a frase."""
     w, h = 1200, 630
     img = Image.new("RGBA", (w, h), hex_rgba(FUNDO))
+    glow = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    ImageDraw.Draw(glow).ellipse((330, 60, 870, 470), fill=(226, 44, 63, 70))
+    img.alpha_composite(glow.filter(ImageFilter.GaussianBlur(110)))
+    logo = altura(wordmark, 190)
+    img.alpha_composite(logo, ((w - logo.width) // 2, 150))
     d = ImageDraw.Draw(img)
-    for y in range(h):  # leve gradiente para o azul da logo
-        t = y / h
-        d.line([(0, y), (w, y)], fill=(18 + round(4 * t), 21 + round(8 * t), 29 + round(30 * t), 255))
-    img.alpha_composite(reduzir(logo, 440), (70, 95))
-    img.alpha_composite(text_image(NOME, "#070a12", scale=20), (586, 198))  # sombra fina (a do pixelart escala junto)
-    img.alpha_composite(text_image(NOME, "#f4f1ea", scale=20), (580, 190))
-    for i, linha in enumerate(["O escritório virtual", "dos seus agentes de IA"]):
-        img.alpha_composite(text_image(linha, "#7cc8ff", scale=4, shadow="#070a12"), (586, 380 + i * 44))
+    fonte = ImageFont.truetype(FONTE, 38)
+    frase = "O escritório virtual dos seus agentes de IA"
+    tw = d.textlength(frase, font=fonte)
+    d.text(((w - tw) / 2, 420), frase, font=fonte, fill=(205, 208, 216, 255))
+    d.rectangle(((w - 120) // 2, 490, (w + 120) // 2, 494), fill=hex_rgba(VERMELHO))
     return img
 
 
 def main() -> None:
-    src = Path(sys.argv[1]) if len(sys.argv) > 1 else BRAND / "kubo-1024.png"
-    logo = mestre(src)
-    if src != BRAND / "kubo-1024.png":
-        reduzir(logo, 1024).save(BRAND / "kubo-1024.png", optimize=True)
+    src_mark = Path(sys.argv[1]) if len(sys.argv) > 2 else BRAND / "voxtrin-mark.png"
+    src_word = Path(sys.argv[2]) if len(sys.argv) > 2 else BRAND / "voxtrin-wordmark.png"
+    mark = recortar(Image.open(src_mark), quadrado=True)
+    word = recortar(Image.open(src_word), quadrado=False)
+    if len(sys.argv) > 2:  # guarda as mestres no repositório, num tamanho que basta
+        reduzir(mark, 512).save(BRAND / "voxtrin-mark.png", optimize=True)
+        altura(word, 237).save(BRAND / "voxtrin-wordmark.png", optimize=True)
     saidas = {
-        "favicon-16.png": reduzir(logo, 16),
-        "favicon-32.png": reduzir(logo, 32),
-        "logo-mark.png": reduzir(logo, 32),
-        "logo-mark@4x.png": reduzir(logo, 128),
-        "logo-detailed.png": reduzir(logo, 86),
-        "icon-192.png": reduzir(logo, 192),
-        "icon-512.png": reduzir(logo, 512),
-        # iPhone: ícone opaco (o sistema arredonda os cantos), com respiro em volta do círculo.
-        "apple-touch-icon.png": reduzir(logo, 180, fundo=FUNDO, margem=0.06),
+        "favicon-16.png": reduzir(mark, 16),
+        "favicon-32.png": reduzir(mark, 32),
+        "logo-mark.png": reduzir(mark, 32),
+        "logo-mark@4x.png": reduzir(mark, 128),
+        "logo-detailed.png": reduzir(mark, 86),
+        "icon-192.png": reduzir(mark, 192, fundo=FUNDO, margem=0.1),
+        "icon-512.png": reduzir(mark, 512, fundo=FUNDO, margem=0.1),
+        # iPhone: ícone opaco (o sistema arredonda os cantos), com respiro em volta.
+        "apple-touch-icon.png": reduzir(mark, 180, fundo=FUNDO, margem=0.12),
+        # Logotipo do topo e da abertura: 3x da altura em que aparece (32 px), nítido em telas densas.
+        "wordmark.png": altura(word, 96),
         "signage.png": signage(),
     }
     saidas["signage@4x.png"] = saidas["signage.png"].resize((256, 64), Image.NEAREST)
     for nome, img in saidas.items():
         img.save(BRAND / nome, optimize=True)
-    og_image(logo).convert("RGB").save(BRAND.parent / "og-image.png", optimize=True)
+    og_image(mark, word).convert("RGB").save(BRAND.parent / "og-image.png", optimize=True)
     print(f"marca {NOME}: {len(saidas) + 1} arquivos em {BRAND.relative_to(ROOT)}")
 
 

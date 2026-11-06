@@ -10,6 +10,7 @@ import { MessageRegistry } from '../messages/registry';
 import { createKaviski } from './index';
 import { kvDecorateRooms } from './pinned';
 import { kvBrandLogin } from './remote';
+import { kvSetEmpresaAtual } from './empresa';
 import { parseRoomStyles } from './room-styles';
 import { attachTwiccMessages, ERR_TWICC_NOT_FETCHED, TWICC_QUEUED_TIMEOUT_MS } from './twicc-messages';
 import { cliError, liveIds, sendArgs, twiccRound, type TwiccBridgeState, type TwiccCli } from './twicc-bridge';
@@ -99,9 +100,13 @@ describe('mapa de estilos: pinned e name', () => {
 });
 
 describe('marca (HABBLAUD_BRAND)', () => {
-  it('tela de login com o nome da empresa; sem a variável, intacta', () => {
+  it('tela de login com o logotipo e o nome da empresa; sem nome, só o logotipo', () => {
+    kvSetEmpresaAtual(undefined); // o createKaviski dos testes de cima liga a empresa dele
     const html = loginPage({ caDownload: false });
-    expect(kvBrandLogin(html, {})).toBe(html);
+    const plain = kvBrandLogin(html, {});
+    expect(plain).toContain('src="/assets/brand/wordmark.png"');
+    expect(plain).not.toContain('<h1>Habblaud</h1>');
+    expect(plain).toContain('<title>');
     const branded = kvBrandLogin(html, { HABBLAUD_BRAND: 'Kaviski <Corp>' });
     expect(branded).toContain('<h1>Kaviski &lt;Corp&gt;</h1>');
     expect(branded).toContain('<title>Kaviski &lt;Corp&gt; · entrar</title>');

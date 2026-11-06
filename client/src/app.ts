@@ -10,6 +10,7 @@ import { migrateLegacyKeys, safeLocalStorage } from './ui/prefs';
 import { getLocale, tr } from '../../shared/i18n';
 import { kvStartRoomLink } from './kaviski/room-link'; // fork Kaviski (KAVISKI.md)
 import { kvStartBrand } from './kaviski/brand'; // fork Kaviski (KAVISKI.md)
+import './kaviski/empresa'; // fork Kaviski: grupo Empresa nas Configurações (nome da empresa)
 import { kvStartCompanion } from './kaviski/companion'; // fork Kaviski (KAVISKI.md)
 import { kvStartHumanos } from './kaviski/humanos'; // fork Kaviski (KAVISKI-HUMANOS.md)
 
@@ -32,7 +33,7 @@ export function start(): void {
   const city = cityHost({ world, worldCanvas, uiRoot, mock: store.mock, params, version: () => store.liveSnapshot?.meta.version ?? '' });
   createUI(uiRoot, store, world, city);
   kvStartRoomLink(location.search, store, world); // fork Kaviski: ?sala=<pasta>
-  kvStartBrand(store); // fork Kaviski: HABBLAUD_BRAND no topo
+  kvStartBrand(store); // fork Kaviski: nome da empresa (título da aba, notificações)
   kvStartCompanion(store); // fork Kaviski: companion do painel Browser do TwiCC
   kvStartHumanos(store); // fork Kaviski: pessoas no escritório (HABBLAUD_HUMANOS)
   // O que esta página pode fazer (porta local ou remota com login) chega antes do primeiro snapshot (ou desiste em

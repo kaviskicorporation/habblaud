@@ -1,20 +1,12 @@
-// Fork Kaviski (KAVISKI.md): logotipo "Kubo" em pixels no topo e na abertura, no lugar do "Habblaud" do original.
-// Mesma fonte bitmap e mesma sombra de 1 px (gerado com a fonte de scripts/assets/pixelart.py, como o original):
-// c = "Ku" (creme), t = "bo" (azul das janelas acesas da logo), s = sombra.
+// Fork Kaviski (KAVISKI.md): logotipo do Voxtrin (o do site, voxtrin.com) no topo e na abertura, no lugar do "Habblaud"
+// em pixels do original. A imagem (assets/brand/wordmark.png) já traz o "V" do símbolo: enquanto o logotipo aparece, o
+// símbolo separado do topo some (kaviski-marca.css); nas telas estreitas, em que o original esconde o nome, volta só o "V".
 import { KV_PRODUTO } from '../../../shared/kaviski-marca';
-import { pixelIcon } from '../ui/icons';
+import './kaviski-marca.css';
 
-export const KV_WORDMARK_ROWS = [
-  'c...c.......t..........',
-  'c..cs.......t..........',
-  'c.cs..c...c.tttt...ttt.',
-  'ccs...c...c.tssst.tssst',
-  'csc...c...c.t...t.t...t',
-  'c.sc..c...c.t...t.t...t',
-  'c..sc.scccc.tttts.sttts',
-  's...s..ssss.ssss...sss.',
-] as const;
+/** Proporção do wordmark.png (largura / altura), para o navegador reservar o espaço antes de a imagem chegar. */
+const RATIO = 392 / 96;
 
-export const KV_WORDMARK = pixelIcon(KV_WORDMARK_ROWS, { s: 'rgba(6, 8, 14, 0.62)', c: '#f4f1ea', t: '#7cc8ff' }, 'ui-wordmark');
+export const KV_WORDMARK = `<img class="ui-wordmark kv-wordmark" src="/assets/brand/wordmark.png" alt="" width="${Math.round(24 * RATIO)}" height="24" draggable="false" decoding="async">`;
 
 export { KV_PRODUTO };

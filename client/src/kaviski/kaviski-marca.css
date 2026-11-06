@@ -1,0 +1,36 @@
+/* Fork Kaviski (KAVISKI.md): logotipo do Voxtrin (kaviski/marca.ts). A imagem traz o "V" do símbolo, então o símbolo
+   separado (.ui-brand__mark) só aparece quando o original esconde o nome (as mesmas larguras de styles.css). */
+.ui-wordmark.kv-wordmark {
+  width: auto;
+  height: 24px;
+  image-rendering: auto;
+  filter: drop-shadow(0 2px 6px rgba(226, 44, 63, 0.25));
+}
+
+.ui-splash__name .ui-wordmark.kv-wordmark {
+  width: auto;
+  height: 48px;
+}
+
+.ui-topbar .ui-brand__mark,
+.ui-splash__inner .ui-brand__mark {
+  display: none;
+}
+
+@media (max-width: 1500px) {
+  .ui-topbar:has(.ui-usage-card:nth-child(4)) .ui-brand__mark {
+    display: block;
+  }
+}
+
+@media (max-width: 1140px) {
+  .ui-topbar:has(.ui-usage-card:nth-child(3)) .ui-brand__mark {
+    display: block;
+  }
+}
+
+@media (max-width: 1040px) {
+  .ui-topbar .ui-brand__mark {
+    display: block;
+  }
+}

@@ -229,17 +229,17 @@ export function statusText(waiting: readonly WaitingAgent[]): string | undefined
 export function summaryText(s: Summary, url: string): string {
   const agents = s.agents === 1 ? '1 agente' : `${s.agents} agentes`
   const waiting = s.waiting.length === 0 ? 'ninguém precisa de você' : s.waiting.length === 1 ? '1 precisa de você' : `${s.waiting.length} precisam de você`
-  const lines = [`Kubo ${s.version} em ${url}`, `${agents} · ${s.working} trabalhando · ${waiting}`]
+  const lines = [`Voxtrin ${s.version} em ${url}`, `${agents} · ${s.working} trabalhando · ${waiting}`]
   for (const w of s.waiting) lines.push(`✋ ${w.name} (${w.room}): ${w.waitingFor}${w.answerable ? ' · dá para responder pelo escritório' : ''}`)
   return lines.join('\n')
 }
 
 export function offlineText(url: string): string {
-  return `O Kubo não respondeu em ${url}. Para subir: npm run docker:up na pasta do Habblaud.`
+  return `O Voxtrin não respondeu em ${url}. Para subir: npm run docker:up na pasta do Habblaud.`
 }
 
 export function outdatedText(url: string): string {
-  return `O Kubo em ${url} está numa versão sem a rota do mod. Para atualizar: git pull e npm run docker:up na pasta do Habblaud.`
+  return `O Voxtrin em ${url} está numa versão sem a rota do mod. Para atualizar: git pull e npm run docker:up na pasta do Habblaud.`
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -371,7 +371,7 @@ async function habblaudText($: EngineInterface): Promise<string> {
 export const register: Register = (on) => {
   on('session.start', async ($, e, next) => {
     try {
-      await $.command.register({ name: 'habblaud', description: 'Resumo do Kubo: quantos agentes, quem trabalha e quem precisa de você' })
+      await $.command.register({ name: 'habblaud', description: 'Resumo do Voxtrin: quantos agentes, quem trabalha e quem precisa de você' })
     } catch {
       // sem o comando, o resto segue
     }

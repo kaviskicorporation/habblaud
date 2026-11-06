@@ -8,7 +8,7 @@
 //   serverLocale).
 // Os textos de atividade são montados pelo servidor, então seguem o idioma do servidor.
 import { DICTIONARIES } from './locales/all';
-import { kvProduto } from './kaviski-marca'; // fork Kaviski: nome do produto (Kubo)
+import { kvProduto } from './kaviski-marca'; // fork Kaviski: nome do produto (Voxtrin)
 
 export type Locale = 'pt-BR' | 'en' | 'es' | 'fr';
 
