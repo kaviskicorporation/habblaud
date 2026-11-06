@@ -14,6 +14,8 @@ export const KV_EDITOR_EN: Readonly<Record<string, string>> = {
   "versão {0} · {1} itens{2}": "version {0} · {1} items{2}",
   " · desligada": " · off",
   "Planta: {0} gravou a versão {1}.": "Floor plan: {0} saved version {1}.",
+  "a planta mudou enquanto você editava": "the floor plan changed while you were editing",
+  "não deu para gravar a planta ({0})": "could not save the floor plan ({0})",
 };
 
 export const KV_EDITOR_ES: Readonly<Record<string, string>> = {
@@ -30,6 +32,8 @@ export const KV_EDITOR_ES: Readonly<Record<string, string>> = {
   "versão {0} · {1} itens{2}": "versión {0} · {1} elementos{2}",
   " · desligada": " · apagada",
   "Planta: {0} gravou a versão {1}.": "Planta: {0} guardó la versión {1}.",
+  "a planta mudou enquanto você editava": "la planta cambió mientras editabas",
+  "não deu para gravar a planta ({0})": "no se pudo guardar la planta ({0})",
 };
 
 export const KV_EDITOR_FR: Readonly<Record<string, string>> = {
@@ -46,4 +50,6 @@ export const KV_EDITOR_FR: Readonly<Record<string, string>> = {
   "versão {0} · {1} itens{2}": "version {0} · {1} éléments{2}",
   " · desligada": " · désactivé",
   "Planta: {0} gravou a versão {1}.": "Plan : {0} a enregistré la version {1}.",
+  "a planta mudou enquanto você editava": "le plan a changé pendant votre modification",
+  "não deu para gravar a planta ({0})": "impossible d’enregistrer le plan ({0})",
 };
