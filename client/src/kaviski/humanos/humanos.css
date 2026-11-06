@@ -762,3 +762,20 @@ button.kv-me:hover {
   pointer-events: none;
   white-space: nowrap;
 }
+
+.kv-screen__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.kv-screen--me {
+  border-color: var(--st-working);
+}
+
+.kv-screen__stop {
+  height: 22px;
+  border-color: var(--lv-crit);
+  color: var(--lv-crit);
+}

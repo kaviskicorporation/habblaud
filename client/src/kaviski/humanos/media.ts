@@ -27,6 +27,20 @@ const SWITCH_MS = 700;
 const CAM_ICON = pixelIcon(['..........', '.######...', '.#....#.##', '.#....###.', '.#....###.', '.#....#.##', '.######...', '..........']);
 const SCREEN_ICON = pixelIcon(['##########', '#........#', '#........#', '#........#', '#........#', '##########', '....##....', '..######..']);
 
+/** Chave da minha própria tela no mapa de quadros. */
+const ME = '\u0000eu';
+
+/** Erro de microfone/câmera em palavras (sem aparelho, bloqueado, em uso por outro programa). */
+function deviceError(err: unknown, kind: 'mic' | 'cam'): string {
+  const name = (err as Error)?.name ?? '';
+  if (name === 'NotFoundError' || /not found/i.test((err as Error)?.message ?? '')) {
+    return kind === 'cam' ? tr('Nenhuma câmera encontrada neste aparelho.') : tr('Nenhum microfone encontrado neste aparelho.');
+  }
+  if (name === 'NotAllowedError') return kind === 'cam' ? tr('A câmera foi bloqueada no navegador (cadeado ao lado do endereço).') : tr('O microfone foi bloqueado no navegador (cadeado ao lado do endereço).');
+  if (name === 'NotReadableError') return kind === 'cam' ? tr('A câmera está em uso por outro programa.') : tr('O microfone está em uso por outro programa.');
+  return kind === 'cam' ? tr('Não deu para ligar a câmera ({0}).', [(err as Error)?.message ?? '']) : tr('Não deu para ligar o microfone ({0}).', [(err as Error)?.message ?? '']);
+}
+
 export function proximityVolume(dist: number): number {
   if (dist <= NEAR) return 1;
   if (dist >= FAR) return 0;
@@ -129,7 +143,7 @@ export class KvMedia {
     } catch (err) {
       this.prefs.mic = false;
       this.paint();
-      this.warn(tr('Não deu para ligar o microfone ({0}).', [(err as Error).message]));
+      this.warn(deviceError(err, 'mic'));
     }
   }
 
@@ -143,7 +157,7 @@ export class KvMedia {
     } catch (err) {
       this.prefs.cam = false;
       this.paint();
-      this.warn(tr('Não deu para ligar a câmera ({0}).', [(err as Error).message]));
+      this.warn(deviceError(err, 'cam'));
     }
     if (!on) this.dropBubble('');
   }
@@ -185,14 +199,21 @@ export class KvMedia {
     const old = this.room;
     this.room = null;
     this.area = area;
-    this.screen = false;
+    // Microfone, câmera e tela continuam ligados de uma área para a outra: as faixas saem da chamada velha sem
+    // desligar (disconnect(false)) e são publicadas na nova (sem pedir permissão de novo nem a tela sumir).
+    const keep = old ? [...old.localParticipant.trackPublications.values()].map((p) => p.track).filter((t): t is NonNullable<typeof t> => !!t) : [];
     if (old) {
-      await old.disconnect().catch(() => {});
+      await old.disconnect(false).catch(() => {});
       for (const id of [...this.bubbles.keys()]) this.dropBubble(id);
       for (const id of [...this.screens.keys()]) this.dropScreen(id);
       this.audio.replaceChildren();
     }
-    if (!area) return;
+    if (!area) {
+      for (const t of keep) t.stop();
+      this.screen = false;
+      this.dropScreen(ME);
+      return;
+    }
     let info: { url: string; token: string; name: string };
     try {
       const res = await fetch('/api/kaviski/humanos/livekit-token', {
@@ -231,12 +252,23 @@ export class KvMedia {
     }
     if (this.area !== area) {
       // mudou de área enquanto conectava
+      for (const t of keep) t.stop();
       await room.disconnect();
       return;
     }
     this.room = room;
-    if (this.prefs.mic && this.mediaOk()) await room.localParticipant.setMicrophoneEnabled(true).catch(() => this.warn(tr('Não deu para ligar o microfone.')));
-    if (this.prefs.cam && this.mediaOk()) await room.localParticipant.setCameraEnabled(true, { resolution: { width: 320, height: 240, frameRate: 15 } }).catch(() => this.warn(tr('Não deu para ligar a câmera.')));
+    const kept = new Set<string>();
+    for (const t of keep) {
+      try {
+        await room.localParticipant.publishTrack(t, { source: t.source });
+        kept.add(t.source);
+      } catch {
+        t.stop();
+      }
+    }
+    if (!kept.has(lk.Track.Source.ScreenShare)) this.screen = false;
+    if (this.prefs.mic && !kept.has(lk.Track.Source.Microphone) && this.mediaOk()) await room.localParticipant.setMicrophoneEnabled(true).catch((err) => this.warn(deviceError(err, 'mic')));
+    if (this.prefs.cam && !kept.has(lk.Track.Source.Camera) && this.mediaOk()) await room.localParticipant.setCameraEnabled(true, { resolution: { width: 320, height: 240, frameRate: 15 } }).catch((err) => this.warn(deviceError(err, 'cam')));
   }
 
   private onTrack(track: RemoteTrack, p: RemoteParticipant): void {
@@ -258,13 +290,19 @@ export class KvMedia {
 
   private onLocal(pub: TrackPublication, on: boolean): void {
     const lk = this.lk!;
-    if (pub.source !== lk.Track.Source.Camera) {
-      if (pub.source === lk.Track.Source.ScreenShare && !on) {
+    if (pub.source === lk.Track.Source.ScreenShare) {
+      // quem compartilha vê a própria tela (com Parar); o navegador também para pelo botão dele
+      if (on && pub.track) {
+        this.screen = true;
+        this.addScreen(null, pub.track);
+      } else {
         this.screen = false;
-        this.paint();
+        this.dropScreen(ME);
       }
+      this.paint();
       return;
     }
+    if (pub.source !== lk.Track.Source.Camera) return;
     if (on && pub.track) this.addBubble('', tr('Você'), pub.track);
     else this.dropBubble('');
   }
@@ -287,18 +325,23 @@ export class KvMedia {
     this.bubbles.delete(id);
   }
 
-  private addScreen(p: Participant, track: Track): void {
-    this.dropScreen(p.identity);
+  /** Quadro da tela compartilhada (p = null: a minha, com o botão Parar). */
+  private addScreen(p: Participant | null, track: Track): void {
+    const id = p ? p.identity : ME;
+    this.dropScreen(id);
     const video = track.attach() as HTMLVideoElement;
     video.muted = true;
+    const stop = p
+      ? null
+      : h('button', { class: 'ui-btn ui-btn--sm kv-screen__stop', type: 'button', text: tr('Parar'), on: { click: (e: Event) => (e.stopPropagation(), void this.setScreen(false)) } });
     const el = h(
       'div',
-      { class: 'kv-screen', on: { click: () => el.classList.toggle('is-big') } },
-      h('div', { class: 'kv-screen__head', text: tr('Tela de {0}', [p.name || p.identity]) }),
+      { class: `kv-screen${p ? '' : ' kv-screen--me'}`, on: { click: () => el.classList.toggle('is-big') } },
+      h('div', { class: 'kv-screen__head' }, h('span', { text: p ? tr('Tela de {0}', [p.name || p.identity]) : tr('Você está compartilhando a tela') }), stop),
       video,
     );
     (document.querySelector('.ui-root') ?? document.body).append(el);
-    this.screens.set(p.identity, el);
+    this.screens.set(id, el);
     this.stackScreens();
   }
 
