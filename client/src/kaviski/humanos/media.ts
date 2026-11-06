@@ -7,21 +7,23 @@
 // - Câmera: bolinha com o vídeo em cima do boneco de cada pessoa (some quando ela está longe demais para ouvir).
 // - Compartilhar tela: quem recebe vê um quadro flutuante (clique amplia).
 // - O servidor só dá o token das chamadas que a pessoa pode ouvir (cliente: as salas dele e as áreas comuns).
-import type { Participant, RemoteParticipant, RemoteTrack, Room, Track, TrackPublication } from 'livekit-client';
+// - Onda Gather (KAVISKI-HUMANOS.md, "Voz e vídeo — onda Gather"): ajustes e efeitos (media-fx.ts, menus em
+//   media-menu.ts), palco (media-stage.ts), grade ampliada (media-grid.ts), anel de quem fala (media-speak.ts) e as
+//   regras de quando entrar na chamada e do volume (media-rules.ts: não perturbe, modo foco, roda privada).
+import type { LocalAudioTrack, LocalVideoTrack, Participant, RemoteParticipant, RemoteTrack, Room, Track, TrackPublication } from 'livekit-client';
 import { tr } from '../../../../shared/i18n';
 import { h } from '../../ui/dom';
 import { ICONS, pixelIcon } from '../../ui/icons';
-import { TILE } from '../../world/constants';
 import { kvPeople } from './world';
 import type { KvBar } from './bar';
 import { kvHeads, kvScreenMini } from './heads';
+import { KvFx } from './media-fx';
+import { kvAreaIsClosed, kvCallWanted, kvVolumeFor } from './media-rules';
+import { kvStartMediaExtras } from './media-extras';
 
 type LK = typeof import('livekit-client');
 
 const PREFS = 'habblaud.kv.media';
-/** Proximidade nas áreas abertas: volume cheio até NEAR tiles, some em FAR. */
-const NEAR = 3 * TILE;
-const FAR = 11 * TILE;
 /** A área precisa ficar parada este tempo antes de trocar de chamada (atravessar uma porta não troca duas vezes). */
 const SWITCH_MS = 700;
 
@@ -42,11 +44,7 @@ function deviceError(err: unknown, kind: 'mic' | 'cam'): string {
   return kind === 'cam' ? tr('Não deu para ligar a câmera ({0}).', [(err as Error)?.message ?? '']) : tr('Não deu para ligar o microfone ({0}).', [(err as Error)?.message ?? '']);
 }
 
-export function proximityVolume(dist: number): number {
-  if (dist <= NEAR) return 1;
-  if (dist >= FAR) return 0;
-  return 1 - (dist - NEAR) / (FAR - NEAR);
-}
+export { proximityVolume } from './media-rules';
 
 interface Prefs {
   mic: boolean;
@@ -54,7 +52,14 @@ interface Prefs {
 }
 
 export class KvMedia {
-  private lk: LK | null = null;
+  lk: LK | null = null;
+  /** Ajustes e efeitos do microfone e da câmera (media-fx.ts). */
+  readonly fx = new KvFx();
+  /** Quem está no palco agora (media-stage.ts): a voz dele vem pelo palco, não pela chamada da área. */
+  stageSpeaker: string | null = null;
+  /** Saí da área (ou entrei em não perturbe) e a chamada ainda não trocou: ninguém me ouve, não ouço ninguém. */
+  private hushed = false;
+  private readonly changed = new Set<() => void>();
   private room: Room | null = null;
   private area: string | null = null;
   private wanted: string | null = null;
@@ -62,8 +67,8 @@ export class KvMedia {
   private switching = false;
   private prefs: Prefs = { mic: false, cam: false };
   private screen = false;
-  private readonly micBtn: HTMLButtonElement;
-  private readonly camBtn: HTMLButtonElement;
+  readonly micBtn: HTMLButtonElement;
+  readonly camBtn: HTMLButtonElement;
   private readonly screenBtn: HTMLButtonElement;
   private readonly audio: HTMLElement;
   /** Bolinhas de câmera por pessoa ('' = eu). */
@@ -85,6 +90,7 @@ export class KvMedia {
     this.camBtn = this.toggle(CAM_ICON, () => void this.setCam(!this.prefs.cam));
     this.screenBtn = this.toggle(SCREEN_ICON, () => void this.setScreen(!this.screen));
     bar.media.append(this.micBtn, this.camBtn, this.screenBtn);
+    if (!window.isSecureContext) for (const b of [this.micBtn, this.camBtn, this.screenBtn]) b.classList.add('is-blocked');
     bar.media.setAttribute('aria-label', tr('Voz e vídeo'));
     this.audio = h('div', { class: 'kv-audio', hidden: true });
     (document.querySelector('.ui-root') ?? document.body).append(this.audio);
@@ -121,10 +127,11 @@ export class KvMedia {
     set(this.micBtn, this.prefs.mic, tr('Desligar o microfone'), tr('Ligar o microfone'));
     set(this.camBtn, this.prefs.cam, tr('Desligar a câmera'), tr('Ligar a câmera'));
     set(this.screenBtn, this.screen, tr('Parar de compartilhar a tela'), tr('Compartilhar a tela'));
+    if (!window.isSecureContext) for (const b of [this.micBtn, this.camBtn, this.screenBtn]) b.title = tr('Microfone e câmera só funcionam com o Habblaud em HTTPS (ou localhost).');
     this.bar.setCall(!!this.room);
   }
 
-  private warn(text: string): void {
+  warn(text: string): void {
     this.bar.warn(text);
   }
 
@@ -140,7 +147,8 @@ export class KvMedia {
     this.save();
     this.paint();
     try {
-      await this.room?.localParticipant.setMicrophoneEnabled(on);
+      await this.room?.localParticipant.setMicrophoneEnabled(on, this.fx.micOptions());
+      if (on) await this.applyFx();
     } catch (err) {
       this.prefs.mic = false;
       this.paint();
@@ -154,7 +162,8 @@ export class KvMedia {
     this.save();
     this.paint();
     try {
-      await this.room?.localParticipant.setCameraEnabled(on, { resolution: { width: 320, height: 240, frameRate: 15 } });
+      await this.room?.localParticipant.setCameraEnabled(on, this.fx.camOptions());
+      if (on) await this.applyFx();
     } catch (err) {
       this.prefs.cam = false;
       this.paint();
@@ -178,12 +187,14 @@ export class KvMedia {
 
   /** A cada 250 ms: troca de chamada quando a área mudou e ficou parada; ajusta os volumes pela distância. */
   private async tick(): Promise<void> {
-    const want = kvPeople.inside ? kvPeople.area : null;
+    const want = kvCallWanted(kvPeople);
     const now = Date.now();
     if (want !== this.wanted) {
       this.wanted = want;
       this.wantedSince = now;
     }
+    // saindo da área: já não ouço nem sou ouvido, antes mesmo de a chamada trocar (nada vaza para a sala que deixei)
+    this.hush(!!this.room && this.wanted !== this.area);
     if (!this.switching && this.wanted !== this.area && now - this.wantedSince >= SWITCH_MS) {
       this.switching = true;
       try {
@@ -243,6 +254,22 @@ export class KvMedia {
       .on(lk.RoomEvent.ParticipantDisconnected, (p) => {
         this.dropBubble(p.identity);
         this.dropScreen(p.identity);
+        this.notify();
+      })
+      .on(lk.RoomEvent.ParticipantConnected, () => this.notify())
+      .on(lk.RoomEvent.TrackMuted, () => this.notify())
+      .on(lk.RoomEvent.TrackUnmuted, () => this.notify())
+      .on(lk.RoomEvent.Reconnecting, () => this.warn(tr('Conexão da chamada caiu; reconectando…')))
+      .on(lk.RoomEvent.Reconnected, () => this.warn(tr('Chamada reconectada.')))
+      .on(lk.RoomEvent.Disconnected, () => {
+        // caiu de vez (rede, servidor reiniciado): o tick entra de novo na chamada da área
+        if (this.room !== room) return;
+        this.room = null;
+        this.area = null;
+        for (const id of [...this.bubbles.keys()]) this.dropBubble(id);
+        for (const id of [...this.screens.keys()]) if (id !== ME) this.dropScreen(id);
+        this.audio.replaceChildren();
+        this.notify();
       });
     try {
       await room.connect(info.url || this.url, info.token, { autoSubscribe: true });
@@ -268,9 +295,85 @@ export class KvMedia {
       }
     }
     if (!kept.has(lk.Track.Source.ScreenShare)) this.screen = false;
-    if (this.prefs.mic && !kept.has(lk.Track.Source.Microphone) && this.mediaOk()) await room.localParticipant.setMicrophoneEnabled(true).catch((err) => this.warn(deviceError(err, 'mic')));
-    if (this.prefs.cam && !kept.has(lk.Track.Source.Camera) && this.mediaOk()) await room.localParticipant.setCameraEnabled(true, { resolution: { width: 320, height: 240, frameRate: 15 } }).catch((err) => this.warn(deviceError(err, 'cam')));
+    if (this.prefs.mic && !kept.has(lk.Track.Source.Microphone) && this.mediaOk()) await room.localParticipant.setMicrophoneEnabled(true, this.fx.micOptions()).catch((err) => this.warn(deviceError(err, 'mic')));
+    if (this.prefs.cam && !kept.has(lk.Track.Source.Camera) && this.mediaOk()) await room.localParticipant.setCameraEnabled(true, this.fx.camOptions()).catch((err) => this.warn(deviceError(err, 'cam')));
+    if (this.fx.prefs.outId) await room.switchActiveDevice('audiooutput', this.fx.prefs.outId).catch(() => {});
+    this.hushed = false;
+    if (this.prefs.mic) await this.micPub()?.unmute().catch(() => {});
+    await this.applyFx();
+    this.notify();
   }
+
+  // ---------------------------------------------------------------- onda Gather (ganchos dos módulos media-*.ts)
+
+  /** A chamada da área em que estou (null: nenhuma). */
+  get call(): Room | null {
+    return this.room;
+  }
+
+  /** Volume com que ouço uma pessoa da chamada agora (0: longe demais, ou trocando de área). */
+  volumeOf(id: string): number {
+    return this.volumes.get(id) ?? (kvAreaIsClosed(this.area) && !this.hushed ? 1 : 0);
+  }
+
+  /** Avisa quando entra/sai gente ou faixa (grade, anel de quem fala). */
+  onChange(cb: () => void): () => void {
+    this.changed.add(cb);
+    return () => void this.changed.delete(cb);
+  }
+
+  notify(): void {
+    for (const cb of this.changed) cb();
+  }
+
+  private micPub(): LocalAudioTrack | undefined {
+    const lk = this.lk;
+    return lk ? (this.room?.localParticipant.getTrackPublication(lk.Track.Source.Microphone)?.track as LocalAudioTrack | undefined) : undefined;
+  }
+
+  private camPub(): LocalVideoTrack | undefined {
+    const lk = this.lk;
+    return lk ? (this.room?.localParticipant.getTrackPublication(lk.Track.Source.Camera)?.track as LocalVideoTrack | undefined) : undefined;
+  }
+
+  /** Filtro de ruído e fundo da câmera nas minhas faixas (depois de ligar, trocar de área ou mudar o ajuste). */
+  async applyFx(): Promise<void> {
+    for (const err of await Promise.all([this.fx.applyMic(this.micPub()), this.fx.applyCam(this.camPub())])) if (err) this.warn(err);
+  }
+
+  /** Troca o microfone, a câmera ou o alto-falante (vale já, e fica lembrado). */
+  async switchDevice(kind: 'audioinput' | 'videoinput' | 'audiooutput', id: string): Promise<void> {
+    this.fx.set(kind === 'audioinput' ? { micId: id } : kind === 'videoinput' ? { camId: id } : { outId: id });
+    try {
+      await this.room?.switchActiveDevice(kind, id);
+    } catch (err) {
+      this.warn(deviceError(err, kind === 'videoinput' ? 'cam' : 'mic'));
+    }
+    this.notify();
+  }
+
+  /** O filtro do navegador mudou: o microfone é capturado de novo com as restrições novas. */
+  async restartMic(): Promise<void> {
+    const t = this.micPub();
+    if (!t) return;
+    try {
+      await t.restartTrack(this.fx.micOptions());
+      await this.applyFx();
+    } catch (err) {
+      this.warn(deviceError(err, 'mic'));
+    }
+  }
+
+  private hush(on: boolean): void {
+    if (on === this.hushed) return;
+    this.hushed = on;
+    const mic = this.micPub();
+    if (on) void mic?.mute().catch(() => {});
+    else if (this.prefs.mic) void mic?.unmute().catch(() => {});
+    this.volumes.clear();
+    this.updateVolumes();
+  }
+
 
   private onTrack(track: RemoteTrack, p: RemoteParticipant): void {
     const lk = this.lk!;
@@ -280,6 +383,7 @@ export class KvMedia {
       this.audio.append(el);
     } else if (track.source === lk.Track.Source.ScreenShare) this.addScreen(p, track);
     else if (track.kind === lk.Track.Kind.Video) this.addBubble(p.identity, p.name || p.identity, track);
+    this.notify();
   }
 
   private offTrack(track: RemoteTrack, p: RemoteParticipant): void {
@@ -287,6 +391,7 @@ export class KvMedia {
     for (const el of track.detach()) el.remove();
     if (track.source === lk.Track.Source.ScreenShare) this.dropScreen(p.identity);
     else if (track.kind === lk.Track.Kind.Video) this.dropBubble(p.identity);
+    this.notify();
   }
 
   private onLocal(pub: TrackPublication, on: boolean): void {
@@ -303,6 +408,7 @@ export class KvMedia {
       this.paint();
       return;
     }
+    this.notify();
     if (pub.source !== lk.Track.Source.Camera) return;
     if (on && pub.track) this.addBubble('', tr('Você'), pub.track);
     else this.dropBubble('');
@@ -363,14 +469,11 @@ export class KvMedia {
   private updateVolumes(): void {
     const room = this.room;
     if (!room) return;
-    const open = !this.area?.startsWith('r:');
     const me = kvPeople.locate?.(null);
     for (const p of room.remoteParticipants.values()) {
-      let v = 1;
-      if (open) {
-        const them = kvPeople.locate?.(p.identity);
-        v = me && them ? proximityVolume(Math.hypot(me.x - them.x, me.y - them.y)) : 0;
-      }
+      const them = kvPeople.locate?.(p.identity);
+      const dist = me && them ? Math.hypot(me.x - them.x, me.y - them.y) : null;
+      const v = kvVolumeFor({ area: this.area, dist, hushed: this.hushed, onStage: this.stageSpeaker === p.identity });
       if (this.volumes.get(p.identity) !== v) {
         this.volumes.set(p.identity, v);
         p.setVolume(v);
@@ -388,7 +491,11 @@ export class KvMedia {
         continue;
       }
       el.hidden = false;
-      const size = Math.round(Math.max(44, Math.min(120, 22 * at.zoom)));
+      // mais perto, maior (nas áreas abertas); quem fala ganha o anel aceso
+      const v = id ? (this.volumes.get(id) ?? 1) : 1;
+      const size = Math.round(Math.max(44, Math.min(120, 22 * at.zoom)) * (0.6 + 0.4 * v));
+      const who = id ? this.room?.remoteParticipants.get(id) : this.room?.localParticipant;
+      el.classList.toggle('is-speaking', !!who?.isSpeaking && !this.hushed);
       el.style.width = `${size}px`;
       el.style.height = `${size}px`;
       el.style.transform = `translate(${Math.round(at.sx - size / 2)}px, ${Math.round(at.sy - 34 * at.zoom - size)}px)`;
@@ -402,7 +509,10 @@ export async function kvStartMedia(bar: KvBar): Promise<KvMedia | null> {
     const res = await fetch('/api/kaviski/humanos/livekit', { credentials: 'same-origin', cache: 'no-store' });
     if (!res.ok) return null;
     const body = (await res.json()) as { enabled?: boolean; url?: string };
-    return body.enabled && body.url ? new KvMedia(body.url, bar) : null;
+    if (!body.enabled || !body.url) return null;
+    const media = new KvMedia(body.url, bar);
+    kvStartMediaExtras(media, bar);
+    return media;
   } catch {
     return null;
   }

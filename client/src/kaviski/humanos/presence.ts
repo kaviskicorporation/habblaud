@@ -42,7 +42,7 @@ export class KvPresenceClient {
       }
       for (const cb of this.listeners) cb(this.state);
     });
-    for (const name of ['chat', 'summon', ...KV_SOCIAL_EVENTS]) {
+    for (const name of ['chat', 'summon', 'stage', ...KV_SOCIAL_EVENTS]) {
       this.es.addEventListener(name, (ev) => {
         let data: unknown;
         try {
@@ -55,8 +55,8 @@ export class KvPresenceClient {
     }
   }
 
-  /** Ouve um evento do fluxo de presença (`chat`, `summon`, `dm` e os da W2). */
-  onEvent<T>(name: 'chat' | 'summon' | KvSocialEvent, cb: (data: T) => void): () => void {
+  /** Ouve um evento do fluxo de presença (`chat`, `summon`, `dm`, `stage` e os da W2). */
+  onEvent<T>(name: 'chat' | 'summon' | 'stage' | KvSocialEvent, cb: (data: T) => void): () => void {
     let set = this.events.get(name);
     if (!set) this.events.set(name, (set = new Set()));
     set.add(cb as (data: unknown) => void);
