@@ -266,6 +266,35 @@ lugar de guardar).
   `agenda.test.ts`), `shared/{kaviski-invites,kaviski-ics,kaviski-agenda}.ts` (+ `kaviski-ics.test.ts`),
   `shared/locales/kaviski-extras.ts`, `client/src/kaviski/humanos/{extras,invites,agenda,focus,minimap,shortcuts,
   shortcuts-list,welcome,room-hover,walk,auto-status}.ts` + `extras.css`.
+### Boneco, mesa fixa e móveis (onda Gather, W1) (2026-11-06) ✅
+- **Modo clássico** (botão da lua no topo, lembrado em `habblaud.kv.classico`; quem tinha `habblaud.kv.andar` = '0' começa nele):
+  substitui o "Andar/Sair do escritório". Ligado: `kvPeople.inside = false` (teclado, câmera, cliques, barra, conversa e
+  chamada de voz como fora do escritório) e `kvPeople.resting = true`: o boneco anda sozinho até o lounge, senta (sofá,
+  poltrona ou puff livre) e a posição vai com `z: 1` (selo DESCANSANDO para os outros). Desligado: levanta e volta para
+  a mesa fixa (ou para onde estava).
+- **Mesa fixa** (`profile.desk`, uma KvPos de sala): `GET|POST /api/kaviski/humanos/desk` (`server/kaviski/humanos/desk.ts`)
+  — só cadeira dentro de sala que a pessoa vê (cliente: as dele; visitante não tem), a sala precisa existir e duas
+  pessoas não ficam com a mesma cadeira (`kvSameDesk`, com o espelhamento do lado do corredor). A presença leva
+  `desk` junto da pessoa, filtrada por sala. Escolher: clique na cadeira → "Definir como minha mesa", o botão 📌 que
+  aparece sentado numa cadeira de sala, ou "Minha mesa" na janela Meu boneco. O boneco nasce sentado nela (sem o
+  elevador); a cadeira fica reservada no `SpotRegistry` (`kvdesk:<id>`: agente nenhum a escolhe) e, vazia, mostra
+  "mesa de Fulano". "Chamar até mim" leva o agente até a mesa, quando há.
+- **Móveis** (`seats.ts`, `me.ts`, `furniture.ts`): tecla E perto de cadeira, banqueta, poltrona, sofá, puff, banco e
+  cadeira da copa = sentar (reserva o lugar com o id do visitante; um agente que não está nem indo para lá cede o lugar);
+  E de novo, seta ou clique = levantar (o passo livre do teclado trata assento como parede, então sentar/levantar vão
+  pela fila `go/enter/exit` do Sim e o teclado espera; o `canStand` original não mudou). Máquina de café/água (pose
+  `use` e `drink`), fliperama (`game`), estante (`read`). A pose vai na posição (`KvPos.p`/`h`, `shared/kaviski-desk.ts`)
+  e o boneco de corda senta no assento mais perto da posição (e o reserva na página de quem vê).
+- **Ações sobre outra pessoa** (`goto.ts`, desenhadas pelo cartão): Seguir (40; chip "Seguindo Fulano · Esc para
+  parar"), Teleportar (45), Ir até a mesa (46). API no `kvPeople`: `walkTo(tx, ty, run?)`, `goTo(id)`/`goNear(id)`,
+  `goArea(area)`, `followPerson`, `teleportTo`, `goDesk(id | null)`, `stopMe`, `myDesk`, `following`, `resting`,
+  `onFrame` (ganchos por quadro de outros módulos), `toScreen`, `encode`, `ctl`.
+- **Toque** (`touch.ts`): joystick (8 direções; na borda corre) e botão E com o rótulo do que está perto, só em tela de
+  toque com o boneco andando; tocar no chão anda e a pinça dá zoom (do original). Botões da barra maiores
+  (`pointer: coarse`). **Duplo clique** no chão corre (gancho `kv.doubleClick` no `world/index.ts`).
+- Código: `shared/kaviski-desk.ts`, `server/kaviski/humanos/desk.ts` (+ `desk.test.ts`),
+  `client/src/kaviski/humanos/{w1,me,seats,furniture,goto,classic,touch,stick,desk-labels}.ts` + `w1.css` (+ `seats.test.ts`),
+  traduções em `shared/locales/kaviski-w1.ts`.
 
 ### Endereço público: https://escritorio.kaviski.com.br (2026-11-06)
 Decisão do Vitor: **sem VPS**. O nome só funciona na rede local e pela VPN (Tailscale, que roteia 192.168.1.0/24).

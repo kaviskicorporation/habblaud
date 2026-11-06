@@ -1,5 +1,5 @@
 // Fork Kaviski (KAVISKI-HUMANOS.md): o que o meu boneco faz além de andar — sentar e levantar, usar a máquina de
-// café/água, jogar fliperama, ler na estante, seguir alguém, teleportar, descansar no lounge (modo foco) e ir para a
+// café/água, jogar fliperama, ler na estante, seguir alguém, teleportar, descansar no lounge (modo clássico) e ir para a
 // minha mesa fixa. O boneco é o visitante do Sim (sim/visitor.ts): para ele os assentos contam como parede no passo
 // livre do teclado, então sentar e levantar vão pela fila de passos (go/enter/exit do Sim) e, enquanto ele está
 // sentado ou levantando, o teclado não chega ao Sim (a primeira tecla levanta). O lugar fica reservado no
@@ -43,7 +43,7 @@ export class KvMeCtl {
   rest = false;
   /** Levantando (os passos exit + go): o teclado espera. */
   private standing: Step[] = [];
-  /** Para onde voltar ao sair do modo foco (sem mesa). */
+  /** Para onde voltar ao sair do modo clássico (sem mesa). */
   private backTo: { x: number; y: number } | null = null;
   /** Acabei de entrar: ir para a mesa assim que ela existir neste prédio. */
   pendingDesk = 0;
@@ -66,6 +66,14 @@ export class KvMeCtl {
     const out: { p?: KvPose; h?: KvHeld } = { p: v.pose as KvPose };
     if (v.held !== 'none') out.h = v.held as KvHeld;
     return out;
+  }
+
+  /** Estou usando o lugar (sentado ou na máquina), não só indo para lá. */
+  using(sim: Sim): boolean {
+    const v = sim.visitor;
+    const seat = this.seat;
+    if (!v || !seat) return false;
+    return seat.spot.seated ? v.atSpot === seat.spot.id : v.step !== seat.steps[0] && !v.queue.includes(seat.steps[0]);
   }
 
   /** Estou sentado (encaixado no assento). */
@@ -135,6 +143,7 @@ export class KvMeCtl {
     this.follow = null;
     v.queue.length = 0;
     v.step = null;
+    sim.visitorIntent = { ...NO_INTENT };
     v.queue.push(...steps);
     this.dirty = true;
     return true;
@@ -148,6 +157,7 @@ export class KvMeCtl {
     this.release(sim);
     v.queue.length = 0;
     v.step = null;
+    sim.visitorIntent = { ...NO_INTENT };
     v.queue.push(...steps, ...then);
     this.standing = steps;
     this.dirty = true;
@@ -179,6 +189,8 @@ export class KvMeCtl {
     else {
       v.queue.length = 0;
       v.step = null;
+      // o Sim ainda tem a direção do quadro anterior (tecla recém-solta): sem isto ela apagaria este caminho
+      sim.visitorIntent = { ...NO_INTENT };
       v.queue.push(go);
     }
     this.lastWalk = { at: performance.now(), step: go };
@@ -203,6 +215,7 @@ export class KvMeCtl {
     this.follow = null;
     v.queue.length = 0;
     v.step = null;
+    sim.visitorIntent = { ...NO_INTENT };
     v.atSpot = null;
     v.seated = false;
     v.sortY = null;
@@ -224,6 +237,7 @@ export class KvMeCtl {
     sim.spots.reserve(spot.id, VISITOR_ID);
     v.queue.length = 0;
     v.step = null;
+    sim.visitorIntent = { ...NO_INTENT };
     v.inside = false;
     v.arriving = false;
     v.leaving = false;
@@ -268,12 +282,13 @@ export class KvMeCtl {
     return !!desk && this.sit(sim, desk, { force: true });
   }
 
-  /** Liga/desliga o descanso (modo foco): vai sentar no lounge; ao voltar, mesa ou onde estava. */
+  /** Liga/desliga o descanso (modo clássico): vai sentar no lounge; ao voltar, mesa ou onde estava. */
   setRest(sim: Sim, on: boolean): void {
     if (this.rest === on) return;
-    this.rest = on;
     const v = sim.visitor;
+    // no elevador: tenta de novo no próximo quadro
     if (!v || sim.visitorBusy) return;
+    this.rest = on;
     if (on) {
       this.backTo = this.seat ? null : { x: v.tx, y: v.ty };
       this.follow = null;

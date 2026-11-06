@@ -3,9 +3,11 @@
 // Chave ausente = o texto fica em PT. `npm run i18n:check` lista os textos sem tradução e as chaves que sobraram.
 import { KV_HUMANOS_EN } from './kaviski-humanos'; // fork Kaviski (KAVISKI-HUMANOS.md)
 import { KV_EXTRAS_EN } from './kaviski-extras'; // fork Kaviski (KAVISKI-HUMANOS.md)
+import { KV_W1_EN } from './kaviski-w1'; // fork Kaviski (KAVISKI-HUMANOS.md, W1)
 export const EN: Readonly<Record<string, string>> = {
   ...KV_HUMANOS_EN, // fork Kaviski (KAVISKI-HUMANOS.md)
   ...KV_EXTRAS_EN, // fork Kaviski (KAVISKI-HUMANOS.md)
+  ...KV_W1_EN, // fork Kaviski (W1)
   // fork Kaviski (KAVISKI.md): client/src/kaviski, server/kaviski
   "Abrir esta sessão no TwiCC": "Open this session in TwiCC",
   "Abrir no TwiCC": "Open in TwiCC",

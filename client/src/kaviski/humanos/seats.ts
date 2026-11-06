@@ -10,7 +10,7 @@ import { TILE } from '../../world/constants';
 export const KV_SIT_KINDS: readonly SpotKind[] = ['desk', 'stool', 'nook', 'cafe_seat', 'sofa', 'armchair', 'beanbag', 'bench'];
 /** Assentos que podem ser a mesa fixa (dentro de uma sala de projeto). */
 export const KV_DESK_KINDS: readonly SpotKind[] = ['desk', 'stool', 'nook'];
-/** Lugares do lounge para descansar (modo foco), na ordem de preferência. */
+/** Lugares do lounge para descansar (modo clássico), na ordem de preferência. */
 export const KV_REST_KINDS: readonly SpotKind[] = ['sofa', 'armchair', 'beanbag'];
 export const KV_LOUNGE = 'core:lounge';
 

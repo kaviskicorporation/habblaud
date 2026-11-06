@@ -18,6 +18,7 @@ import { KvPersonCard, kvRegisterBasicActions } from './person-card';
 import { kvTopButton } from './topbar';
 import { kvStartAgentExtras } from './agent';
 import { kvPeople } from './world';
+import { kvStartW1 } from './w1';
 import type { OfficeStore } from '../../net/store';
 import { kvStartExtras } from './extras';
 import './humanos.css';
@@ -54,6 +55,7 @@ export function kvStartHumanos(store: OfficeStore, root: ParentNode = document):
       const client = new KvPresenceClient();
       kvPeople.client = client;
       Object.assign((window as { habblaud?: object }).habblaud ?? {}, { kvPeople });
+      const w1 = kvStartW1(store, root); // boneco, mesa, móveis, modo foco, toque
       const online = new KvOnline(m, store);
       status.append(online.chip);
       client.on((s) => online.setState(s));
@@ -70,6 +72,7 @@ export function kvStartHumanos(store: OfficeStore, root: ParentNode = document):
       kvStartAgentExtras((text) => bar.warn(text));
       client.onEvent<{ agentId: string; to: string; name: string }>('summon', (e) => kvPeople.summon?.(e.agentId, e.to === client.state?.me ? null : e.to, e.name));
       void kvStartMedia(bar);
+      w1.ready((text) => bar.warn(text));
     }
     if (kvRestricted(m.person)) {
       // O servidor recusa o timelapse, o Meu dia e o terminal ao cliente (são da empresa toda): os botões somem e os

@@ -1,18 +1,10 @@
 // Fork Kaviski (KAVISKI-HUMANOS.md): levar o meu boneco (ou a câmera) a um lugar — usado pelo mini-mapa e pelo "Ir para
-// a reunião". Prefere o que o boneco expõe (kvPeople.walkTo em tiles, kvPeople.goArea) e, sem isso, usa o andar por
-// clique do próprio Sim (visitorWalkTo).
+// a reunião". Prefere o que o boneco expõe (kvPeople.walkTo em tiles, kvPeople.goArea: levantam antes, se sentado) e,
+// se não der, usa o andar por clique do próprio Sim (visitorWalkTo).
 import { TILE } from '../../world/constants';
 import { FREE } from '../../world/path/grid';
 import { VISITOR_ID } from '../../world/sim/visitor';
 import { kvPeople } from './world';
-
-/** O que o boneco pode oferecer (world.ts; opcional até existir). */
-interface WalkApi {
-  walkTo?: (tx: number, ty: number, run?: boolean) => boolean;
-  goArea?: (area: string) => boolean;
-}
-
-const api = () => kvPeople as typeof kvPeople & WalkApi;
 
 /** Anda até o tile (com o boneco no escritório; longe, correndo) ou leva a câmera até lá. */
 export function kvWalkTile(tx: number, ty: number): boolean {
@@ -21,7 +13,7 @@ export function kvWalkTile(tx: number, ty: number): boolean {
   if (kvPeople.inside && sim?.visitor) {
     const v = sim.visitor;
     const run = Math.hypot(v.x / TILE - tx, v.y / TILE - ty) > 12;
-    if (api().walkTo?.(tx, ty, run)) return true;
+    if (kvPeople.walkTo?.(tx, ty, run)) return true;
     const t = freeNear(tx, ty);
     if (t && sim.visitorWalkTo(t.x, t.y, run)) {
       if (cam) cam.follow = VISITOR_ID;
@@ -36,7 +28,7 @@ export function kvWalkTile(tx: number, ty: number): boolean {
 
 /** Vai até uma área (`r:<sala>`, `a:core:xxx`, `c`): entra na sala perto da porta, ou o centro dela. */
 export function kvGoArea(area: string): boolean {
-  if (kvPeople.inside && api().goArea?.(area)) return true;
+  if (kvPeople.inside && kvPeople.goArea?.(area)) return true;
   const rect = kvAreaRect(area);
   if (!rect) return false;
   // perto da porta (do lado do corredor), já dentro da sala

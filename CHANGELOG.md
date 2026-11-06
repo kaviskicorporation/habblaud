@@ -18,6 +18,12 @@ do meio (0.**3**.0).
   reunião" quando o local cita uma sala.
 - **Mini-mapa** (tecla N), **modo foco** (pomodoro de 25/50 min), **atalhos** das pessoas na Ajuda, **boas-vindas** na
   primeira entrada e a dica de quem está na sala.
+- **Boneco, mesa fixa e móveis.** Botão **Modo clássico** no
+  topo (o Habblaud como o original; o boneco descansa no lounge com o selo DESCANSANDO). **Minha mesa**: clique numa
+  cadeira de uma sala → "Definir como minha mesa" (ou em Meu boneco); o boneco nasce nela, os outros veem "mesa de
+  Fulano" e o agente chamado vai até ela. **Tecla E** perto dos móveis: sentar, levantar, tomar café, beber água,
+  jogar fliperama, pegar um livro — os outros veem a pose. No cartão da pessoa: **Seguir**, **Teleportar** e **Ir até a
+  mesa**. Duplo clique no chão corre. No celular: joystick e botão E na tela.
 
 ## [1.0.3] - 2026-10-16
 

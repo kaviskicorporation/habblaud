@@ -5,7 +5,7 @@ import type { SpotDef } from '../../world/layout/types';
 import { h } from '../../ui/dom';
 
 /** Abaixo deste zoom (px de tela por px de mundo) as etiquetas somem: viram ruído na visão geral. */
-const MIN_ZOOM = 1.4;
+const MIN_ZOOM = 0.7;
 
 let root: HTMLElement | null = null;
 const els = new Map<string, HTMLElement>();

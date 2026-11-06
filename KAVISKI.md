@@ -118,9 +118,9 @@ As sessões do TwiCC rodam pelo SDK (sem terminal): o plugin `habblaud-mensagens
 | `server/http/remote.ts` (humanos) | +1 | `export const kvMarkRemote` (marca a requisição como remota, para o login por pessoa) | idem |
 | `server/index.ts` (humanos) | +10/−3 | imports; `createHumanos(...)` depois do `Hub`; `kvRemoteAllows(...)` no `canAnswer` e no `allows`; `kvSessions` + `kvHumanos.gate(createRemoteGate(...))`; `kvHumanos.before(...)` antes do `api(...)` nas duas portas; `kvHumanos.attachMessages(messages)` depois do `kaviski.attachMessages` | idem |
 | `client/src/app.ts` (humanos) | +2 | import; `kvStartHumanos(store)` | idem |
-| `client/src/world/index.ts` (humanos) | +4/−2 | import; `const kv = kvAttachWorld({..., select, selected})` antes do `attachInput`; `kv.click(...)` no `click:` e `!kv.walking()` no `keys:`; `kv.frame(...)` logo depois do `sim.update` | idem |
+| `client/src/world/index.ts` (humanos) | +5/−2 | import; `const kv = kvAttachWorld({..., select, selected})` antes do `attachInput`; `kv.click(...)` no `click:` e `!kv.walking()` no `keys:`; `kv.frame(...)` logo depois do `sim.update`; `kv.doubleClick(hit)` no começo do `doubleClick:` (duplo clique no chão = o boneco corre) | idem |
 | `client/src/world/render/overlay.ts` (humanos) | +4/−3 | import; `visitor = ... \|\| !!kvPersonBadge(ch)` (2 lugares: etiqueta sempre à mostra) e o selo `kvPersonBadge(ch) ?? visitorBadge()` (medida e desenho) | idem |
-| `shared/locales/{en,es,fr}.ts` (humanos) | +4 cada | imports e `...KV_HUMANOS_XX`, `...KV_EXTRAS_XX` (convites, agenda, mini-mapa, foco) no começo do objeto | idem |
+| `shared/locales/{en,es,fr}.ts` (humanos) | +6 cada | imports e `...KV_HUMANOS_XX`, `...KV_EXTRAS_XX` (convites, agenda, mini-mapa, foco: `kaviski-extras.ts`), `...KV_W1_XX` (boneco, mesa, móveis: `kaviski-w1.ts`) no começo do objeto | idem; juntar as linhas dos dois lados |
 | `package.json` / `package-lock.json` (humanos) | +1 | `livekit-client` (Apache 2.0) em `devDependencies` (voz e vídeo, carregado sob demanda) | manter os dois lados; `npm install` |
 | `docker-compose.yml` | +5 | `HABBLAUD_FRAME_ANCESTORS`, `HABBLAUD_TWICC_URL`, `HABBLAUD_TWICC_MESSAGES` e `HABBLAUD_BRAND` no `environment:` | manter os dois lados |
 

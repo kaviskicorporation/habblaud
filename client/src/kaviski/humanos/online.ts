@@ -16,8 +16,8 @@ import { ICONS } from '../../ui/icons';
 import { ROLE_LABEL } from './people';
 import { kvPeople, kvRandomSeed, STATUS_LABEL } from './world';
 import { kvOpenPersonCard } from './person-card';
-
-const WALK_KEY = 'habblaud.kv.andar';
+import { kvOnClassic, kvSetClassic } from './classic'; // fork Kaviski W1: modo clássico no lugar de Andar/Sair
+import { kvDeskSection } from './furniture';
 
 function avatarOf(look: KvLook): HTMLElement {
   return createAvatar({ seed: look.seed, look: look.look, kind: 'main', parts: look.parts }, 'sm');
@@ -56,7 +56,7 @@ export class KvOnline {
       p ? h('span', { class: 'kv-me__role', text: ROLE_LABEL[p.role] }) : null,
       this.count,
     );
-    this.walkBtn = h('button', { class: 'ui-btn ui-btn--sm', type: 'button', on: { click: () => this.setInside(!kvPeople.inside) } });
+    this.walkBtn = h('button', { class: 'ui-btn ui-btn--sm', type: 'button', on: { click: () => kvSetClassic(!kvPeople.resting) } });
     const status = h('div', { class: 'kv-online__status', role: 'group', attrs: { 'aria-label': tr('Meu status') } });
     for (const s of KV_STATUSES) {
       const b = h('button', { class: `ui-btn ui-btn--sm kv-st kv-st--${s}`, type: 'button', text: STATUS_LABEL[s], on: { click: () => kvPeople.client?.setStatus(s) } });
@@ -83,28 +83,12 @@ export class KvOnline {
       if (e.key === 'Escape' && !this.pop.hidden) this.toggle(false);
     });
     store.on('snapshot', () => this.render());
-    // Entrar no escritório: lembrado neste navegador (padrão: entra).
-    let saved: string | null = null;
-    try {
-      saved = localStorage.getItem(WALK_KEY);
-    } catch {
-      // sem localStorage
-    }
-    this.setInside(saved !== '0' && !!p);
+    kvOnClassic(() => this.render());
+    this.render();
   }
 
   setState(s: KvPresenceState): void {
     this.state = s;
-    this.render();
-  }
-
-  private setInside(on: boolean): void {
-    kvPeople.inside = on && !!this.me.person;
-    try {
-      localStorage.setItem(WALK_KEY, kvPeople.inside ? '1' : '0');
-    } catch {
-      // sem localStorage
-    }
     this.render();
   }
 
@@ -126,8 +110,9 @@ export class KvOnline {
     this.count.textContent = people.length > 1 ? `· ${people.length}` : '';
     this.chip.dataset.status = mine?.status ?? 'disponivel';
     for (const [st, b] of this.statusBtns) b.classList.toggle('is-on', mine?.status === st);
-    this.walkBtn.textContent = kvPeople.inside ? tr('Sair do escritório') : tr('Andar no escritório');
-    this.walkBtn.classList.toggle('is-on', kvPeople.inside);
+    this.walkBtn.textContent = kvPeople.resting ? tr('Voltar ao escritório') : tr('Modo clássico');
+    this.walkBtn.title = tr('Modo clássico: o Habblaud como o original e o boneco descansando no lounge');
+    this.walkBtn.classList.toggle('is-on', kvPeople.resting);
     this.walkBtn.hidden = !this.me.person;
     if (this.pop.hidden) return;
     const snap = this.store.liveSnapshot ?? null;
@@ -196,6 +181,7 @@ class ProfileDialog {
         { class: 'kv-profile__body ui-char' },
         h('div', { class: 'ui-char__top' }, this.fields.preview, h('div', { class: 'kv-profile__side' }, roll, h('label', { class: 'kv-people__label' }, tr('Minha cor (crachá)'), this.color))),
         this.fields.groups,
+        kvDeskSection(),
         this.error,
         h('div', { class: 'kv-people__actions' }, save),
       ),

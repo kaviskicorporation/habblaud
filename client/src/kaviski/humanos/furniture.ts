@@ -75,7 +75,7 @@ export function kvStartFurniture(warn: Warn): void {
   kvRegisterInteract((me) => {
     const c = kvPeople.ctl?.();
     if (!c || !kvPeople.inside) return null;
-    if (c.me.seat && c.sim.visitor?.atSpot) return { id: `kv-stand`, label: tr('Levantar'), dist: 0, run: () => c.me.stand(c.sim) };
+    if (c.me.using(c.sim)) return { id: `kv-stand`, label: c.me.seat?.spot.seated ? tr('Levantar') : tr('Parar'), dist: 0, run: () => c.me.stand(c.sim) };
     const s = nearestSpot(c.sim.spots.all(), me.x, me.y, [...KV_SIT_KINDS, ...USE_KINDS], KV_REACH_PX, freeForMe);
     if (!s) return null;
     const label = USE_LABEL[s.kind]?.() ?? tr('Sentar');
@@ -140,7 +140,7 @@ function isMyDesk(s: SpotDef): boolean {
 /** "Minha mesa" na janela Meu boneco. */
 export function kvDeskSection(warn: (text: string) => void = () => {}): HTMLElement {
   const text = h('span', { class: 'kv-desk__where' });
-  const msg = h('p', { class: 'kv-people__error', attrs: { role: 'status' } });
+  const msg = h('p', { class: 'kv-desk__msg', attrs: { role: 'status' } });
   const say = (t: string) => {
     msg.textContent = t;
     warn(t);
