@@ -10,6 +10,7 @@ import { createAvatar, type AvatarSize } from '../../../ui/avatar';
 import { h } from '../../../ui/dom';
 import { KV_ICONS } from './icons';
 import './kit.css';
+import './bridge.css';
 
 export type KvBtnVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
 

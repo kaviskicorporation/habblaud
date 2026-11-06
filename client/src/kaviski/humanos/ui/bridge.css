@@ -1,0 +1,319 @@
+/* Fork Kaviski (KAVISKI-HUMANOS.md): ponte de tema — deixa as janelas das outras frentes (convites, agenda, salas
+   próprias, quadro, mural, atalhos, nota do status, mesa fixa...) com o mesmo kit (kit.css), sem mexer no código delas.
+   As regras começam com .ui-root para vencer as antigas de humanos.css/extras.css/salas.css (carregadas depois).
+   Os <select> nativos dessas janelas viram o select do kit por enhance.ts (o nativo fica escondido). */
+
+.ui-root .kv-ui-native {
+  display: none !important;
+}
+
+/* ---- caixas de diálogo das pessoas */
+.ui-root .ui-dialog:is(.kv-people, .kv-board, .kv-mural, .kv-keys) {
+  border-radius: 14px;
+  background: var(--kv-ui-panel);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 4px 0 rgba(0, 0, 0, 0.35),
+    0 30px 80px rgba(5, 7, 12, 0.65);
+}
+
+.ui-root .ui-dialog:is(.kv-people, .kv-board, .kv-mural, .kv-keys) > .ui-dialog__head {
+  padding: 14px 12px 13px 20px;
+  background: linear-gradient(180deg, rgba(124, 200, 255, 0.07), transparent);
+}
+
+.ui-root .ui-dialog:is(.kv-people, .kv-board, .kv-mural, .kv-keys) > .ui-dialog__head h2 {
+  font: 700 17px/1.2 var(--font-ui);
+}
+
+.ui-root .ui-dialog:is(.kv-people, .kv-board, .kv-mural, .kv-keys) .ui-dialog__body h3 {
+  font: 700 13px/1.2 var(--font-ui);
+  letter-spacing: 0.01em;
+}
+
+/* ---- botões (3D, como no kit) */
+.ui-root :is(.kv-people, .kv-board, .kv-mural, .kv-keys, .kv-stnote, .kv-desk, .kv-pf) .ui-btn:not(.ui-btn--primary) {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03));
+  box-shadow: var(--kv-ui-raise);
+  font: 600 12px/1 var(--font-ui);
+}
+
+.ui-root :is(.kv-people, .kv-board, .kv-mural, .kv-keys, .kv-stnote, .kv-desk, .kv-pf) .ui-btn:not(.ui-btn--primary):hover {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.06));
+  border-color: rgba(160, 176, 210, 0.4);
+}
+
+.ui-root :is(.kv-people, .kv-board, .kv-mural, .kv-keys, .kv-stnote, .kv-desk, .kv-pf) .ui-btn:not(.ui-btn--primary):active {
+  transform: translateY(1px);
+  box-shadow: var(--kv-ui-press);
+}
+
+.ui-root :is(.kv-people, .kv-board, .kv-mural, .kv-keys, .kv-stnote, .kv-desk, .kv-pf) .ui-btn.is-on {
+  border-color: rgba(124, 200, 255, 0.6);
+  background: linear-gradient(180deg, rgba(124, 200, 255, 0.22), rgba(124, 200, 255, 0.1));
+  color: var(--ui-text);
+}
+
+.ui-root :is(.kv-people, .kv-board, .kv-mural, .kv-keys) .ui-btn--primary {
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border-color: #5eaaf5;
+  background: linear-gradient(180deg, #3d93ea, #2f7fd1);
+  box-shadow:
+    var(--kv-ui-raise),
+    0 6px 16px rgba(47, 127, 209, 0.28);
+  font: 600 13px/1 var(--font-ui);
+  letter-spacing: 0;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+}
+
+.ui-root :is(.kv-people, .kv-board, .kv-mural, .kv-keys) .ui-btn--primary:hover {
+  background: linear-gradient(180deg, #4b9df0, #3889dc);
+}
+
+.ui-root :is(.kv-people, .kv-board, .kv-mural, .kv-keys) .ui-btn.is-danger,
+.ui-root :is(.kv-people, .kv-board, .kv-mural, .kv-keys) .ui-btn--danger {
+  border-color: #ff8585;
+  background: linear-gradient(180deg, #e25a5a, #c44242);
+  color: #fff;
+}
+
+/* ---- campos */
+.ui-root .kv-people__label {
+  margin: 12px 0 6px;
+  font: 600 12px/1.2 var(--font-ui);
+  color: #c4ccdc;
+}
+
+.ui-root :is(.kv-people__input, .kv-stnote__input, .kv-mural textarea, .kv-mural input[type='text'], .kv-mural input[type='url']) {
+  min-height: 36px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  border: 1px solid var(--ui-line-strong);
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.22);
+  color: var(--ui-text);
+  font: 500 13px/1.3 var(--font-ui);
+  outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.ui-root :is(.kv-people__input, .kv-stnote__input, .kv-mural textarea, .kv-mural input[type='text'], .kv-mural input[type='url']):hover {
+  border-color: rgba(160, 176, 210, 0.38);
+}
+
+.ui-root :is(.kv-people__input, .kv-stnote__input, .kv-mural textarea, .kv-mural input[type='text'], .kv-mural input[type='url']):focus {
+  border-color: rgba(124, 200, 255, 0.7);
+  box-shadow:
+    inset 0 2px 0 rgba(0, 0, 0, 0.22),
+    0 0 0 3px rgba(124, 200, 255, 0.16);
+}
+
+.ui-root .kv-people__input::placeholder,
+.ui-root .kv-stnote__input::placeholder {
+  color: var(--ui-faint);
+  opacity: 0.75;
+}
+
+.ui-root .kv-people__hint {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ui-faint);
+}
+
+.ui-root .kv-people__error:not(:empty) {
+  padding: 8px 11px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 107, 107, 0.45);
+  background: rgba(255, 107, 107, 0.1);
+  color: #ffb0b0;
+}
+
+/* select do kit no lugar de um nativo: a mesma largura do campo antigo */
+.ui-root .kv-ui-select--auto {
+  min-width: 0;
+}
+
+.ui-root .kv-stnote .kv-ui-select--auto,
+.ui-root .kv-salas__decor-tools .kv-ui-select--auto {
+  width: auto;
+  min-width: 128px;
+  flex: none;
+}
+
+/* caixa de marcar: quadrada, com o visto em pixel */
+.ui-root :is(.kv-people, .kv-board, .kv-mural, .kv-stnote, .kv-desk) input[type='checkbox'] {
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border-radius: 4px;
+  border: 1px solid var(--ui-line-strong);
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.22);
+  cursor: pointer;
+}
+
+.ui-root :is(.kv-people, .kv-board, .kv-mural, .kv-stnote, .kv-desk) input[type='checkbox']:checked {
+  border-color: #5eaaf5;
+  background: linear-gradient(180deg, #3d93ea, #2f7fd1);
+}
+
+.ui-root :is(.kv-people, .kv-board, .kv-mural, .kv-stnote, .kv-desk) input[type='checkbox']:checked::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  background: #fff;
+  clip-path: polygon(0 55%, 18% 40%, 40% 62%, 82% 10%, 100% 26%, 40% 95%);
+}
+
+.ui-root .kv-people__check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+/* número (quantas pessoas no convite) e cor */
+.ui-root .kv-people input[type='number'].kv-people__input {
+  width: 100%;
+}
+
+.ui-root .kv-people input[type='color'] {
+  width: 40px;
+  height: 30px;
+  padding: 2px;
+  border-radius: 7px;
+  border: 1px solid var(--ui-line-strong);
+  background: rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+/* ---- listas em cartões (convites, salas próprias, agenda) */
+.ui-root .kv-people .kv-people__list {
+  gap: 6px;
+}
+
+.ui-root .kv-people .kv-people__item {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--ui-line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015));
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.18);
+}
+
+.ui-root .kv-people .kv-people__item.is-on {
+  border-color: rgba(124, 200, 255, 0.6);
+  background: linear-gradient(180deg, rgba(124, 200, 255, 0.14), rgba(124, 200, 255, 0.05));
+  box-shadow:
+    inset 3px 0 0 var(--ui-accent),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.18);
+}
+
+/* salas abertas para marcar (convites): chips */
+.ui-root .kv-people__known {
+  gap: 6px;
+}
+
+.ui-root .kv-people__known .ui-btn {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 7px;
+  font-size: 12px;
+}
+
+.ui-root .kv-people__known .ui-btn.is-on {
+  border-color: rgba(124, 200, 255, 0.5);
+  background: linear-gradient(180deg, rgba(124, 200, 255, 0.2), rgba(124, 200, 255, 0.09));
+  color: #d7ecff;
+}
+
+.ui-root .kv-people__known .ui-btn.is-on::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  background: var(--ui-accent);
+}
+
+.ui-root .kv-people__actions {
+  gap: 8px;
+}
+
+/* ---- nota do status (W2) dentro da lista de online */
+.ui-root .kv-ol .kv-stnote {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 12px 0;
+  padding: 10px;
+  border-radius: 11px;
+  border: 1px solid var(--ui-line);
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.ui-root .kv-stnote__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ui-root .kv-stnote__input {
+  flex: 1;
+  min-width: 0;
+  min-height: 32px;
+  padding: 6px 10px;
+}
+
+.ui-root .kv-stnote .kv-ui-select {
+  height: 32px;
+}
+
+.ui-root .kv-stnote__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.ui-root .kv-stnote__chip {
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 7px;
+  border: 1px solid var(--ui-line-strong);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.2);
+  font: 500 11.5px/1 var(--font-ui);
+  color: #c9d1e2;
+}
+
+.ui-root .kv-stnote__chip:hover {
+  border-color: rgba(124, 200, 255, 0.5);
+  background: var(--ui-accent-soft);
+  color: var(--ui-text);
+}
+
+.ui-root .kv-stnote__info {
+  flex: 1;
+  font-size: 11.5px;
+  color: var(--ui-faint);
+}
+
+.ui-root .kv-stnote .ui-btn {
+  height: 26px;
+  padding: 0 10px;
+}
+
+/* ---- mesa fixa (W1) dentro do Meu boneco */
+.ui-root .kv-pf__desk .kv-desk {
+  margin: 0;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--ui-line);
+  background: rgba(0, 0, 0, 0.18);
+}

@@ -23,6 +23,8 @@ import { kvStartW1 } from './w1';
 import { kvStartSalas } from './salas';
 import type { OfficeStore } from '../../net/store';
 import { kvStartExtras } from './extras';
+import { kvAutoEnhance } from './ui/enhance';
+import { kvTopFit } from './ui/topfit';
 import './humanos.css';
 
 const PEOPLE_ICON = pixelIcon(['..##....##..', '.####..####.', '.####..####.', '..##....##..', '............', '.####..####.', '######.#####', '######.#####', '######.#####']);
@@ -51,6 +53,8 @@ export function kvStartHumanos(store: OfficeStore, root: ParentNode = document):
   void kvLoadMe().then((m) => {
     me = m;
     if (!m) return;
+    // W6: os <select> nativos das telas das pessoas viram o select do kit (ui/enhance.ts)
+    kvAutoEnhance((document.querySelector('.ui-root') as HTMLElement | null) ?? document.body);
     const status = root.querySelector('.ui-topbar__status');
     if (m.person && status) {
       // Presença ao vivo (fase 1b): o chip do topo abre a lista de quem está online.
@@ -106,5 +110,6 @@ export function kvStartHumanos(store: OfficeStore, root: ParentNode = document):
     }
     // Convites por link, agenda, modo foco, mini-mapa, atalhos e boas-vindas (extras.ts).
     kvStartExtras(m, store, root);
+    kvTopFit(); // W6: o que não cabe no topo vai para o menu "Mais"
   });
 }
