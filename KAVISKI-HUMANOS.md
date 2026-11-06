@@ -1,6 +1,6 @@
 # Fork Kaviski: pessoas no escritório (plano)
 
-Objetivo: o Habblaud vira o escritório onde **pessoas e agentes de IA trabalham juntos**, no estilo Gather, com o
+Projeto: `Interno/Sistemas/04.Habblaud` (TwiCC: 04.Habblaud). Objetivo: o Habblaud vira o escritório onde **pessoas e agentes de IA trabalham juntos**, no estilo Gather, com o
 design e a identidade do Habblaud. Decisões do Vitor (2026-11-05):
 
 - **No próprio fork** `kaviskicorporation/habblaud` (`~/habblaud`), puxando as versões novas do original por merge
@@ -10,11 +10,17 @@ design e a identidade do Habblaud. Decisões do Vitor (2026-11-05):
 
 ## Licenças (regra)
 
-- Habblaud: **MIT** — pode tudo, inclusive vender; manter o aviso de autoria (LICENSE).
-- WorkAdventure: **AGPL v3 + Commons Clause** — **não copiar código nem assets**. Proibiria vender o produto e
-  obrigaria abrir todo o código. Pode: estudar ideias e comportamento e reescrever do zero.
-- Bibliotecas abertas permissivas (MIT/Apache/BSD) podem ser usadas: LiveKit (`livekit-server`,
-  `livekit-client`, `livekit-server-sdk`: Apache 2.0).
+- Habblaud: **MIT** — manter o aviso de autoria (LICENSE).
+- WorkAdventure: **AGPL v3 + Commons Clause**. Decisão do Vitor (2026-11-06): **pode reaproveitar** código e elementos
+  dele, porque o produto é gratuito (nunca vendido) e vai ser aberto como open source. Consequências que valem enquanto
+  houver código do WorkAdventure aqui:
+  - o fork inteiro passa a ser distribuído sob **AGPL v3** (código MIT pode entrar numa obra AGPL; o contrário não);
+    o código-fonte tem de ficar disponível a quem usa pela rede (o repositório já é público);
+  - **Commons Clause**: não pode cobrar pelo produto nem por um serviço cujo valor venha dele;
+  - manter os avisos de copyright do WorkAdventure nos arquivos copiados e registrar a origem em `KAVISKI.md`;
+  - código copiado fica em pastas próprias (`client/src/kaviski/humanos/wa/`, `server/kaviski/humanos/wa/`) com o
+    LICENSE deles ao lado.
+- Bibliotecas abertas permissivas (MIT/Apache/BSD) podem ser usadas: LiveKit (Apache 2.0).
 
 ## Regra para continuar recebendo o original
 
