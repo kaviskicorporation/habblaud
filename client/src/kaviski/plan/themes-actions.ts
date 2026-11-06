@@ -33,7 +33,10 @@
 //   classico      | Descanso → rede                                 | Modo clássico
 import { tr } from '../../../../shared/i18n';
 import { kvAction, kvRegisterAction, type KvAction } from './api';
+import { kvRestricted } from '../../../../shared/kaviski-humanos';
+import { kvMe } from '../humanos/index';
 import { kvOpenProfile } from '../humanos/online';
+import { kvOpenPeople } from '../humanos/people';
 import { kvPeople } from '../humanos/world';
 
 export interface KvActionDef {
@@ -50,6 +53,8 @@ export interface KvActionDef {
   keys?: string[];
   /** Quem pode, quando não há botão para conferir. */
   can?: () => boolean;
+  /** Só a equipe (cliente e visitante não: é da empresa toda, o servidor também recusa). */
+  team?: boolean;
   /** Pose usando o item. */
   pose?: 'use' | 'read' | 'stand' | 'groom' | 'talk';
 }
@@ -77,21 +82,6 @@ export function kvButtonUsable(el: HTMLElement | null): boolean {
   return true;
 }
 
-/** Abre a aba Registro da tela de Pessoas (clica no botão e depois na aba). */
-function openPeopleTab(tab: string): void {
-  const btn = document.querySelector<HTMLElement>('.kv-btn-people') ?? seen.get('pessoas');
-  if (!btn) return;
-  kvClickBypass(btn);
-  let tries = 0;
-  const t = setInterval(() => {
-    const tabBtn = [...document.querySelectorAll<HTMLElement>('dialog[open] .kv-ui-tabs [role="tab"], dialog[open] .kv-ui-tabs button')].find((b) => b.textContent?.trim() === tab);
-    if (tabBtn || ++tries > 20) {
-      clearInterval(t);
-      tabBtn?.click();
-    }
-  }, 50);
-}
-
 let bypass = false;
 
 /** Clica no botão sem passar pelo "ir e fazer" (é o `run` das ações). */
@@ -113,10 +103,12 @@ export const kvWalkPref = { get: () => true, set: (_on: boolean) => {} };
 
 export const KV_ACTION_DEFS: KvActionDef[] = [
   { key: 'pessoas', label: () => tr('Pessoas'), icon: '👥', button: '.kv-btn-people', pose: 'read' },
-  { key: 'registro', label: () => tr('Registro'), icon: '🗄️', open: () => openPeopleTab(tr('Registro')), can: () => !!document.querySelector('.kv-btn-people') || !!seen.get('pessoas'), pose: 'read' },
+  { key: 'registro', label: () => tr('Registro'), icon: '🗄️', open: () => kvOpenPeople('registro'), can: () => !!document.querySelector('.kv-btn-people') || !!seen.get('pessoas'), pose: 'read' },
   { key: 'convites', label: () => tr('Convidar visitantes'), icon: '✉️', button: '.kv-btn-invite', pose: 'use' },
   // a ação 'organograma' é da frente D (kvOpenOrgChart); aqui só o botão dela no topo, para passar pelo "ir e fazer"
   { key: 'organograma', label: () => tr('Organograma'), icon: '🧭', button: '.kv-btn-org', pose: 'read' },
+  // a ação 'planta' é da frente B (kvOpenPlanEditor); aqui só o botão dela
+  { key: 'planta', label: () => tr('Planta da empresa'), icon: '📐', button: '.kv-btn-plan', pose: 'use' },
   { key: 'visao', label: () => tr('Visão geral do prédio'), icon: '🔭', button: '.ui-topbar button', match: (el) => label(el, tr('Visão geral (O)')), pose: 'use' },
   { key: 'agenda', label: () => tr('Minha agenda'), icon: '📅', button: '.kv-btn-agenda', pose: 'read' },
   { key: 'presenca', label: () => tr('Quem está online'), icon: '🟢', button: '.kv-me', pose: 'read' },
@@ -135,13 +127,13 @@ export const KV_ACTION_DEFS: KvActionDef[] = [
   { key: 'boneco', label: () => tr('Meu boneco'), icon: '🪞', open: () => kvOpenProfile(), can: () => !!kvPeople.client, pose: 'groom' },
   { key: 'foco', label: () => tr('Modo foco (pomodoro)'), icon: '🍅', button: '.kv-btn-focus', pose: 'use' },
   { key: 'palco', label: () => tr('Palco (megafone)'), icon: '📢', button: '.kv-dock__stage', pose: 'talk' },
-  { key: 'novo-agente', label: () => tr('Novo agente'), icon: '🤖', button: '.ui-btn-spawn', pose: 'use' },
-  { key: 'timelapse', label: () => tr('Timelapse do dia'), icon: '📺', button: '.ui-btn-timelapse', keys: ['l', 'L'], pose: 'stand' },
-  { key: 'meu-dia', label: () => tr('Meu dia'), icon: '📊', button: '.ui-topbar button', match: (el) => label(el, tr('Meu dia: para onde foi o tempo (M)')), keys: ['m', 'M'], pose: 'read' },
-  { key: 'historico', label: () => tr('Histórico de sessões'), icon: '📚', button: '.ui-hist-btn', pose: 'read' },
+  { key: 'novo-agente', team: true, label: () => tr('Novo agente'), icon: '🤖', button: '.ui-btn-spawn', pose: 'use' },
+  { key: 'timelapse', team: true, label: () => tr('Timelapse do dia'), icon: '📺', button: '.ui-btn-timelapse', keys: ['l', 'L'], pose: 'stand' },
+  { key: 'meu-dia', team: true, label: () => tr('Meu dia'), icon: '📊', button: '.ui-topbar button', match: (el) => label(el, tr('Meu dia: para onde foi o tempo (M)')), keys: ['m', 'M'], pose: 'read' },
+  { key: 'historico', team: true, label: () => tr('Histórico de sessões'), icon: '📚', button: '.ui-hist-btn', pose: 'read' },
   { key: 'feed', label: () => tr('Feed de atividade'), icon: '📰', button: '.ui-btn-feed', pose: 'use' },
   { key: 'avisos', label: () => tr('Avisos'), icon: '🔔', button: '.kv-btn-alerts', pose: 'use' },
-  { key: 'atalhos', label: () => tr('Atalhos'), icon: '⌨️', open: () => document.querySelector<HTMLDialogElement>('dialog.kv-keys:not([open])')?.showModal(), can: () => !!document.querySelector('dialog.kv-keys'), pose: 'read' },
+  { key: 'atalhos', label: () => tr('Atalhos'), icon: '⌨️', button: '.kv-map__help', pose: 'read' },
   { key: 'voz', label: () => tr('Ajustes de voz e vídeo'), icon: '🎧', button: '.kv-dock__caret', pose: 'use' },
   { key: 'config', label: () => tr('Configurações'), icon: '⚙️', button: '.ui-topbar button', match: (el) => label(el, tr('Configurações')), pose: 'use' },
   {
@@ -179,7 +171,7 @@ export function kvRegisterThemeActions(): void {
         if (el && kvButtonUsable(el)) kvClickBypass(el);
         else d.open?.();
       },
-      allowed: () => (d.button ? kvButtonUsable(kvActionButton(d)) : (d.can?.() ?? true)),
+      allowed: () => !(d.team && kvRestricted(kvMe()?.person)) && (d.button ? kvButtonUsable(kvActionButton(d)) : (d.can?.() ?? true)),
     };
     kvRegisterAction(a);
   }

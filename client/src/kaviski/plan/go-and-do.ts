@@ -15,7 +15,7 @@ import type { Step } from '../../world/sim/steps';
 import { h } from '../../ui/dom';
 import { kvRegisterInteract } from '../humanos/interact';
 import { kvPeople } from '../humanos/world';
-import { kvAction, kvPlanWorld, type KvActionSpot } from './api';
+import { kvAction, kvActions, kvPlanWorld, type KvActionSpot } from './api';
 import { KV_ACTION_DEFS, kvActionButton, kvActionDef, kvBypassing, kvRegisterThemeActions, kvWalkPref } from './themes-actions';
 import { kvThemeInfo } from './themes-info';
 import { kvSpotFeet } from './themes-spots';
@@ -455,5 +455,5 @@ export function kvStartGoAndDo(): void {
       hideChip();
     }
   });
-  Object.assign((window as { habblaud?: object }).habblaud ?? {}, { kvGoAndDo, kvPlanWorld });
+  Object.assign((window as { habblaud?: object }).habblaud ?? {}, { kvGoAndDo, kvPlanWorld, kvActions });
 }

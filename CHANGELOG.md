@@ -35,6 +35,13 @@ do meio (0.**3**.0).
   Assistente com 4 estilos de prédio (Clássico, Campus, Torre, Galeria) que já sai lindo e certinho. Cliente e
   visitante recebem a planta só com as salas deles.
 
+- **Salas temáticas e "ir e fazer"**: 12 salas fixas para as funções do escritório — RH, Diretoria, Reunião,
+  Recepção de visitantes, Provador, Cabines de foco, Auditório, Central dos agentes, TI, Arquitetura, Correio e Sala de
+  descanso —, de qualquer tamanho, cada uma com a sua cara e itens novos em pixel art (balcão do RH, organograma na
+  parede, caixa de correio, púlpito, maquete da empresa, espelho de camarim, rede...). Clicar num botão do topo leva o
+  seu boneco andando até o item da função (o balcão do RH para Pessoas, o espelho do provador para Meu boneco, a TV da
+  central para o Timelapse...) e a janela abre lá; Esc cancela, Shift+clique abre direto. Tecla E perto dos itens,
+  clique no item e contorno aceso ao passar o mouse. Opção "Ir andando até o lugar" na lista de quem está online.
 - **Organograma da empresa**: áreas com cor e ícone, cargo e gestor de cada pessoa (tela Pessoas) e agentes de IA no
   mesmo quadro. Árvore em pixel art com o boneco de cada um e o status ao vivo, por hierarquia ou por área, busca, zoom,
   recolher equipes e exportar como imagem; no celular, lista. Cliente vê só a equipe.

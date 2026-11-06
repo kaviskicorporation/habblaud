@@ -707,6 +707,74 @@ Arquitetura (ação `planta` do "ir e fazer", `kvOpenPlanEditor({focus?, templat
 - **Habblaud World**: nada disto entra no snapshot do `Office` (áreas, cargos e agentes fixos moram em `org.json` e
   nos perfis; o agente fixo só muda a cadeira de um agente real na página).
 
+### Salas temáticas fixas e "ir e fazer" (frente C)
+Pedido do Vitor: "salas temáticas fixas relacionadas ao que tem de funções e interações; quero poder pedir para o boneco
+ir nelas e interagir; se eu clicar num menu, o boneco vai até o local/item e sai daquela ação; tudo deve ter um
+item/sala interativo fixo". Tudo só com `HABBLAUD_HUMANOS=1` **e** uma planta ligada; sem planta, os botões abrem
+direto como sempre.
+- **12 salas temáticas** (`KvThemeKey`), cada uma com piso, tapete, cores, plantas e os itens interativos marcados com a
+  ação (`ctx.tag`). Catálogo para a paleta do editor em `themes-info.ts` (`kvThemeInfo(key)`/`kvThemeInfos()`: nome,
+  ícone em pixel colorido, cor da placa, cor do piso, descrição, tamanho sugerido, ações). Mapa das funções → item:
+
+  | Sala | Item → ação |
+  |---|---|
+  | RH | balcão com a ficha → **Pessoas**; quadro na parede → **Organograma** (frente D); arquivo → **Registro** (`kvOpenPeople('registro')`); mesa dos envelopes → **Convidar visitantes**; poltronas de espera |
+  | Diretoria | organograma grande → **Organograma**; luneta → **Visão geral (O)**; mesa da diretoria, estante, poltronas |
+  | Reunião | calendário → **Minha agenda**; telão; mesa(s) com banquetas |
+  | Recepção de visitantes | balcão → **Convidar visitantes**; quadro de presença → **Quem está online / meu status**; mapa → **mini-mapa**; totem "i" → **Ajuda (?)**; espera |
+  | Provador | espelhos de camarim (com reflexo) e espelho de corpo inteiro → **Meu boneco** (o boneco penteia o cabelo); arara de roupas |
+  | Cabines de foco | relógio de tomate → **Modo foco (pomodoro)**; cabines de mesa com vidro |
+  | Auditório | púlpito → **Palco (megafone)**; telão; fileiras de banquetas com corredor |
+  | Central dos agentes | terminal → **Novo agente**; TV grande → **Timelapse (L)**; painel → **Meu dia (M)**; estante → **Histórico**; impressora → **Feed** |
+  | TI e ajustes | sino → **Avisos**; pôster das teclas → **Atalhos**; bancada → **Ajustes de voz e vídeo**; rack → **Configurações**; engrenagem → liga/desliga **Ir andando até o lugar** |
+  | Arquitetura | maquete e planta emoldurada → **Planta da empresa** (frente B); prancheta → **Salas** |
+  | Correio | caixa de correio e telefone → **Conversas**; escaninho → **Entregas** |
+  | Sala de descanso | rede → **Modo clássico**; fliperama (E = jogar, da W1); TV com sofá, poltronas, puffs |
+- **De qualquer tamanho** (8x8 até 48x32, porta em qualquer lado): `themes-place.ts` (`KvPlacer`) põe cada móvel só se a
+  porta ainda alcança todos os tiles de uso e os assentos (busca em largura; parte de um tile da porta e exige o
+  interruptor ligado a ela); reserva o tile de onde se usa cada item. Item de parede sem lugar (sala estreita, porta no
+  norte) vira um **cavalete** no chão com a mesma ação. Sala grande ganha grupos no miolo (ilhas de mesas, cantinhos de
+  poltronas, mesas de reunião) e móveis do tema espalhados pelas paredes até uma densidade boa. Testado em
+  `themes.test.ts` com um "motor de mentira" (`themes-harness.ts`): 12 salas × 8 tamanhos × 4 lados de porta — a ação
+  principal sempre tem item, todo item é alcançável, nada sobreposto.
+- **Itens novos em pixel art** (`themes-sprites.ts`, puro, mesmo kit dos móveis: topo claro, frente na cor, lado escuro,
+  contorno, sombra): balcão do RH, mesa de convites, caixa de correio, púlpito, maquete, prancheta, terminal, rack,
+  bancada de voz e vídeo, escaninho, telefone, rede, totem de informações, luneta, relógio de tomate, arara, espelho de
+  corpo inteiro, arquivo, cavaletes; na parede: organograma (2, 3 e 4 tiles), quadro de presença, mapa, calendário,
+  gráfico, TV grande (a programação passa nela), sino, engrenagem, teclas, espelho de camarim (reflexo de verdade),
+  planta emoldurada, painel de voz. Cada um usa um móvel do catálogo como **suporte** (footprint e se bloqueia) com a
+  variante `kv-*` (`themes-dims.ts`, `kvSpriteDims`); o motor confere a largura real na parede. Gancho de 1 linha:
+  `const art = kvArt(artModule)` em `client/src/world/index.ts` (`themes-art.ts`; `kvRegisterSprite` para outros).
+- **"Ir e fazer"** (`go-and-do.ts`, `kvGoAndDo(key, {direct?, spot?})`): o boneco anda (corre se longe) até o item da
+  ação mais perto (`kvPlanWorld.actionSpots()`, calculado por `kvComputeActionSpots` em `themes-spots.ts`), vira para
+  ele, faz a pose (mexer, ler papéis, pentear no espelho, falar no púlpito), um brilho com o ícone sobe do item e a ação
+  abre ali. Chip "Indo até o RH… · Esc cancela"; clicar de novo, Esc ou andar cancela. Sem boneco, modo clássico,
+  boneco no elevador, sem planta ou sem item: abre direto.
+  - **Botões ligados** sem reescrever os módulos das outras frentes (`themes-actions.ts`, `KV_ACTION_DEFS`): um
+    listener de captura em cada botão (os do topo, os que foram para o menu **Mais** — continuam os mesmos — e o "?"
+    do mini-mapa) desvia o clique para o "ir e fazer"; `run` clica o próprio botão sem desvio. **Shift+clique** abre
+    direto; botão já ligado/aberto (conversa aberta, foco ligado, modo clássico) fecha direto. Teclas **L**, **M** e
+    **?** também passam por ele. Ações registradas pelas irmãs (`organograma`, `planta`) valem igual.
+  - **Tecla E** perto de um item ("E · Registro (RH)", também no botão de toque do celular), **clique no item** (perto ou
+    longe: o boneco vai e usa) e **contorno aceso** com o nome ao passar o mouse.
+  - **Quem pode**: cada ação pergunta ao botão dela (escondido = não pode) e Timelapse, Meu dia, Histórico e Novo agente
+    são só da equipe (cliente e visitante: o servidor já recusava). Item de ação que eu não posso não acende, não tem E
+    nem clique.
+  - **Opção "Ir andando até o lugar"** (padrão ligada, `habblaud.kv.irAndando` no navegador): botão na lista de quem
+    está online (ao lado de Meu boneco) e a engrenagem da sala de TI.
+- Testes no navegador (Playwright, instância 4811/4812, planta `habblaud.kvPlan.example()` com as 12 salas, 38 itens):
+  cada ação do topo leva o boneco ao item certo e abre a janela; Esc cancela; Shift abre direto; E e clique; contorno;
+  pose no espelho; cliente sem Pessoas/Registro/Convites/Novo agente/Timelapse/Meu dia/Histórico e sem "E · Pessoas" no
+  balcão; celular (menu Mais → anda até o RH; botão de toque "E · Registro (RH)"). Depuração: `habblaud.kvGoAndDo(key)`,
+  `habblaud.kvActions()`, `habblaud.kvPlanWorld.actionSpots()`.
+- Código: `client/src/kaviski/plan/{themes,themes-place,themes-info,themes-sprites,themes-dims,themes-art,themes-spots,
+  themes-actions,themes-harness,go-and-do}.ts` + `themes.css` (+ `themes.test.ts`, `themes-spots.test.ts`,
+  `themes-sprites.test.ts`); traduções em `shared/locales/kaviski-temas.ts`. Mudanças pequenas em arquivos do fork:
+  `humanos/index.ts` (`kvStartGoAndDo()`), `humanos/world.ts` (`kvPeople.onItemClick` no clique). Contrato: campo
+  opcional `box` em `KvActionSpot` (`plan/api.ts`).
+- **Habblaud World**: nada disto entra no snapshot do `Office` — as salas e os itens existem só na página (mobília da
+  planta) e as ações só abrem janelas que já existiam.
+
 ## Como desenvolver sem derrubar o escritório
 - Desenvolver numa **segunda instância** (`HABBLAUD_PORT=4757`, `HABBLAUD_REMOTE_PORT=4758`,
   `HABBLAUD_DATA_DIR=~/.habblaud-dev`), sem mexer no serviço `habblaud` em produção.

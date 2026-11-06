@@ -75,7 +75,7 @@
   z-index: 44;
   width: 0;
   height: 0;
-  pointer-events: none;
+  pointer-events: none !important;
 }
 
 .kv-gd-spark::before,
@@ -142,7 +142,8 @@
 .kv-gd-outline {
   position: fixed;
   z-index: 30;
-  pointer-events: none;
+  /* o tema liga pointer-events nos filhos do .ui-root: sem isto o contorno "roubaria" o mouse do mundo */
+  pointer-events: none !important;
   border: 2px solid #ffd23f;
   border-radius: 4px;
   box-shadow:
@@ -157,6 +158,7 @@
 }
 
 .kv-gd-outline__label {
+  pointer-events: none !important;
   position: absolute;
   left: 50%;
   bottom: calc(100% + 6px);
@@ -201,8 +203,10 @@ canvas.kv-gd-hover,
 }
 
 @media (max-width: 640px) {
+  /* em cima do joystick, do botão E e do mini-mapa */
   .kv-gd-chip {
     top: auto;
-    bottom: 96px;
+    bottom: 260px;
+    max-width: calc(100vw - 24px);
   }
 }
