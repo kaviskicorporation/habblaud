@@ -45,7 +45,8 @@ export class KvMediaGrid {
     const close = h('button', { class: 'ui-btn ui-btn--sm kv-grid__close', type: 'button', text: tr('Fechar (Esc)'), on: { click: () => this.close() } });
     this.root = h(
       'div',
-      { class: 'kv-grid', hidden: true, role: 'dialog', attrs: { 'aria-modal': 'true', 'aria-label': label } },
+      // aria-modal só com a grade aberta: o modalOpen() do mundo conta qualquer [aria-modal="true"] e travaria as setas
+      { class: 'kv-grid', hidden: true, role: 'dialog', attrs: { 'aria-label': label } },
       h('div', { class: 'kv-grid__head' }, h('span', { class: 'kv-grid__title', text: tr('Chamada') }), close),
       this.main,
       this.strip,
@@ -75,6 +76,7 @@ export class KvMediaGrid {
     if (!this.media.call) return this.bar.warn(tr('Entre numa chamada para abrir a grade de vídeo.'));
     this.lastFocus = document.activeElement as HTMLElement | null;
     this.root.hidden = false;
+    this.root.setAttribute('aria-modal', 'true');
     // o que flutua sobre o mundo (bolinhas, anéis, pilhas da cabeça) não aparece por cima da grade
     document.body.classList.add('kv-grid-open');
     this.btn.classList.add('is-on');
@@ -86,6 +88,7 @@ export class KvMediaGrid {
   close(): void {
     if (this.root.hidden) return;
     this.root.hidden = true;
+    this.root.removeAttribute('aria-modal');
     document.body.classList.remove('kv-grid-open');
     this.btn.classList.remove('is-on');
     clearInterval(this.timer);
