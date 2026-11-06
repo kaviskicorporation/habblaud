@@ -1,0 +1,640 @@
+/* Fork Kaviski (KAVISKI-HUMANOS.md): tela de Salas no kit das pessoas (ui/kit.css). Blocos "3D" do Habblaud: luz em
+   cima, sombra embaixo, contorno; o escolhido fica azul e afundado. A grade da decoração usa as cores da paleta escolhida
+   (--room-floor, --room-wall, --room-accent, postas pelo rooms-dialog.ts). */
+
+.kv-salas2 .kv-ui-modal__body {
+  padding: 0;
+  overflow: hidden;
+}
+
+.kv-salas2__layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  min-height: 0;
+  height: min(72vh, 680px);
+}
+
+@media (max-width: 820px) {
+  .kv-salas2__layout {
+    grid-template-columns: 1fr;
+    height: auto;
+    max-height: 76vh;
+    overflow-y: auto;
+  }
+}
+
+/* ------------------------------------------------------------------ lista */
+
+.kv-salas2__side {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 12px;
+  border-right: 1px solid var(--ui-line);
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.kv-salas2__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kv-salas2__empty {
+  padding: 18px 6px;
+}
+
+.kv-salas2__card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 8px 9px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--ui-line-strong);
+  background: linear-gradient(180deg, rgba(44, 51, 68, 0.9), rgba(30, 35, 47, 0.9));
+  box-shadow: var(--kv-ui-raise);
+}
+
+.kv-salas2__card.is-on {
+  border-color: rgba(124, 200, 255, 0.6);
+  box-shadow:
+    var(--kv-ui-press),
+    0 0 0 2px rgba(124, 200, 255, 0.16);
+}
+
+.kv-salas2__card-ico {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  color: #fff;
+  background: color-mix(in srgb, var(--a) 70%, #111);
+  border: 1px solid color-mix(in srgb, var(--a) 70%, #fff);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.3);
+}
+
+.kv-salas2__card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.kv-salas2__card-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.kv-salas2__card-top strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 700 13.5px/1.2 var(--font-ui);
+}
+
+.kv-salas2__mine {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--ui-accent-soft);
+  color: var(--ui-accent);
+  font: 600 10.5px/1.5 var(--font-ui);
+}
+
+.kv-salas2__card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--ui-muted);
+}
+
+.kv-salas2__card-meta > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kv-salas2__kind-tag {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--a) 60%, transparent);
+  color: color-mix(in srgb, var(--a) 70%, #fff);
+  font: 500 10.5px/1.6 var(--font-px);
+  letter-spacing: 0.03em;
+}
+
+.kv-salas2__card-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.kv-salas2__del:hover {
+  color: var(--lv-crit) !important;
+}
+
+/* ------------------------------------------------------------------ formulário */
+
+.kv-salas2__main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 18px 18px;
+}
+
+.kv-salas2__main[hidden] {
+  display: none;
+}
+
+.kv-salas2__main-head {
+  margin-bottom: 10px;
+}
+
+.kv-salas2__form-title {
+  font-size: 15px;
+}
+
+.kv-salas2__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kv-salas2__sec {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--ui-line);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.kv-salas2__sec-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.kv-salas2__sec-ico {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  color: var(--ui-accent);
+  background: var(--ui-accent-soft);
+  border: 1px solid rgba(124, 200, 255, 0.3);
+}
+
+.kv-salas2__sec-title {
+  font-size: 13.5px;
+}
+
+.kv-salas2__sec-hint {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ui-faint);
+}
+
+.kv-salas2__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.kv-salas2__owner:empty {
+  display: none;
+}
+
+.kv-salas2__row:has(.kv-salas2__owner:empty) {
+  grid-template-columns: 1fr;
+}
+
+/* blocos de escolha (tipo, quem entra, itens) */
+.kv-salas2__kinds {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 8px;
+}
+
+.kv-salas2__kind,
+.kv-salas2__item,
+.kv-salas2__seg-btn,
+.kv-salas2__person {
+  position: relative;
+  border: 1px solid var(--ui-line-strong);
+  background: linear-gradient(180deg, rgba(48, 56, 74, 0.95), rgba(32, 37, 50, 0.95));
+  box-shadow: var(--kv-ui-raise);
+  color: var(--ui-text);
+  cursor: pointer;
+  transition:
+    transform 0.08s,
+    border-color 0.15s,
+    background-color 0.15s;
+}
+
+.kv-salas2__kind:hover:not(:disabled),
+.kv-salas2__item:hover,
+.kv-salas2__seg-btn:hover,
+.kv-salas2__person:hover {
+  border-color: rgba(160, 176, 210, 0.45);
+}
+
+.kv-salas2__kind:active:not(:disabled),
+.kv-salas2__item:active,
+.kv-salas2__seg-btn:active,
+.kv-salas2__person:active {
+  transform: translateY(1px);
+  box-shadow: var(--kv-ui-press);
+}
+
+.kv-salas2__kind.is-on,
+.kv-salas2__item.is-on,
+.kv-salas2__seg-btn.is-on,
+.kv-salas2__person.is-on {
+  border-color: #58a6f2;
+  background: linear-gradient(180deg, #3a8ee3, #2a6fb8);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.25),
+    0 2px 0 rgba(0, 0, 0, 0.32),
+    0 0 0 2px rgba(124, 200, 255, 0.18);
+}
+
+.kv-salas2__kind {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 8px 10px;
+  border-radius: 10px;
+}
+
+.kv-salas2__kind:disabled {
+  cursor: default;
+}
+
+.kv-salas2__kind-ico {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 34px;
+  color: var(--ui-accent);
+}
+
+.kv-salas2__kind.is-on .kv-salas2__kind-ico {
+  color: #fff;
+}
+
+.kv-salas2__kind-ico svg {
+  width: 36px;
+  height: auto;
+}
+
+.kv-salas2__kind-label {
+  font: 500 13px/1.1 var(--font-px);
+  letter-spacing: 0.02em;
+}
+
+.kv-salas2__seg {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.kv-salas2__seg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font: 600 12.5px/1 var(--font-ui);
+}
+
+.kv-salas2__people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kv-salas2__person {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 10px 0 6px;
+  border-radius: 999px;
+  font: 500 12.5px/1 var(--font-ui);
+}
+
+.kv-salas2__person-check {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid var(--ui-line-strong);
+  background: rgba(0, 0, 0, 0.35);
+  color: transparent;
+}
+
+.kv-salas2__person.is-on .kv-salas2__person-check {
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.kv-salas2__person-check svg {
+  width: 11px;
+  height: auto;
+}
+
+.kv-salas2__none {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px dashed var(--ui-line-strong);
+  font-size: 12px;
+  color: var(--ui-faint);
+}
+
+/* paleta: cada uma é uma mini-sala (parede em cima, chão embaixo, faixa da cor de destaque) */
+.kv-salas2__styles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+  gap: 8px;
+}
+
+.kv-salas2__style {
+  display: flex;
+  flex-direction: column;
+  height: 46px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 2px solid rgba(0, 0, 0, 0.45);
+  border-bottom: 4px solid var(--a);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: transform 0.08s;
+}
+
+.kv-salas2__style-wall {
+  flex: 0 0 40%;
+  background: var(--w);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.kv-salas2__style-floor {
+  flex: 1;
+  background:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.06) 25%, transparent 25% 75%, rgba(255, 255, 255, 0.06) 75%) 0 0 / 8px 8px,
+    var(--c);
+}
+
+.kv-salas2__style:hover {
+  transform: translateY(-1px);
+}
+
+.kv-salas2__style.is-on {
+  border-color: #fff;
+  box-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.35),
+    0 0 0 3px rgba(124, 200, 255, 0.55);
+}
+
+.kv-salas2__color-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.kv-salas2__swatch {
+  flex: none;
+  width: 52px;
+  height: 32px;
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid var(--ui-line-strong);
+  background: linear-gradient(180deg, rgba(48, 56, 74, 0.95), rgba(32, 37, 50, 0.95));
+  box-shadow: var(--kv-ui-raise);
+  cursor: pointer;
+}
+
+.kv-salas2__swatch::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.kv-salas2__swatch::-webkit-color-swatch {
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  border-radius: 5px;
+}
+
+.kv-salas2__swatch:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* itens da decoração */
+.kv-salas2__items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+  gap: 6px;
+}
+
+.kv-salas2__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px 7px;
+  border-radius: 9px;
+}
+
+.kv-salas2__item-glyph {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.kv-salas2__item-label {
+  font: 500 11.5px/1.1 var(--font-ui);
+  text-align: center;
+}
+
+.kv-salas2__decor-opts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.kv-salas2__decor-opts[hidden] {
+  display: none;
+}
+
+/* a sala em miniatura: faixa da parede e o chão em grade, nas cores da paleta */
+.kv-salas2__room {
+  position: relative;
+  align-self: flex-start;
+  padding: 18px 8px 8px;
+  border-radius: 10px;
+  border: 2px solid rgba(0, 0, 0, 0.5);
+  border-top: 4px solid var(--room-accent, var(--ui-accent));
+  background: color-mix(in srgb, var(--room-wall, #3a3f52) 35%, #10131b);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+}
+
+.kv-salas2__room-tag {
+  position: absolute;
+  top: 2px;
+  left: 10px;
+  font: 500 10.5px/1.4 var(--font-px);
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.55);
+  text-transform: uppercase;
+}
+
+.kv-salas2__wall,
+.kv-salas2__grid {
+  display: grid;
+  grid-template-columns: repeat(14, 30px);
+  gap: 2px;
+}
+
+.kv-salas2__wall {
+  margin-bottom: 6px;
+}
+
+.kv-salas2__cell {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  background: color-mix(in srgb, var(--room-floor, #4a5068) 75%, #fff 0%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.kv-salas2__cell--wall {
+  height: 26px;
+  background: var(--room-wall, #5a6070);
+}
+
+.kv-salas2__cell:hover:not(.is-busy) {
+  outline: 2px solid rgba(124, 200, 255, 0.85);
+  outline-offset: -1px;
+}
+
+.kv-salas2__cell.is-busy {
+  cursor: not-allowed;
+  background:
+    repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.5) 0 3px, rgba(0, 0, 0, 0.25) 3px 6px),
+    color-mix(in srgb, var(--room-floor, #4a5068) 60%, #000);
+  box-shadow: none;
+}
+
+.kv-salas2__cell--wall.is-busy {
+  background:
+    repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.5) 0 3px, rgba(0, 0, 0, 0.25) 3px 6px),
+    color-mix(in srgb, var(--room-wall, #5a6070) 60%, #000);
+}
+
+.kv-salas2__cell.is-rug {
+  background: var(--rug);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+.kv-salas2__cell.has-item {
+  background: color-mix(in srgb, var(--room-floor, #4a5068) 60%, #fff);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+
+.kv-salas2__count {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--ui-line-strong);
+  font-size: 11.5px;
+  color: var(--ui-muted);
+}
+
+.kv-salas2__error:empty {
+  display: none;
+}
+
+.kv-salas2 .kv-ui-modal__foot {
+  align-items: center;
+}
+
+.kv-salas2 .kv-ui-modal__foot .kv-salas2__error {
+  margin: 0 auto 0 0;
+}
+
+@media (max-width: 560px) {
+  .kv-salas2__wall,
+  .kv-salas2__grid {
+    grid-template-columns: repeat(14, 20px);
+  }
+
+  .kv-salas2__cell {
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+  }
+
+  .kv-salas2__row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kv-salas2__item-glyph {
+  display: grid;
+  place-items: center;
+  height: 24px;
+}
+
+.kv-salas2__item-glyph svg {
+  width: 26px;
+  height: auto;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.5));
+}
+
+.kv-salas2__cell svg {
+  display: block;
+  width: 22px;
+  height: auto;
+  margin: auto;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.5));
+}
+
+.kv-salas2__side:has(.kv-salas2__empty) {
+  display: flex;
+  align-items: center;
+}
+
+.kv-salas2__side:has(.kv-salas2__empty) .kv-salas2__list {
+  width: 100%;
+}

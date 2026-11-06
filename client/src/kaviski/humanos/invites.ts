@@ -3,8 +3,15 @@
 // Fala com GET|POST /api/kaviski/humanos/invites e DELETE /api/kaviski/humanos/invites/:id.
 import { KV_INVITE_MAX_USES, type KvInviteInfo, type KvInviteState, type KvInviteTtl } from '../../../../shared/kaviski-invites';
 import { tr } from '../../../../shared/i18n';
-import { h, iconButton } from '../../ui/dom';
-import { ICONS } from '../../ui/icons';
+import { h } from '../../ui/dom';
+import { pixelIcon } from '../../ui/icons';
+import { KV_ICONS, kvBtn, kvEmpty, kvIconBtn, kvInput, kvTitle, type KvInput } from './ui/kit';
+import { KvModal, kvConfirm } from './ui/modal';
+import { kvPick, kvSection, kvSeg, kvSplit, type KvSeg } from './ui/section';
+import { kvToast } from './ui/toast';
+
+const CLOCK_ICON = pixelIcon(['..####..', '.#....#.', '#..#...#', '#..#...#', '#..###.#', '#......#', '.#....#.', '..####..']);
+const LINK_ICON = pixelIcon(['....####', '...#...#', '..#..#.#', '.#..#..#', '#..#..#.', '#.#..#..', '#...#...', '####....']);
 
 const API = '/api/kaviski/humanos/invites';
 
@@ -27,12 +34,14 @@ function when(t: number): string {
 }
 
 export class InvitesDialog {
-  readonly el: HTMLDialogElement;
+  private readonly modal: KvModal;
+  /** As duas colunas (lista + formulário), também montadas na aba Convites da tela de Pessoas. */
+  readonly content: HTMLElement;
   private readonly list: HTMLElement;
-  private readonly ttl: HTMLSelectElement;
-  private readonly many: HTMLInputElement;
-  private readonly count: HTMLInputElement;
-  private readonly label: HTMLInputElement;
+  private readonly ttl: KvSeg<KvInviteTtl>;
+  private readonly uses: KvSeg<'1' | 'n'>;
+  private readonly count: KvInput;
+  private readonly label: KvInput;
   private readonly roomsBox: HTMLElement;
   private readonly error: HTMLElement;
   private readonly made: HTMLElement;
@@ -42,52 +51,63 @@ export class InvitesDialog {
   private base = location.origin;
 
   constructor() {
-    const close = iconButton(ICONS.close, tr('Fechar'), () => this.el.close(), 'ui-icon-btn--sm');
-    this.list = h('ul', { class: 'kv-people__list kv-inv__list' });
-    this.ttl = h('select', { class: 'kv-people__input', attrs: { name: 'ttl' } });
-    for (const t of ['1h', '1d', '7d'] as KvInviteTtl[]) this.ttl.append(h('option', { text: TTL_LABEL[t], attrs: { value: t } }));
-    this.ttl.value = '1d';
-    this.many = h('input', { type: 'checkbox', attrs: { name: 'many' } });
-    this.count = h('input', { class: 'kv-people__input kv-inv__count', type: 'number', attrs: { min: '2', max: String(KV_INVITE_MAX_USES), value: '10', 'aria-label': tr('Quantas pessoas') } });
-    this.many.addEventListener('change', () => (this.count.disabled = !this.many.checked));
-    this.count.disabled = true;
-    this.label = h('input', { class: 'kv-people__input', attrs: { name: 'label', maxlength: '60', autocomplete: 'off', placeholder: tr('ex.: Reunião com a Rarm') } });
-    this.roomsBox = h('div', { class: 'kv-people__known' });
-    this.error = h('p', { class: 'kv-people__error', attrs: { role: 'alert' } });
-    this.made = h('div', { class: 'kv-inv__made', hidden: true });
-    this.save = h('button', { class: 'ui-btn ui-btn--primary', type: 'submit', text: tr('Gerar link') });
-    const form = h(
-      'form',
-      { class: 'kv-people__form', on: { submit: (e: Event) => void this.submit(e) } },
-      h('h3', { text: tr('Novo convite') }),
-      h('label', { class: 'kv-people__label', text: tr('Para quem (opcional)') }),
-      this.label,
-      h('label', { class: 'kv-people__label', text: tr('Vale por') }),
-      this.ttl,
-      h('label', { class: 'kv-people__check' }, this.many, h('span', { text: tr('Várias pessoas (senão: uso único)') }), this.count),
-      h('label', { class: 'kv-people__label', text: tr('Salas que o visitante vê') }),
-      h('p', { class: 'kv-people__hint', text: tr('Sem nenhuma marcada: só a recepção e as áreas comuns. O visitante não aprova, não manda tarefa e não chama agentes.') }),
-      this.roomsBox,
-      this.error,
-      h('div', { class: 'kv-people__actions' }, this.save),
-      this.made,
-    );
-    this.el = h(
-      'dialog',
-      { class: 'ui-dialog kv-people kv-inv', attrs: { 'aria-labelledby': 'kv-inv-title' } },
-      h('div', { class: 'ui-dialog__head' }, h('h2', { text: tr('Convidar visitantes'), attrs: { id: 'kv-inv-title' } }), close),
-      h('div', { class: 'ui-dialog__body kv-people__body' }, h('section', {}, h('h3', { text: tr('Convites') }), this.list), h('section', {}, form)),
-    );
-    this.el.addEventListener('click', (e) => {
-      if (e.target === this.el) this.el.close();
+    this.modal = new KvModal({
+      title: tr('Convidar visitantes'),
+      subtitle: tr('Um link para quem não tem conta entrar como visitante, por um tempo e só nas salas que você marcar.'),
+      icon: KV_ICONS.mail,
+      width: 1000,
+      cls: 'kv-inv2',
     });
-    (document.querySelector('.ui-root') ?? document.body).append(this.el);
+    this.list = h('ul', { class: 'kv-ui-cards' });
+    this.label = kvInput({ placeholder: tr('ex.: Reunião com a Rarm'), maxlength: 60, icon: KV_ICONS.user, name: 'label' });
+    this.ttl = kvSeg<KvInviteTtl>(
+      (['1h', '1d', '7d'] as KvInviteTtl[]).map((t) => ({ value: t, label: TTL_LABEL[t], icon: CLOCK_ICON })),
+      '1d',
+      undefined,
+      tr('Vale por'),
+    );
+    this.count = kvInput({ type: 'number', value: '10', name: 'count' });
+    this.count.input.min = '2';
+    this.count.input.max = String(KV_INVITE_MAX_USES);
+    this.count.input.setAttribute('aria-label', tr('Quantas pessoas'));
+    this.count.el.classList.add('kv-inv2__count');
+    this.uses = kvSeg<'1' | 'n'>(
+      [
+        { value: '1', label: tr('Uma pessoa (uso único)'), icon: KV_ICONS.user },
+        { value: 'n', label: tr('Várias pessoas'), icon: KV_ICONS.users },
+      ],
+      '1',
+      (v) => (this.count.el.hidden = v !== 'n'),
+      tr('Quantas pessoas'),
+    );
+    this.count.el.hidden = true;
+    this.roomsBox = h('div', { class: 'kv-ui-picks' });
+    this.error = h('p', { class: 'kv-ui-field__error kv-inv2__error', attrs: { role: 'alert' } });
+    this.made = h('div', { class: 'kv-ui-made', hidden: true });
+    this.save = kvBtn(tr('Gerar link'), { variant: 'primary', icon: KV_ICONS.mail, onClick: (e) => void this.submit(e) });
+    const main = h(
+      'div',
+      {},
+      this.made,
+      kvSection(KV_ICONS.user, tr('Para quem'), tr('Opcional: um nome para você lembrar do convite.'), this.label.el),
+      kvSection(CLOCK_ICON, tr('Validade e pessoas'), null, this.ttl.el, h('div', { class: 'kv-inv2__uses' }, this.uses.el, this.count.el)),
+      kvSection(KV_ICONS.door, tr('Salas que o visitante vê'), tr('Sem nenhuma marcada: só a recepção e as áreas comuns. O visitante não aprova, não manda tarefa e não chama agentes.'), this.roomsBox),
+    );
+    const side = h('div', {}, kvTitle('h3', tr('Convites'), 'kv-agenda2__side-title'), this.list);
+    this.content = kvSplit(side, main);
+    this.modal.body.append(this.content);
+    this.modal.setFoot(this.error, this.save);
+  }
+
+  /** O rodapé com o botão (para a aba Convites da tela de Pessoas, que não usa a janela própria). */
+  get foot(): HTMLElement {
+    return this.modal.foot;
   }
 
   async open(): Promise<void> {
     this.error.textContent = '';
     this.made.hidden = true;
-    if (!this.el.open) this.el.showModal();
+    this.modal.show();
     await this.reload();
   }
 
@@ -120,84 +140,69 @@ export class InvitesDialog {
   private renderRooms(): void {
     this.roomsBox.replaceChildren(
       ...this.rooms.map((r) =>
-        h('button', {
-          class: `ui-btn ui-btn--sm kv-people__room${this.chosen.has(r.path) ? ' is-on' : ''}`,
-          type: 'button',
-          text: r.name,
-          title: r.path,
-          attrs: { 'aria-pressed': String(this.chosen.has(r.path)) },
-          on: {
-            click: () => {
-              if (this.chosen.has(r.path)) this.chosen.delete(r.path);
-              else this.chosen.add(r.path);
-              this.renderRooms();
-            },
-          },
-        }),
+        kvPick(r.name, this.chosen.has(r.path), (on) => (on ? this.chosen.add(r.path) : this.chosen.delete(r.path)), { title: r.path }),
       ),
     );
-    if (!this.rooms.length) this.roomsBox.append(h('span', { class: 'kv-people__hint', text: tr('nenhuma sala aberta') }));
+    if (!this.rooms.length) this.roomsBox.append(h('p', { class: 'kv-ui-sec__hint', text: tr('nenhuma sala aberta') }));
   }
 
   private renderList(invites: KvInviteInfo[]): void {
     const name = (p: string) => this.rooms.find((r) => r.path === p)?.name ?? p.split('/').filter(Boolean).slice(-1)[0] ?? p;
+    const tone: Record<KvInviteState, string> = { ativo: 'ok', vencido: 'off', revogado: 'bad', esgotado: 'warn' };
+    const color: Record<KvInviteState, string> = { ativo: '#2f9e5f', vencido: '#6b7280', revogado: '#b04444', esgotado: '#b8862e' };
     this.list.replaceChildren(
       ...invites.map((i) => {
-        const copy = h('button', { class: 'ui-btn ui-btn--sm', type: 'button', text: tr('Copiar link'), hidden: !i.link, on: { click: () => void this.copy(i, copy) } });
-        const revoke = h('button', { class: 'ui-btn ui-btn--sm', type: 'button', text: tr('Revogar'), hidden: i.state === 'revogado' || i.state === 'vencido' });
-        let armed = false;
-        revoke.addEventListener('click', () => {
-          if (!armed) {
-            armed = true;
-            revoke.textContent = tr('Confirmar?');
-            revoke.classList.add('is-danger');
-            setTimeout(() => {
-              armed = false;
-              revoke.textContent = tr('Revogar');
-              revoke.classList.remove('is-danger');
-            }, 4000);
-            return;
-          }
-          void this.revoke(i);
-        });
+        const copy = kvIconBtn(KV_ICONS.copy, tr('Copiar link'), () => void this.copy(i, copy), { size: 'sm' });
+        copy.hidden = !i.link;
+        const revoke = kvIconBtn(KV_ICONS.trash, tr('Revogar'), () => void this.askRevoke(i), { size: 'sm' });
+        revoke.hidden = i.state === 'revogado' || i.state === 'vencido';
         const uses = i.maxUses === 1 ? tr('uso único') : tr('{0} de {1} pessoas', [i.uses, i.maxUses]);
         const where = i.rooms.length ? i.rooms.map(name).join(', ') : tr('só áreas comuns');
+        const ico = h('span', { class: 'kv-ui-card__ico', style: `--a:${color[i.state]}`, attrs: { 'aria-hidden': 'true' } });
+        ico.innerHTML = KV_ICONS.mail;
         return h(
           'li',
-          { class: `kv-people__item kv-inv__item is-${i.state}` },
-          h('div', { class: 'kv-people__who' }, h('strong', { text: i.label ?? tr('Convite de {0}', [i.by.name]) }), h('span', { class: `kv-inv__state kv-inv__state--${i.state}`, text: STATE_LABEL[i.state] })),
-          h('div', {
-            class: 'kv-people__meta',
-            text: [uses, tr('até {0}', [when(i.expiresAt)]), where, i.visitors.length ? tr('Entraram: {0}', [i.visitors.map((v) => v.name).join(', ')]) : ''].filter(Boolean).join(' · '),
-            title: [...i.rooms, ...i.visitors.map((v) => `${v.name} · ${when(v.joinedAt)}`)].join('\n'),
-          }),
-          h('div', { class: 'kv-people__row-actions' }, copy, revoke),
+          { class: `kv-ui-card${i.state === 'ativo' ? '' : ' is-dim'}`, title: [...i.rooms, ...i.visitors.map((v) => `${v.name} · ${when(v.joinedAt)}`)].join('\n') },
+          ico,
+          h(
+            'span',
+            { class: 'kv-ui-card__text' },
+            h('span', { class: 'kv-ui-card__top' }, h('strong', { text: i.label ?? tr('Convite de {0}', [i.by.name]) }), h('span', { class: `kv-ui-state kv-ui-state--${tone[i.state]}`, text: STATE_LABEL[i.state] })),
+            h('span', { class: 'kv-ui-card__meta', text: [uses, tr('até {0}', [when(i.expiresAt)]), where].join(' · ') }),
+            i.visitors.length ? h('span', { class: 'kv-ui-card__meta', text: tr('Entraram: {0}', [i.visitors.map((v) => v.name).join(', ')]) }) : null,
+          ),
+          h('span', { class: 'kv-ui-card__actions' }, copy, revoke),
         );
       }),
     );
-    if (!invites.length) this.list.append(h('li', { class: 'kv-people__hint', text: tr('Nenhum convite ainda.') }));
+    if (!invites.length) this.list.append(h('li', {}, kvEmpty(KV_ICONS.mail, tr('Nenhum convite ainda'), tr('Gere um link ao lado e mande para quem vai visitar.'))));
+  }
+
+  private async askRevoke(i: KvInviteInfo): Promise<void> {
+    const ok = await kvConfirm({ title: tr('Revogar o convite?'), text: tr('O link para de funcionar e quem entrou por ele sai na hora.'), ok: tr('Revogar'), danger: true });
+    if (ok) await this.revoke(i);
   }
 
   private async copy(i: KvInviteInfo, btn: HTMLButtonElement): Promise<void> {
     const url = this.url(i);
     try {
       await navigator.clipboard.writeText(url);
-      btn.textContent = tr('Copiado!');
+      kvToast(tr('Link copiado.'), { kind: 'ok' });
     } catch {
       // sem permissão para a área de transferência (http na rede local): mostra para copiar à mão
       window.prompt(tr('Copie o link do convite:'), url);
     }
-    setTimeout(() => (btn.textContent = tr('Copiar link')), 2000);
+    void btn;
   }
 
-  private async submit(e: Event): Promise<void> {
-    e.preventDefault();
+  private async submit(e?: Event): Promise<void> {
+    e?.preventDefault();
     this.error.textContent = '';
     const body = {
       ttl: this.ttl.value,
-      maxUses: this.many.checked ? Math.round(Number(this.count.value) || 2) : 1,
+      maxUses: this.uses.value === 'n' ? Math.round(Number(this.count.input.value) || 2) : 1,
       rooms: [...this.chosen],
-      ...(this.label.value.trim() ? { label: this.label.value.trim() } : {}),
+      ...(this.label.input.value.trim() ? { label: this.label.input.value.trim() } : {}),
     };
     this.save.disabled = true;
     try {
@@ -207,14 +212,16 @@ export class InvitesDialog {
         this.error.textContent = data.error ?? tr('Não deu para criar o convite.');
         return;
       }
-      this.label.value = '';
+      this.label.input.value = '';
       await this.reload();
       const url = this.url(data.invite);
-      const input = h('input', { class: 'kv-people__input', attrs: { readonly: '', value: url, 'aria-label': tr('Link do convite') } });
-      const copy = h('button', { class: 'ui-btn ui-btn--sm', type: 'button', text: tr('Copiar link'), on: { click: () => void this.copy(data.invite!, copy) } });
-      this.made.replaceChildren(h('p', { class: 'kv-people__hint', text: tr('Pronto! Mande este link para quem vai visitar:') }), input, copy);
+      const field = kvInput({ value: url, mono: true, icon: LINK_ICON });
+      field.input.readOnly = true;
+      field.input.setAttribute('aria-label', tr('Link do convite'));
+      const copy = kvBtn(tr('Copiar link'), { variant: 'primary', icon: KV_ICONS.copy, onClick: () => void this.copy(data.invite!, copy) });
+      this.made.replaceChildren(kvTitle('strong', tr('Link pronto! Mande para quem vai visitar:')), h('div', { class: 'kv-ui-made__row' }, field.el, copy));
       this.made.hidden = false;
-      input.select();
+      field.input.select();
     } catch {
       this.error.textContent = tr('Sem conexão com o Habblaud.');
     } finally {
@@ -236,10 +243,8 @@ export class InvitesDialog {
 /** Fork Kaviski W6: os convites dentro de outra janela — a aba Convites da tela de Pessoas (people.ts). */
 export function kvMountInvites(host: HTMLElement): void {
   const d = new InvitesDialog();
-  const body = d.el.querySelector('.ui-dialog__body');
-  if (!body) return;
-  host.classList.add('kv-people', 'kv-inv');
-  host.append(body);
-  d.el.remove();
+  host.classList.add('kv-inv2', 'kv-inv2--embed');
+  host.append(d.content, d.foot);
+  d.foot.hidden = false;
   void d.refresh();
 }

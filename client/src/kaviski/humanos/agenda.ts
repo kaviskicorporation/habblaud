@@ -7,6 +7,9 @@
 import type { KvAgendaEventOut, KvAgendaState, KvRoomBooking } from '../../../../shared/kaviski-agenda';
 import { getLocale, tr } from '../../../../shared/i18n';
 import { h, iconButton } from '../../ui/dom';
+import { KV_ICONS, kvBtn, kvEmpty, kvField, kvInput, kvTitle, type KvInput } from './ui/kit';
+import { KvModal } from './ui/modal';
+import { kvSection, kvSplit, kvTip } from './ui/section';
 import { ICONS, pixelIcon } from '../../ui/icons';
 import { kvAutoClear, kvAutoSet } from './auto-status';
 import { kvTopButton } from './topbar';
@@ -17,6 +20,7 @@ const POLL_MS = 60_000;
 const ROOMS_POLL_MS = 120_000;
 const REMIND_MS = 60_000;
 
+const LINK_ICON = pixelIcon(['....####', '...#...#', '..#..#.#', '.#..#..#', '#..#..#.', '#.#..#..', '#...#...', '####....']);
 const CAL_ICON = pixelIcon(['.#....#.', '########', '#......#', '#.#.#.##', '#......#', '#.#.#..#', '#......#', '########']);
 
 /** Hora curta: "15h" / "15h30" em português, a do idioma nos outros. */
@@ -47,56 +51,62 @@ async function getJson<T>(url: string, init?: RequestInit): Promise<{ ok: boolea
 }
 
 class AgendaDialog {
-  readonly el: HTMLDialogElement;
+  private readonly modal: KvModal;
   private readonly today: HTMLElement;
   private readonly status: HTMLElement;
-  private readonly input: HTMLInputElement;
+  private readonly link: KvInput;
   private readonly error: HTMLElement;
   private readonly off: HTMLButtonElement;
   private readonly save: HTMLButtonElement;
 
   constructor(private readonly onSaved: (s: KvAgendaState) => void) {
-    const close = iconButton(ICONS.close, tr('Fechar'), () => this.el.close(), 'ui-icon-btn--sm');
-    this.today = h('ul', { class: 'kv-agenda__list' });
-    this.status = h('p', { class: 'kv-people__hint kv-agenda__status' });
-    this.input = h('input', { class: 'kv-people__input', type: 'url', attrs: { autocomplete: 'off', spellcheck: 'false', placeholder: 'https://calendar.google.com/calendar/ical/…/basic.ics', 'aria-label': tr('Endereço secreto no formato iCal') } });
-    this.error = h('p', { class: 'kv-people__error', attrs: { role: 'alert' } });
-    this.save = h('button', { class: 'ui-btn ui-btn--primary', type: 'submit', text: tr('Ligar a agenda') });
-    this.off = h('button', { class: 'ui-btn', type: 'button', text: tr('Desligar'), on: { click: () => void this.send('') } });
-    const form = h(
-      'form',
-      { class: 'kv-people__form', on: { submit: (e: Event) => (e.preventDefault(), void this.send(this.input.value)) } },
-      h('h3', { text: tr('Ligar a minha agenda') }),
-      this.status,
-      h('label', { class: 'kv-people__label', text: tr('Endereço secreto no formato iCal') }),
-      this.input,
-      h(
-        'ul',
-        { class: 'kv-agenda__how' },
-        h('li', { text: tr('Google Agenda: Configurações → a sua agenda → “Integrar agenda” → “Endereço secreto no formato iCal”.') }),
-        h('li', { text: tr('Outlook: Configurações → Agenda → Agendas compartilhadas → Publicar uma agenda → link ICS.') }),
-        h('li', { text: tr('iCloud: compartilhar a agenda como “Agenda pública” e copiar o link (webcal://).') }),
-        h('li', { text: tr('O endereço fica guardado só no servidor do escritório: ninguém mais vê, nem você depois de salvar. Para trocar, cole outro.') }),
-      ),
-      this.error,
-      h('div', { class: 'kv-people__actions' }, this.off, this.save),
-    );
-    this.el = h(
-      'dialog',
-      { class: 'ui-dialog kv-people kv-agenda', attrs: { 'aria-labelledby': 'kv-agenda-title' } },
-      h('div', { class: 'ui-dialog__head' }, h('h2', { text: tr('Minha agenda'), attrs: { id: 'kv-agenda-title' } }), close),
-      h('div', { class: 'ui-dialog__body kv-people__body' }, h('section', {}, h('h3', { text: tr('Reuniões de hoje') }), this.today), h('section', {}, form)),
-    );
-    this.el.addEventListener('click', (e) => {
-      if (e.target === this.el) this.el.close();
+    this.modal = new KvModal({
+      title: tr('Minha agenda'),
+      subtitle: tr('As reuniões de hoje e o status "Em reunião" automático, pelo link da sua agenda.'),
+      icon: CAL_ICON,
+      width: 980,
+      cls: 'kv-agenda2',
     });
-    (document.querySelector('.ui-root') ?? document.body).append(this.el);
+    this.today = h('ul', { class: 'kv-ui-cards' });
+    this.status = h('p', { class: 'kv-ui-status' });
+    this.link = kvInput({ placeholder: 'https://calendar.google.com/calendar/ical/…/basic.ics', type: 'url', mono: true, icon: LINK_ICON, autocomplete: 'off' });
+    this.link.input.setAttribute('aria-label', tr('Endereço secreto no formato iCal'));
+    this.link.input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        void this.send(this.link.input.value);
+      }
+    });
+    this.error = h('p', { class: 'kv-ui-field__error kv-agenda2__error', attrs: { role: 'alert' } });
+    this.save = kvBtn(tr('Ligar a agenda'), { variant: 'primary', icon: KV_ICONS.check, onClick: () => void this.send(this.link.input.value) });
+    this.off = kvBtn(tr('Desligar'), { variant: 'ghost', onClick: () => void this.send('') });
+    const main = h(
+      'div',
+      {},
+      kvSection(LINK_ICON, tr('Ligar a minha agenda'), tr('Cole o endereço secreto (iCal) da sua agenda. Funciona com Google Agenda, Outlook e iCloud.'), this.status, kvField(tr('Endereço secreto no formato iCal'), this.link.el).el),
+      kvSection(
+        KV_ICONS.search,
+        tr('Onde achar o link'),
+        null,
+        h(
+          'ul',
+          { class: 'kv-ui-tips' },
+          kvTip('Google', tr('Configurações → a sua agenda → “Integrar agenda” → “Endereço secreto no formato iCal”.')),
+          kvTip('Outlook', tr('Configurações → Agenda → Agendas compartilhadas → Publicar uma agenda → link ICS.')),
+          kvTip('iCloud', tr('Compartilhar a agenda como “Agenda pública” e copiar o link (webcal://).')),
+        ),
+      ),
+      kvSection(KV_ICONS.lock, tr('Privacidade'), tr('O endereço fica guardado só no servidor do escritório: ninguém mais vê, nem você depois de salvar. Para trocar, cole outro.')),
+    );
+    const side = h('div', {}, kvTitle('h3', tr('Reuniões de hoje'), 'kv-agenda2__side-title'), this.today);
+    this.modal.body.append(kvSplit(side, main));
+    this.modal.setFoot(this.error, this.off, this.save);
   }
 
   open(state: KvAgendaState | null): void {
     this.error.textContent = '';
     this.render(state);
-    if (!this.el.open) this.el.showModal();
+    this.modal.show();
   }
 
   render(state: KvAgendaState | null): void {
@@ -108,33 +118,43 @@ class AgendaDialog {
     this.status.textContent = state.configured
       ? [tr('Ligada: {0}', [state.hint ?? '?']), age === null ? '' : age < 1 ? tr('atualizada agora') : tr('atualizada há {0} min', [age]), state.error ? tr('erro: {0}', [state.error]) : ''].filter(Boolean).join(' · ')
       : tr('Nenhuma agenda ligada.');
+    this.status.classList.toggle('is-on', state.configured && !state.error);
     this.status.classList.toggle('is-error', !!state.error);
     this.off.hidden = !state.configured;
-    this.save.textContent = state.configured ? tr('Trocar o endereço') : tr('Ligar a agenda');
+    this.save.querySelector('.kv-ui-btn__label')!.textContent = state.configured ? tr('Trocar o endereço') : tr('Ligar a agenda');
     const now = Date.now();
     const list = state.events.filter((e) => sameDay(e.start, now) || (e.start < now && e.end > now)).sort((a, b) => a.start - b.start);
     this.today.replaceChildren(...list.map((e) => this.item(e, now)));
-    if (!list.length) this.today.append(h('li', { class: 'kv-people__hint', text: state.configured ? tr('Nada na agenda hoje.') : tr('Ligue a agenda ao lado para ver as reuniões daqui.') }));
+    if (!list.length) {
+      this.today.append(
+        h(
+          'li',
+          {},
+          kvEmpty(
+            CAL_ICON,
+            state.configured ? tr('Nada na agenda hoje') : tr('Agenda ainda não ligada'),
+            state.configured ? tr('Quando houver reunião, ela aparece aqui e o seu status muda sozinho.') : tr('Cole o link da sua agenda ao lado para ver as reuniões daqui.'),
+          ),
+        ),
+      );
+    }
   }
 
   private item(e: KvAgendaEventOut, now: number): HTMLElement {
-    const when = e.allDay ? tr('dia inteiro') : `${kvHour(e.start)}–${kvHour(e.end)}`;
     const live = !e.allDay && e.start <= now && e.end > now;
-    const go = e.room
-      ? h('button', { class: 'ui-btn ui-btn--sm', type: 'button', text: tr('Ir para a reunião'), on: { click: () => (kvGoArea(e.room!.area), this.el.close()) } })
-      : null;
+    const go = e.room ? kvBtn(tr('Ir'), { size: 'sm', variant: 'primary', icon: KV_ICONS.walk, title: tr('Ir para a reunião'), onClick: () => (kvGoArea(e.room!.area), this.modal.close()) }) : null;
+    const meta = [e.allDay ? tr('dia inteiro') : `${kvHour(e.start)}–${kvHour(e.end)}`, e.room ? e.room.name : (e.location ?? ''), !e.busy ? tr('livre') : ''].filter(Boolean).join(' · ');
     return h(
       'li',
-      { class: `kv-agenda__item${e.end <= now ? ' is-past' : ''}${live ? ' is-live' : ''}` },
-      h('span', { class: 'kv-agenda__when', text: when }),
+      { class: `kv-ui-card${e.end <= now ? ' is-dim' : ''}${live ? ' is-live' : ''}`, style: live ? '--a:#2f9e5f' : '' },
+      h('span', { class: 'kv-ui-card__ico', text: e.allDay ? '◷' : kvHour(e.start) }),
       h(
         'span',
-        { class: 'kv-agenda__what' },
-        h('strong', { text: e.title || tr('(sem título)') }),
-        e.room ? h('span', { class: 'kv-agenda__room', text: `📍 ${e.room.name}` }) : e.location ? h('span', { class: 'kv-people__meta', text: e.location }) : null,
-        !e.busy ? h('span', { class: 'kv-people__meta', text: tr('livre') }) : null,
+        { class: 'kv-ui-card__text' },
+        h('span', { class: 'kv-ui-card__top' }, h('strong', { text: e.title || tr('(sem título)') }), live ? h('span', { class: 'kv-ui-state kv-ui-state--ok', text: tr('agora') }) : null),
+        h('span', { class: 'kv-ui-card__meta', text: meta }),
       ),
-      go,
+      h('span', { class: 'kv-ui-card__actions' }, go),
     );
   }
 
@@ -148,7 +168,7 @@ class AgendaDialog {
         this.error.textContent = r.data.error ?? tr('Não deu para salvar.');
         return;
       }
-      this.input.value = '';
+      this.link.input.value = '';
       this.render(r.data);
       this.onSaved(r.data);
     } catch {
