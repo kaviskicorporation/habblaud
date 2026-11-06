@@ -5,7 +5,7 @@ import { Readable } from 'node:stream';
 import { afterEach, describe, expect, it } from 'vitest';
 import { setQuiet } from '../../log';
 import { tempDir } from '../../test/fixtures';
-import { KvAgenda, kvAgendaHint, kvAgendaUrl, kvFetchIcs, kvMatchRoom, kvPrivateHost, kvPrivateIp, kvReadLimited, type KvAgendaRoom } from './agenda';
+import { KvAgenda, kvAgendaAllowPrivate, kvAgendaHint, kvAgendaUrl, kvFetchIcs, kvMatchRoom, kvPrivateHost, kvPrivateIp, kvReadLimited, type KvAgendaRoom } from './agenda';
 import { closeAll, json, login, RARM, start, visit } from './test-harness';
 
 setQuiet(true);
@@ -23,6 +23,16 @@ describe('endereço da agenda', () => {
     for (const bad of ['http://calendar.google.com/x.ics', 'ftp://x.com/a', 'https://user:senha@x.com/a', 'https://localhost/a.ics', 'https://127.0.0.1/a', 'https://192.168.1.220:4748/x', 'https://[::1]/x', 'https://intranet/x', 'https://nas.local/a', 'nada', 42, `https://x.com/${'a'.repeat(3000)}`]) {
       expect('error' in kvAgendaUrl(bad), String(bad)).toBe(true);
     }
+  });
+  it('HABBLAUD_AGENDA_PRIVATE=1 libera a rede local (servidor próprio), e só ela', () => {
+    kvAgendaAllowPrivate(true);
+    try {
+      expect(kvAgendaUrl('https://nextcloud.local/remote.php/dav/x.ics')).toEqual({ url: 'https://nextcloud.local/remote.php/dav/x.ics' });
+      expect('error' in kvAgendaUrl('http://nextcloud.local/x.ics')).toBe(true);
+    } finally {
+      kvAgendaAllowPrivate(false);
+    }
+    expect('error' in kvAgendaUrl('https://nextcloud.local/x.ics')).toBe(true);
   });
   it('o resumo para a página não carrega o caminho secreto', () => {
     const hint = kvAgendaHint(SECRET);

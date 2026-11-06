@@ -338,15 +338,14 @@ export function createPeopleGate(deps: KvGateDeps): Gate {
         });
       return true;
     }
-    // Visita que terminou (convite vencido ou revogado): a página explica, a API responde 401 com o mesmo texto.
-    if (token?.startsWith('g1.') && !invites.verify(token) && path !== '/api/remote/logout' && path !== '/login') {
+    // Visita que terminou (convite vencido ou revogado): a API responde 401 (e a página vai para /login); qualquer página,
+    // inclusive /login, explica uma vez e só então apaga o cookie (o próximo /login já é a tela de entrar).
+    if (token?.startsWith('g1.') && !invites.verify(token) && path !== '/api/remote/logout') {
       req.resume();
-      const clear = { 'Set-Cookie': cookie('', 0, deps.secure) };
-      if (path === '/api' || path.startsWith('/api/')) sendJson(res, 401, { error: tr('a sua visita terminou: o convite venceu ou foi encerrado'), ended: true }, clear);
+      if (path === '/api' || path.startsWith('/api/')) sendJson(res, 401, { error: tr('a sua visita terminou: o convite venceu ou foi encerrado'), ended: true });
       else {
-        const page = kvBrandLogin(kvInvitePage({ ended: true }));
-        res.setHeader('Set-Cookie', clear['Set-Cookie']);
-        html(res, 401, page);
+        res.setHeader('Set-Cookie', cookie('', 0, deps.secure));
+        html(res, 401, kvBrandLogin(kvInvitePage({ ended: true })));
       }
       return true;
     }

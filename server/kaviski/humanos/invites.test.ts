@@ -200,6 +200,12 @@ describe('convites pela porta remota', () => {
     const ended = await fetch(`${h.base}/`, { headers: { cookie }, redirect: 'manual' });
     expect(ended.status).toBe(401);
     expect(await ended.text()).toContain('VISITANTE');
+    expect(ended.headers.get('set-cookie')).toMatch(/Max-Age=0/);
+    // a API não apaga o cookie (a página ainda vai explicar); /login também explica
+    expect(after.headers.get('set-cookie')).toBeNull();
+    const viaLogin = await fetch(`${h.base}/login`, { headers: { cookie }, redirect: 'manual' });
+    expect(viaLogin.status).toBe(401);
+    expect(await viaLogin.text()).toContain('VISITANTE');
     expect((await visit(h, invite.link, 'De novo')).status).toBe(410);
   });
 

@@ -39,7 +39,6 @@ export class KvOnline {
   private readonly count: HTMLElement;
   private readonly walkBtn: HTMLButtonElement;
   private readonly statusBtns = new Map<KvStatus, HTMLButtonElement>();
-  private profile: ProfileDialog | null = null;
   private state: KvPresenceState | null = null;
 
   constructor(
@@ -64,7 +63,7 @@ export class KvOnline {
       this.statusBtns.set(s, b);
       status.append(b);
     }
-    const lookBtn = h('button', { class: 'ui-btn ui-btn--sm', type: 'button', text: tr('Meu boneco'), on: { click: () => void (this.profile ??= new ProfileDialog()).open() } });
+    const lookBtn = h('button', { class: 'ui-btn ui-btn--sm', type: 'button', text: tr('Meu boneco'), on: { click: () => kvOpenProfile() } });
     this.list = h('ul', { class: 'kv-online__list' });
     const close = iconButton(ICONS.close, tr('Fechar'), () => this.toggle(false), 'ui-icon-btn--sm');
     this.pop = h(
@@ -164,6 +163,13 @@ export class KvOnline {
     );
     if (!people.length) this.list.append(h('li', { class: 'kv-online__hint', text: tr('Ninguém online.') }));
   }
+}
+
+let profileDialog: ProfileDialog | null = null;
+
+/** Abre o editor do meu boneco (botão Meu boneco e as boas-vindas do visitante). */
+export function kvOpenProfile(): void {
+  void (profileDialog ??= new ProfileDialog()).open();
 }
 
 /** Editor do meu boneco: as mesmas peças do editor de personagem, salvo na conta (POST /api/kaviski/humanos/profile). */

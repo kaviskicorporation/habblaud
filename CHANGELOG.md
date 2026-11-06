@@ -10,6 +10,15 @@ do meio (0.**3**.0).
 
 ## [Não lançado]
 
+### Adicionado (fork Kaviski, `HABBLAUD_HUMANOS=1`)
+
+- **Convite por link para visitantes sem conta** (1 h, 1 dia ou 7 dias; uso único ou várias pessoas; salas
+  liberadas), com selo VISITANTE e revogação na hora.
+- **Agenda pelo endereço iCal** (Google, Outlook, iCloud): reuniões de hoje, status "📅 Em reunião até…" e "Ir para a
+  reunião" quando o local cita uma sala.
+- **Mini-mapa** (tecla N), **modo foco** (pomodoro de 25/50 min), **atalhos** das pessoas na Ajuda, **boas-vindas** na
+  primeira entrada e a dica de quem está na sala.
+
 ## [1.0.3] - 2026-10-16
 
 ### Corrigido

@@ -6,6 +6,7 @@
 //   ao navegador (só "calendar.google.com · …ics") nem vai a log.
 // - Busca: só https (webcal:// vira https://), até 3 redirecionamentos (sempre https), 10 s, 2 MB, e nunca para
 //   endereço interno (loopback, rede local, link-local: conferido no IP resolvido, o que barra DNS rebinding).
+//   HABBLAUD_AGENDA_PRIVATE=1 libera a rede local (agenda num servidor próprio, ex.: Nextcloud na empresa).
 // - A cada 5 min relê as agendas ligadas; os eventos ficam em memória (de ontem até depois de amanhã).
 // - GET  /api/kaviski/humanos/agenda          {configured, hint?, fetchedAt?, error?, events: [... + room?]}
 //   POST /api/kaviski/humanos/agenda          {url} (vazio = desligar) → a mesma resposta, já com a primeira leitura
@@ -20,6 +21,7 @@ import { dirname } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Readable } from 'node:stream';
 import { kvParseIcs, type KvCalEvent } from '../../../shared/kaviski-ics';
+import type { KvAgendaEventOut, KvAgendaState, KvRoomBooking } from '../../../shared/kaviski-agenda';
 import type { KvPerson } from '../../../shared/kaviski-humanos';
 import { tr } from '../../../shared/i18n';
 import { HttpError, readJson, sendJson } from '../../http/app';
@@ -32,6 +34,12 @@ const MAX_BYTES = 2 * 1024 * 1024;
 const URL_MAX = 2048;
 const DAY = 86_400_000;
 
+let allowPrivate = false;
+/** HABBLAUD_AGENDA_PRIVATE=1: aceita agenda em endereço da rede local (servidor próprio). */
+export function kvAgendaAllowPrivate(on: boolean): void {
+  allowPrivate = on;
+}
+
 /** Uma sala que dá para achar no texto do evento (de projeto ou sala própria). */
 export interface KvAgendaRoom {
   id: string;
@@ -40,32 +48,6 @@ export interface KvAgendaRoom {
   path?: string;
   /** Área de chat/voz (r:<id>). */
   area: string;
-}
-
-export interface KvAgendaEventOut {
-  title: string;
-  start: number;
-  end: number;
-  allDay: boolean;
-  busy: boolean;
-  location?: string;
-  room?: { id: string; name: string; area: string };
-}
-
-export interface KvAgendaState {
-  configured: boolean;
-  hint?: string;
-  fetchedAt?: number;
-  error?: string;
-  events: KvAgendaEventOut[];
-}
-
-/** Ocupação de uma sala (agenda/rooms). */
-export interface KvRoomBooking {
-  roomId: string;
-  area: string;
-  start: number;
-  end: number;
 }
 
 // ---------------------------------------------------------------- endereço e busca
@@ -84,7 +66,7 @@ export function kvAgendaUrl(v: unknown): { url: string } | { error: string } {
   }
   if (u.protocol !== 'https:') return { error: tr('use o endereço https:// (ou webcal://) da agenda') };
   if (u.username || u.password) return { error: tr('endereço com usuário e senha não é aceito') };
-  if (kvPrivateHost(u.hostname)) return { error: tr('endereço interno não é aceito') };
+  if (!allowPrivate && kvPrivateHost(u.hostname)) return { error: tr('endereço interno não é aceito') };
   return { url: u.toString() };
 }
 
@@ -150,7 +132,7 @@ function safeLookup(hostname: string, options: object, cb: (err: NodeJS.ErrnoExc
   dnsLookup(hostname, { ...options, all: true }, (err, list) => {
     if (err) return cb(err, '', 0);
     const addrs = list as LookupAddress[];
-    if (!addrs.length || addrs.some((a) => kvPrivateIp(a.address))) {
+    if (!addrs.length || (!allowPrivate && addrs.some((a) => kvPrivateIp(a.address)))) {
       return cb(new AgendaError(tr('endereço interno não é aceito')) as NodeJS.ErrnoException, '', 0);
     }
     if ((options as { all?: boolean }).all) cb(null, addrs);

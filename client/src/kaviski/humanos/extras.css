@@ -1,0 +1,319 @@
+/* Fork Kaviski (KAVISKI-HUMANOS.md): convites, agenda, modo foco, mini-mapa, atalhos, boas-vindas e dica da sala. */
+
+/* papel visitante (selo VISITANTE) */
+.kv-role--visitante.kv-role,
+.kv-me.kv-role--visitante .kv-me__role {
+  color: #b392f0;
+}
+
+/* ------------------------------------------------------------ convites */
+.kv-inv__count {
+  width: 72px;
+  margin-left: auto;
+}
+.kv-inv__state {
+  padding: 0 6px;
+  border-radius: 999px;
+  font: 500 11px/1.6 var(--font-px);
+  border: 1px solid var(--ui-line-strong);
+  color: var(--ui-muted);
+}
+.kv-inv__state--ativo {
+  color: var(--st-working);
+  border-color: currentColor;
+}
+.kv-inv__item.is-vencido,
+.kv-inv__item.is-revogado {
+  opacity: 0.6;
+}
+.kv-inv__made {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: var(--radius);
+  border: 1px dashed var(--ui-accent);
+}
+.kv-inv__made .ui-btn {
+  align-self: flex-start;
+}
+
+/* ------------------------------------------------------------ agenda */
+.kv-agenda__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.kv-agenda__item {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--ui-line);
+  background: var(--ui-bg-soft);
+}
+.kv-agenda__item.is-past {
+  opacity: 0.55;
+}
+.kv-agenda__item.is-live {
+  border-color: var(--st-waiting);
+}
+.kv-agenda__when {
+  font: 500 12px/1.4 var(--font-px);
+  color: var(--ui-muted);
+}
+.kv-agenda__what {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.kv-agenda__what strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kv-agenda__room {
+  font-size: 12px;
+  color: var(--ui-accent);
+}
+.kv-agenda__how {
+  margin: 4px 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: var(--ui-muted);
+}
+.kv-agenda__status.is-error {
+  color: var(--st-waiting);
+}
+
+/* ------------------------------------------------------------ avisos */
+.kv-toast {
+  position: fixed;
+  z-index: 70;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(440px, calc(100vw - 32px));
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--ui-line-strong);
+  background: var(--ui-bg-solid);
+  box-shadow: 0 18px 50px rgba(5, 7, 12, 0.55);
+  color: var(--ui-text);
+  font: 13px/1.4 var(--font-ui);
+}
+.kv-toast + .kv-toast {
+  top: 132px;
+}
+.kv-toast__icon {
+  font-size: 18px;
+}
+.kv-toast__text {
+  flex: 1;
+}
+
+/* ------------------------------------------------------------ modo foco */
+.kv-btn-focus {
+  position: relative;
+}
+.kv-btn-focus.is-on,
+.kv-btn-agenda.is-on {
+  color: var(--st-waiting);
+}
+.kv-focus__left {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  min-width: 15px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--st-waiting);
+  color: #14161f;
+  font: 700 9px/14px var(--font-px);
+  text-align: center;
+  pointer-events: none;
+}
+.kv-focus {
+  position: fixed;
+  z-index: 60;
+  width: 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--ui-line-strong);
+  background: var(--ui-bg-solid);
+  box-shadow: 0 18px 50px rgba(5, 7, 12, 0.55);
+  color: var(--ui-text);
+  font: 13px/1.4 var(--font-ui);
+}
+.kv-focus__info {
+  margin: 0;
+}
+.kv-focus__choices {
+  display: flex;
+  gap: 8px;
+}
+.kv-focus__choices .ui-btn {
+  flex: 1;
+}
+
+/* ------------------------------------------------------------ mini-mapa */
+.kv-map {
+  position: fixed;
+  z-index: 30;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 6px;
+  border-radius: var(--radius);
+  border: 1px solid var(--ui-line-strong);
+  background: rgba(16, 20, 32, 0.82);
+  backdrop-filter: blur(3px);
+  color: var(--ui-text);
+}
+.kv-map.is-closed {
+  padding: 2px 6px;
+}
+.kv-map__head {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.kv-map__title {
+  border: 0;
+  background: none;
+  color: var(--ui-muted);
+  font: 500 11px/1.6 var(--font-px);
+  cursor: pointer;
+  padding: 0 2px;
+}
+.kv-map__title:hover {
+  color: var(--ui-text);
+}
+.kv-map__help span {
+  font: 700 12px/1 var(--font-px);
+}
+.kv-map__canvas {
+  display: block;
+  cursor: pointer;
+  image-rendering: pixelated;
+  border-radius: 3px;
+}
+
+/* ------------------------------------------------------------ atalhos */
+.kv-keys__group h4 {
+  margin: 12px 0 6px;
+  font: 600 12px/1.4 var(--font-ui);
+  color: var(--ui-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.kv-keys .ui-dialog__body > .ui-btn {
+  margin-top: 10px;
+}
+
+/* ------------------------------------------------------------ boas-vindas */
+.kv-welcome {
+  position: fixed;
+  z-index: 65;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  width: min(420px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px 12px;
+  border-radius: var(--radius);
+  border: 2px solid var(--ui-accent);
+  background: var(--ui-bg-solid);
+  box-shadow: 0 18px 50px rgba(5, 7, 12, 0.6);
+  color: var(--ui-text);
+  font: 13px/1.5 var(--font-ui);
+}
+.kv-welcome__icon {
+  font-size: 28px;
+  line-height: 1;
+}
+.kv-welcome__title {
+  margin: 0;
+  font: 600 16px/1.3 var(--font-ui);
+}
+.kv-welcome__text {
+  margin: 0;
+  color: var(--ui-muted);
+}
+.kv-welcome > .ui-btn {
+  align-self: flex-start;
+}
+.kv-welcome__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+.kv-welcome__nav {
+  display: flex;
+  gap: 6px;
+}
+.kv-welcome__dots {
+  display: flex;
+  gap: 5px;
+}
+.kv-welcome__dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ui-line-strong);
+}
+.kv-welcome__dots span.is-on {
+  background: var(--ui-accent);
+}
+.kv-welcome__links {
+  display: flex;
+  gap: 14px;
+}
+.kv-welcome__skip {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--ui-muted);
+  font: 12px/1.4 var(--font-ui);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------ dica da sala */
+.kv-roomtip {
+  position: fixed;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 240px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  background: rgba(16, 20, 32, 0.92);
+  color: #e8e6df;
+  font: 12px/1.4 var(--font-ui);
+  pointer-events: none;
+}
+.kv-roomtip strong {
+  font-weight: 600;
+}

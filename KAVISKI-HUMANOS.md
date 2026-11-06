@@ -62,7 +62,8 @@ Chegar perto de um agente abre o painel dele (conversa, aprovar, terminal confor
 mesa"; registro de quem aprovou/pediu o quê; cliente pode pedir tarefa ao agente da sala dele (se o admin liberar).
 
 ### 4. Produto
-Permissões finas por sala e por ação, auditoria, convites por link, várias empresas no mesmo servidor (se for vender).
+Permissões finas por sala e por ação, auditoria, convites por link (✅ feito: ver "4 — convites por link" abaixo),
+várias empresas no mesmo servidor (se for vender).
 
 ## Estado (o que já funciona)
 
@@ -206,6 +207,65 @@ Liga com `HABBLAUD_HUMANOS=1` (e a porta remota configurada, como hoje). Sem a v
 - **Chamadas separadas por instância**: o nome da chamada no LiveKit passa a incluir a pasta de dados
   (`HABBLAUD_DATA_DIR`). Antes, a instância de teste (4757/4758) e a produção, no mesmo LiveKit, caíam na mesma chamada
   da mesma área.
+
+### 4 — convites por link, agenda e extras do dia a dia (2026-11-06) ✅
+**Convite por link (visitante sem conta).** Quem é admin ou equipe abre **Convidar visitantes** (botão do envelope no
+topo) e gera um link: vale **1 h, 1 dia ou 7 dias**, **uso único ou várias pessoas** (até 50) e as **salas que o
+visitante vê** (como as do cliente; nenhuma = só recepção e áreas comuns). O link (`/convite/<id>.<assinatura>`) abre
+uma página que pede só o nome; o visitante entra com o papel **`visitante`** (selo VISITANTE), escolhe o boneco no tour
+de boas-vindas e fica até o convite vencer.
+- Regras no servidor: `visitante` é `kvRestricted` como o cliente (snapshot, fluxo, presença, chat, voz: só as salas do
+  convite; lista fechada de rotas) e mais: não pede tarefa, não chama agente, não convida, não tem agenda.
+- Assinatura: HMAC com uma chave tirada do `remote-secret` (nenhum segredo novo). Cookie do visitante
+  `g1.<visitante>.<fim do convite>.<assinatura>`, conferido a cada requisição contra o convite: **revogar** (lista de
+  convites → Revogar) ou **vencer** derruba na hora (o fluxo de presença fecha; a API responde 401 e a página mostra
+  "a sua visita terminou").
+- Freio de tentativas por endereço no link e na entrada (`KvLoginLimiter`). Registro: "convite criado", "visitante
+  entrou", "convite revogado" (`KvAudit`).
+- Dados: `<dataDir>/kaviski/invites.json` (600): convites, visitantes e o perfil deles (boneco). Convite vencido ou
+  revogado há mais de 7 dias é esquecido.
+- `HABBLAUD_PUBLIC_URL` (opcional, ex.: `https://escritorio.kaviski.com.br`): o link sai com esse endereço mesmo quando a
+  tela é aberta pela porta local.
+- Rotas: `GET|POST /api/kaviski/humanos/invites`, `DELETE /api/kaviski/humanos/invites/:id`, `GET /convite/<token>`,
+  `POST /api/kaviski/humanos/invite/join {token, name}`.
+
+**Agenda (Google Agenda, Outlook, iCloud) por ICS.** Botão do calendário no topo → **Minha agenda**: a pessoa cola o
+"endereço secreto no formato iCal" (OAuth do Google: não — não temos credenciais; fica como opção futura, com o mesmo
+lugar de guardar).
+- O servidor guarda o endereço em `<dataDir>/kaviski/agenda.json` (600, fora do `users.json`) e **nunca o devolve** ao
+  navegador (só "calendar.google.com · …/basic.ics") nem o escreve em log.
+- Busca a cada 5 min: só `https` (`webcal://` vira `https://`), até 3 redirecionamentos, 10 s, 2 MB, e nunca endereço
+  interno (conferido no IP resolvido: barra DNS rebinding). `HABBLAUD_AGENDA_PRIVATE=1` libera a rede local (agenda num
+  servidor próprio, ex.: Nextcloud).
+- Leitor ICS próprio (`shared/kaviski-ics.ts`, testado): VEVENT, DTSTART/DTEND/DURATION com UTC, TZID (IANA e nomes do
+  Windows), flutuante e dia inteiro; RRULE diária/semanal (BYDAY, INTERVAL, COUNT, UNTIL)/mensal/anual simples,
+  EXDATE, RECURRENCE-ID, CANCELLED e TRANSPARENT (livre). Regra que não sabe ler vira um evento só (não inventa).
+- Durante uma reunião "ocupada": status automático **"📅 Em reunião até 15h"** (fonte `agenda`; o manual vence).
+  1 min antes de uma reunião, um aviso no topo.
+- **Sala da reunião**: se o local (ou a descrição) cita o nome de uma sala do escritório que a pessoa vê, a reunião
+  ganha "📍 sala" e **Ir para a reunião** (o boneco anda até a porta). Reservas de sala (de todas as agendas, **sem título
+  nem dono**, só as salas que quem pede vê) aparecem na dica da sala ("Reunião às 15h nesta sala") e no mini-mapa
+  (ponto vermelho). Salas próprias (de reunião) entram ao ligar `agendaRooms` em `humanos/index.ts` às salas próprias.
+- Rotas: `GET|POST /api/kaviski/humanos/agenda`, `GET /api/kaviski/humanos/agenda/rooms`.
+
+**Extras.**
+- **Mini-mapa** (canto de baixo à direita da área livre; **N** recolhe/abre, lembrado): prédio, salas acesas/apagadas,
+  agentes, pessoas na cor do crachá, eu piscando e o retângulo da câmera. Clicar anda até lá (longe: correndo) ou leva
+  a câmera.
+- **Atalhos**: botão **?** do mini-mapa e, na Ajuda do Habblaud (tecla **?**), uma seção "Pessoas no escritório:
+  teclas" posta em tempo de execução. Lista em `client/src/kaviski/humanos/shortcuts-list.ts` (fácil de editar).
+- **Modo foco (pomodoro)**: botão dos fones no topo, 25 ou 50 min, status **"🎧 Focado até 15h"** (fonte `foco`),
+  minutos restantes no botão, som suave no fim (Web Audio; só uma aba toca), "Mais 25 min". Lembrado no navegador.
+- **Boas-vindas**: tour de 3–4 passos na primeira entrada (visitante: escolher o boneco; andar; conversar; E para usar
+  as coisas; modo foco e agenda), lembrado por pessoa no navegador; "Ver o tour de novo" na janela de Atalhos.
+- **Quem está na sala**: parar o mouse sobre uma sala ou área comum mostra as pessoas, quantos agentes e a reunião
+  marcada.
+- Status automático: `client/src/kaviski/humanos/auto-status.ts` é o ponto de troca para o `status.ts`
+  (`kvSetStatus`/`kvClearStatus`, manual vence); enquanto ele não existe, só mexe se a pessoa está "disponível".
+- Código: `server/kaviski/humanos/{invites,invites-route,agenda,test-harness}.ts` (+ `invites.test.ts`,
+  `agenda.test.ts`), `shared/{kaviski-invites,kaviski-ics,kaviski-agenda}.ts` (+ `kaviski-ics.test.ts`),
+  `shared/locales/kaviski-extras.ts`, `client/src/kaviski/humanos/{extras,invites,agenda,focus,minimap,shortcuts,
+  shortcuts-list,welcome,room-hover,walk,auto-status}.ts` + `extras.css`.
 
 ### Endereço público: https://escritorio.kaviski.com.br (2026-11-06)
 Decisão do Vitor: **sem VPS**. O nome só funciona na rede local e pela VPN (Tailscale, que roteia 192.168.1.0/24).

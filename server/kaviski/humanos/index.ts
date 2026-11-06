@@ -29,7 +29,7 @@ import { kvParseLook, type KvLook } from '../../../shared/kaviski-presence';
 import { BUILTIN_ID, KvUsers, publicPerson } from './users';
 import { KvInvites } from './invites';
 import { kvInvitesRoute, INVITES_PATH } from './invites-route';
-import { AGENDA_PATH, AGENDA_ROOMS_PATH, KvAgenda, kvAgendaRoute, type KvAgendaRoom } from './agenda';
+import { AGENDA_PATH, AGENDA_ROOMS_PATH, KvAgenda, kvAgendaAllowPrivate, kvAgendaRoute, type KvAgendaRoom } from './agenda';
 
 export const HUMANOS_API = '/api/kaviski/humanos';
 const USERS_PATH = `${HUMANOS_API}/users`;
@@ -98,6 +98,7 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
   // Agenda por ICS: relida a cada 5 min (o endereço fica em agenda.json, nunca volta ao navegador).
   const agenda = new KvAgenda({ file: dir ? join(dir, 'agenda.json') : null, fetcher: deps.agendaFetcher });
   if (enabled) {
+    kvAgendaAllowPrivate(isTruthy(env.HABBLAUD_AGENDA_PRIVATE?.trim()));
     agenda.load();
     agenda.start();
   }

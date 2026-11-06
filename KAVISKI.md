@@ -120,7 +120,7 @@ As sessões do TwiCC rodam pelo SDK (sem terminal): o plugin `habblaud-mensagens
 | `client/src/app.ts` (humanos) | +2 | import; `kvStartHumanos(store)` | idem |
 | `client/src/world/index.ts` (humanos) | +4/−2 | import; `const kv = kvAttachWorld({..., select, selected})` antes do `attachInput`; `kv.click(...)` no `click:` e `!kv.walking()` no `keys:`; `kv.frame(...)` logo depois do `sim.update` | idem |
 | `client/src/world/render/overlay.ts` (humanos) | +4/−3 | import; `visitor = ... \|\| !!kvPersonBadge(ch)` (2 lugares: etiqueta sempre à mostra) e o selo `kvPersonBadge(ch) ?? visitorBadge()` (medida e desenho) | idem |
-| `shared/locales/{en,es,fr}.ts` (humanos) | +2 cada | import e `...KV_HUMANOS_XX` no começo do objeto | idem |
+| `shared/locales/{en,es,fr}.ts` (humanos) | +4 cada | imports e `...KV_HUMANOS_XX`, `...KV_EXTRAS_XX` (convites, agenda, mini-mapa, foco) no começo do objeto | idem |
 | `package.json` / `package-lock.json` (humanos) | +1 | `livekit-client` (Apache 2.0) em `devDependencies` (voz e vídeo, carregado sob demanda) | manter os dois lados; `npm install` |
 | `docker-compose.yml` | +5 | `HABBLAUD_FRAME_ANCESTORS`, `HABBLAUD_TWICC_URL`, `HABBLAUD_TWICC_MESSAGES` e `HABBLAUD_BRAND` no `environment:` | manter os dois lados |
 

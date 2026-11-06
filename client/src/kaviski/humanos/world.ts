@@ -89,6 +89,8 @@ export const kvPeople: {
   follow?: (id: string) => void;
   /** Depuração pelo console (window.habblaud.kvPeople.sim()). */
   sim?: () => Sim;
+  /** A câmera do escritório (mini-mapa, "Ir para a reunião"). */
+  camera?: Camera;
   /**
    * Área em que o meu boneco está (a chamada de voz dela, fase 1c): `r:<id da sala>`, `a:<área do núcleo>` ou `c`
    * (corredor); null = fora do escritório ou no elevador.
@@ -186,6 +188,7 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
     }
   };
   kvPeople.sim = ctx.sim;
+  kvPeople.camera = ctx.camera;
   kvPeople.locate = (id) => {
     const sim = ctx.sim();
     const ch = id === null ? sim.visitor : puppets.get(PUPPET_PREFIX + id)?.ch;

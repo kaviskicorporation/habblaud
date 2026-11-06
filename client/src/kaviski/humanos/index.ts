@@ -19,6 +19,7 @@ import { kvTopButton } from './topbar';
 import { kvStartAgentExtras } from './agent';
 import { kvPeople } from './world';
 import type { OfficeStore } from '../../net/store';
+import { kvStartExtras } from './extras';
 import './humanos.css';
 
 const PEOPLE_ICON = pixelIcon(['..##....##..', '.####..####.', '.####..####.', '..##....##..', '............', '.####..####.', '######.#####', '######.#####', '######.#####']);
@@ -95,5 +96,7 @@ export function kvStartHumanos(store: OfficeStore, root: ParentNode = document):
       btn.setAttribute('aria-haspopup', 'dialog');
       group.prepend(btn);
     }
+    // Convites por link, agenda, modo foco, mini-mapa, atalhos e boas-vindas (extras.ts).
+    kvStartExtras(m, store, root);
   });
 }
