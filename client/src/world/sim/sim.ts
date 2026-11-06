@@ -8,7 +8,6 @@ import { COL_W, COMPACT_DELAY_MS, DISMANTLE_DELAY_MS, FOOT_DX, FOOT_DY, MISSING_
 import { assembleBuilding, type BuildingLayout } from '../layout/building';
 import { RECEPTION_ID } from '../layout/core';
 import { columnsFor, inRect } from '../layout/geometry';
-import { layoutProjectRoom } from '../layout/room';
 import type { SpotDef, SpotKind } from '../layout/types';
 import { PathFinder } from '../path/astar';
 import { BLOCKED, FREE, SEAT } from '../path/grid';
@@ -38,6 +37,7 @@ import type { Step } from './steps';
 import { EXIT_RADIUS, NO_INTENT, stepFree, tileAt, VISITOR_LANYARD, type VisitorIntent } from './visitor';
 import { tr } from '../../../../shared/i18n';
 import { kvDarkIfEmpty } from '../../kaviski/empty-rooms'; // fork Kaviski (KAVISKI.md)
+import { kvLayoutRoom } from '../../kaviski/humanos/rooms-layout'; // fork Kaviski: salas próprias (KAVISKI-HUMANOS.md)
 
 /**
  * Efeito visual pontual pedido pela simulação ao render (drenado a cada frame): confete (shell
@@ -260,7 +260,7 @@ export class Sim {
     }
     // a primeira vaga livre do prédio (o slot do servidor só dá a ordem de chegada)
     const slot = this.freeSlot();
-    const layout = layoutProjectRoom({ id: r.id, slot, seed: r.seed }, theme);
+    const layout = kvLayoutRoom({ id: r.id, slot, seed: r.seed }, theme, r); // fork Kaviski: sala própria tem layout por tipo
     const rs = new RoomState(r, theme, layout, first ? 'ready' : 'building', now, first, slot);
     this.rooms.set(r.id, rs);
     return rs;
@@ -673,7 +673,7 @@ export class Sim {
   moveRoom(room: RoomState, slot: number, now: number): void {
     const before = room.layout;
     const ghostId = `${room.id}#mudança${++this.moveSeq}`;
-    const ghostLayout = layoutProjectRoom({ id: ghostId, slot: room.slot, seed: room.seed }, room.theme);
+    const ghostLayout = kvLayoutRoom({ id: ghostId, slot: room.slot, seed: room.seed }, room.theme, room.info); // fork Kaviski
     const ghost = new RoomState({ ...room.info, id: ghostId, seed: room.seed }, room.theme, ghostLayout, 'ready', now, false, room.slot);
     ghost.ghost = true;
     ghost.listed = false;
@@ -689,7 +689,7 @@ export class Sim {
     });
 
     room.slot = slot;
-    room.layout = layoutProjectRoom({ id: room.id, slot, seed: room.seed }, room.theme);
+    room.layout = kvLayoutRoom({ id: room.id, slot, seed: room.seed }, room.theme, room.info); // fork Kaviski
     room.setPhase('building', now);
     room.lightOn = false;
     room.lightAt = -1e9;

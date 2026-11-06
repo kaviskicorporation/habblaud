@@ -22,6 +22,7 @@ import { Particles } from './particles';
 import { carSprite, propSprite, shadowSprite } from './props';
 import { countBadge, fallbackIcon } from './shell-sprites';
 import { decorateElevator, drawSeasonalLights, drawSeasonalWindow, seasonalCostume, seasonalFurniture } from './seasonal';
+import { kvDrawWallExtras } from '../../kaviski/humanos/objects'; // fork Kaviski (KAVISKI-HUMANOS.md)
 import { buildAreaVis, furnitureSprites, opaqueBounds, paintShell, toWallVis, WALL_MARGIN, wallItemOrigin, wallSprites, type AreaVis, type FurnVis, type WallVis } from './scene';
 
 const enum K {
@@ -573,6 +574,7 @@ export class Renderer {
     ctx.drawImage(vis.walls, p.x, p.y - WALL_MARGIN + rise);
     // itens de parede dinâmicos
     for (const w of vis.wallItems) this.drawWallItem(vis, w, now, hour, rise);
+    kvDrawWallExtras(this.ctx, this.art, vis, rise, now); // fork Kaviski: mural, links e quadro das pessoas
     ctx.globalAlpha = 1;
     if (vis.sign && anim.sign > 0) {
       const slide = Math.round((1 - anim.sign) * -18);

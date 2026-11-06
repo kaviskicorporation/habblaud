@@ -33,6 +33,9 @@ import { kvInvitesRoute, INVITES_PATH } from './invites-route';
 import { AGENDA_PATH, AGENDA_ROOMS_PATH, KvAgenda, kvAgendaAllowPrivate, kvAgendaRoute, type KvAgendaRoom } from './agenda';
 import { kvDeskOf, kvDeskRoute } from './desk';
 import { KvStage, kvStageRoute } from './stage';
+import { KvRooms, kvRoomsRoute, kvUseRooms, ROOMS_PATH } from './rooms';
+import { KvObjects, kvObjectsRoute } from './objects';
+import { kvCanEditOwnRoom } from '../../../shared/kaviski-rooms';
 
 export const HUMANOS_API = '/api/kaviski/humanos';
 const USERS_PATH = `${HUMANOS_API}/users`;
@@ -64,6 +67,9 @@ export interface KvHumanos {
   readonly enabled: boolean;
   readonly users: KvUsers;
   readonly presence: KvPresence;
+  /** Salas próprias (rooms.ts) e objetos de parede (objects.ts). */
+  readonly rooms: KvRooms;
+  readonly objects: KvObjects;
   /** Põe o login por pessoa na frente do gate original (sem HABBLAUD_HUMANOS=1, devolve o original). */
   gate(original: Gate, builtin: RemoteSessions, cfg: RemoteConfig): Gate;
   /** Liga o registro de mensagens (cliente que pode pedir tarefas). */
@@ -211,6 +217,23 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
   if (enabled) kvSetAreaGuard((area, p) => social.areaGuard(area, p));
   // Palco (megafone, stage.ts): a equipe fala para o andar inteiro; todos ouvem.
   const stage = new KvStage({ emit: (e, d, to) => presence.emit(e, d, to), online: (id) => !!presence.personOf(id), scope: deps.dataDir ?? '', audit: (p, a) => audit.add(p, a, { ok: true }) });
+  // Salas próprias e objetos de parede: a checagem de área (kvAreaAllowed) passa a conhecer as salas de rooms.json.
+  const rooms = new KvRooms(dir ? join(dir, 'rooms.json') : null);
+  if (enabled) {
+    rooms.load();
+    kvUseRooms(rooms);
+  }
+  const objects = new KvObjects(
+    {
+      canAccess: (area, person) => !!kvAreaAllowed(area, person, deps.snapshot()),
+      canModerate: (area, person) => {
+        const r = rooms.get(area.slice(2));
+        return !!r && kvCanEditOwnRoom(r, person);
+      },
+    },
+    enabled ? dir : null,
+  );
+  const auditNote = (person: KvPerson, action: string, detail: string, ok: boolean) => audit.add(person, action, { detail: kvShort(detail), ok });
   let messages: KvMessageSender | undefined;
   const summoned = new Map<string, number>();
   // Visitante cujo convite venceu (ou foi revogado) sai do escritório mesmo com a página aberta.
@@ -583,6 +606,8 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
     enabled,
     users,
     presence,
+    rooms,
+    objects,
     attachMessages(registry) {
       messages = registry;
     },
@@ -668,6 +693,29 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
         usersRoute(req, res, path);
         return true;
       }
+      if (path === ROOMS_PATH || path.startsWith(`${ROOMS_PATH}/`)) {
+        kvRoomsRoute(req, res, path, {
+          rooms,
+          whoIs,
+          people,
+          audit: auditNote,
+          changed: () => presence.emit('rooms', { at: Date.now() }, () => true),
+          removed: (id) => objects.dropArea(`r:${id}`),
+        });
+        return true;
+      }
+      if (
+        kvObjectsRoute(req, res, url, {
+          objects,
+          whoIs,
+          audit: auditNote,
+          emit: (event, area, data) => {
+            const snap = deps.snapshot();
+            presence.emit(event, data, (viewer) => !!kvAreaAllowed(area, viewer, snap));
+          },
+        })
+      )
+        return true;
       if (person && kvRestricted(person)) return clientRoute(req, res, path, person);
       const who = whoIs(req);
       if (who) tapAudit(req, res, path, who);

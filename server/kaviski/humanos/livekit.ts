@@ -11,6 +11,7 @@
 import { createHash, createHmac } from 'node:crypto';
 import type { OfficeSnapshot } from '../../../shared/types';
 import { kvAllowedRoomIds, kvRestricted, type KvPerson } from '../../../shared/kaviski-humanos';
+import { kvOwnRoomArea } from './rooms';
 
 /** Áreas fixas do núcleo (client/src/world/layout/core.ts). */
 export const KV_CORE_AREAS = ['core:recepcao', 'core:banheiros', 'core:copa', 'core:lounge'] as const;
@@ -54,6 +55,8 @@ export function kvAreaAllowed(area: unknown, person: KvPerson, snap: OfficeSnaps
   if (area.startsWith('a:')) return (KV_CORE_AREAS as readonly string[]).includes(area.slice(2)) ? area.slice(2) : undefined;
   if (!area.startsWith('r:')) return undefined;
   const id = area.slice(2);
+  const own = kvOwnRoomArea(id, person); // sala própria (rooms.json): quem a vê entra
+  if (own !== null) return own;
   const room = snap.rooms.find((r) => r.id === id);
   if (!room) return undefined;
   if (kvRestricted(person) && !kvAllowedRoomIds(snap, person.rooms).has(id)) return undefined;

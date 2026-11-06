@@ -13,8 +13,10 @@
 // O SSE não passa por http/sse.ts (é um fluxo à parte, só nosso).
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { OfficeSnapshot } from '../../../shared/types';
-import { kvAllowedRoomIds, kvRestricted, type KvPerson } from '../../../shared/kaviski-humanos';
+import { kvRestricted, type KvPerson } from '../../../shared/kaviski-humanos';
 import { kvAreaAllowed } from './livekit';
+import { kvOwnRoomIdsFor, kvRoomIdsFor } from './rooms';
+import { kvIsOwnRoomId } from '../../../shared/kaviski-rooms';
 import { kvDefaultLook, kvIsStatus, kvParsePos, type KvLook, type KvPos, type KvPresencePerson, type KvPresenceState, type KvStatus } from '../../../shared/kaviski-presence';
 import { kvStatusNote, kvStatusUntil } from '../../../shared/kaviski-social';
 
@@ -197,7 +199,7 @@ export class KvPresence {
     if ('pos' in b) {
       const pos = kvParsePos(b.pos);
       if (pos === undefined) return 'pos';
-      if (pos && pos.r && kvRestricted(person) && !kvAllowedRoomIds(this.deps.snapshot(), person.rooms).has(pos.r)) return 'room';
+      if (pos && pos.r && kvRestricted(person) && !kvRoomIdsFor(this.deps.snapshot(), person).has(pos.r)) return 'room';
       e.pos = pos ?? undefined;
       if (!pos) e.area = undefined;
     }
@@ -291,18 +293,20 @@ export class KvPresence {
   /** A lista como `viewer` pode ver (regras no topo do arquivo). */
   visibleTo(viewer: KvPerson, snap: OfficeSnapshot): KvPresencePerson[] {
     const restricted = kvRestricted(viewer);
-    const mine = restricted ? kvAllowedRoomIds(snap, viewer.rooms) : null;
+    const mine = restricted ? kvRoomIdsFor(snap, viewer) : null;
+    let own: Set<string> | undefined;
     const out: KvPresencePerson[] = [];
     for (const e of this.entries.values()) {
       const p = e.person;
       if (restricted && p.id !== viewer.id && kvRestricted(p)) {
         // outro cliente: só se dividem alguma sala
-        const theirs = kvAllowedRoomIds(snap, p.rooms);
+        const theirs = kvRoomIdsFor(snap, p);
         if (![...theirs].some((id) => mine!.has(id))) continue;
       }
       let pos = e.pos;
       if (pos?.r && mine && !mine.has(pos.r)) pos = undefined;
       const desk = this.deps.desk?.(p.id);
+      if (pos?.r && kvIsOwnRoomId(pos.r) && !(own ??= kvOwnRoomIdsFor(viewer)).has(pos.r)) pos = undefined; // sala própria que ele não vê
       out.push({
         id: p.id,
         name: p.name,

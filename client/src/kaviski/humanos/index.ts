@@ -20,6 +20,7 @@ import { kvStartAgentExtras } from './agent';
 import { kvStartSocial } from './social';
 import { kvPeople } from './world';
 import { kvStartW1 } from './w1';
+import { kvStartSalas } from './salas';
 import type { OfficeStore } from '../../net/store';
 import { kvStartExtras } from './extras';
 import './humanos.css';
@@ -76,6 +77,7 @@ export function kvStartHumanos(store: OfficeStore, root: ParentNode = document):
       w1.ready((text) => bar.warn(text));
       // W2: status com nota, avisos fora da aba, Chamar, reações, trancar sala e roda privada (social.ts)
       kvStartSocial(client, bar, store, m);
+      kvStartSalas(m, client); // salas próprias, quadro branco, mural e links
     }
     if (kvRestricted(m.person)) {
       // O servidor recusa o timelapse, o Meu dia e o terminal ao cliente (são da empresa toda): os botões somem e os
