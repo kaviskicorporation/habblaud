@@ -46,7 +46,7 @@ export type KvThemeKey =
   | 'diretoria' // organograma grande, visão da empresa
   | 'reuniao' // agenda, reuniões (sala de reunião temática)
   | 'recepcao' // balcão de convites para visitantes, mural de avisos
-  | 'provador' // espelho: Meu boneco (aparência, crachá)
+  | 'provador' // espelho: Meu avatar (aparência, crachá)
   | 'foco' // cabines de foco: pomodoro
   | 'auditorio' // palco/megafone: falar para o andar inteiro
   | 'agentes' // central dos agentes: novo agente, timelapse, meu dia, histórico

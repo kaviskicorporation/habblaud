@@ -20,6 +20,9 @@ do meio (0.**3**.0).
 - **Nome da empresa pela tela** (Configurações › Empresa, só admin): vai no título da aba ("<empresa> · Voxtrin"), na
   tela de login, nos convites e nas notificações do navegador. `HABBLAUD_BRAND` continua como valor inicial. A linha
   pequena com o nome da empresa acima do logotipo, no topo, saiu.
+- **"Avatar" no lugar de "boneco"** em todos os textos (tour de boas-vindas, **Meu avatar**, dicas, atalhos,
+  organograma, erros do servidor) e nos quatro idiomas. A opção do "ir e fazer" passa a se chamar **Abrir só ao chegar
+  ao local**.
 - **Cartões de uso compactos, com as logos do Claude e do Codex.** Os cartões de uso por conta no topo deixaram de
   espremer o menu: agora são uma pílula de uma linha só, com a logo da ferramenta, o nome e dois mini anéis (sessão de
   5 h e semana) com o % nas cores de alerta e o tempo até renovar. Quando falta espaço, somem primeiro o nome e os
@@ -37,7 +40,7 @@ do meio (0.**3**.0).
   faixa automática como o prédio de sempre. Mobília que cresce com a sala (ilhas de mesas, canto de reunião, sofá),
   fachada de vidro e paredes onde o corredor encosta na grama, pátio com deck nas vagas vazias, entrada com totem e
   caminho até a rua. Se alguma parte ficar sem caminho até a recepção, um caminho de pedra pela grama liga tudo (o
-  boneco nunca teleporta). O rascunho do editor aparece no mundo na hora, sem derrubar quem está sentado. Planta
+  avatar nunca teleporta). O rascunho do editor aparece no mundo na hora, sem derrubar quem está sentado. Planta
   "Clássico" igual ao prédio de hoje.
 
 - **Editor da empresa e "Monte a sua empresa"**: botão Planta da empresa no topo (admin, e a equipe se liberada) abre
@@ -52,16 +55,16 @@ do meio (0.**3**.0).
   Recepção de visitantes, Provador, Cabines de foco, Auditório, Central dos agentes, TI, Arquitetura, Correio e Sala de
   descanso —, de qualquer tamanho, cada uma com a sua cara e itens novos em pixel art (balcão do RH, organograma na
   parede, caixa de correio, púlpito, maquete da empresa, espelho de camarim, rede...). Clicar num botão do topo leva o
-  seu boneco andando até o item da função (o balcão do RH para Pessoas, o espelho do provador para Meu boneco, a TV da
+  seu avatar andando até o item da função (o balcão do RH para Pessoas, o espelho do provador para Meu avatar, a TV da
   central para o Timelapse...) e a janela abre lá; Esc cancela, Shift+clique abre direto. Tecla E perto dos itens,
   clique no item e contorno aceso ao passar o mouse.
 - **"Ir e fazer" com a janela na hora, e a escolha salva na sua conta**: por padrão, clicar num botão do topo abre a
-  janela na hora (como antes) e o seu boneco vai andando até o item da função mesmo assim; fechar a janela antes de ele
-  chegar faz ele parar. Quem prefere o jeito antigo liga **Abrir só quando o boneco chegar** (o boneco anda e a janela
+  janela na hora (como antes) e o seu avatar vai andando até o item da função mesmo assim; fechar a janela antes de ele
+  chegar faz ele parar. Quem prefere o jeito antigo liga **Abrir só ao chegar ao local** (o avatar anda e a janela
   só abre quando ele chega) em Configurações › Ir e fazer, na lista de quem está online ou na engrenagem da sala de TI.
   A escolha fica salva na conta de cada pessoa e vale em qualquer navegador (sem conta, fica no navegador).
 - **Organograma da empresa**: áreas com cor e ícone, cargo e gestor de cada pessoa (tela Pessoas) e agentes de IA no
-  mesmo quadro. Árvore em pixel art com o boneco de cada um e o status ao vivo, por hierarquia ou por área, busca, zoom,
+  mesmo quadro. Árvore em pixel art com o avatar de cada um e o status ao vivo, por hierarquia ou por área, busca, zoom,
   recolher equipes e exportar como imagem; no celular, lista. Cliente vê só a equipe.
 - **Agentes de IA fixos**: clique numa cadeira e "Fixar um agente aqui" — o agente daquela sala senta sempre ali, entra
   no organograma (com cargo, área e gestor) e, sem ele, a mesa fica com a plaquinha "mesa de Claude · Site".
@@ -70,8 +73,8 @@ do meio (0.**3**.0).
 
 ### Adicionado (fork Kaviski, `HABBLAUD_HUMANOS=1`): recursos do Gather
 
-- **Boneco, mesa fixa e móveis**: botão **Modo clássico** no topo (o Habblaud como o original; o boneco descansa no
-  lounge com o selo DESCANSANDO). **Minha mesa** numa cadeira de sala (ou da sua sala pessoal): o boneco nasce nela, os
+- **Avatar, mesa fixa e móveis**: botão **Modo clássico** no topo (o Habblaud como o original; o avatar descansa no
+  lounge com o selo DESCANSANDO). **Minha mesa** numa cadeira de sala (ou da sua sala pessoal): o avatar nasce nela, os
   outros veem "mesa de Fulano" e o agente chamado vai até ela. **Tecla E** perto dos móveis: sentar, levantar, tomar
   café, beber água, jogar fliperama, pegar um livro — os outros veem a pose. No cartão da pessoa: **Seguir**,
   **Teleportar** e **Ir até a mesa**. Duplo clique no chão corre. No celular: joystick e botão E na tela.
@@ -79,7 +82,7 @@ do meio (0.**3**.0).
 - **Chamar** uma pessoa (toque, notificação do navegador e aviso com "Ir até" / "Responder") e **avisos fora da aba**
   (título piscando, contador no ícone, sons e notificações para chamada, 1:1, @menção, batida na porta e alguém
   entrando na sua sala), com o sino de **Avisos** no topo.
-- **Reações rápidas** (👍 ❤️ 😂 🎉 👏 ☕ ✋ 😮 🙏, teclas 1–9) sobre o boneco; ✋ fica levantada até baixar.
+- **Reações rápidas** (👍 ❤️ 😂 🎉 👏 ☕ ✋ 😮 🙏, teclas 1–9) sobre o avatar; ✋ fica levantada até baixar.
 - **Trancar a sala** (cadeado na porta, quem está fora bate com E e quem está dentro deixa entrar) e **conversa
   privada** nas áreas abertas (voz e chat só do grupo).
 - **Voz e vídeo** (com o LiveKit): desfoque e troca do fundo da câmera, filtro de ruído forte (RNNoise), escolha de
@@ -98,16 +101,16 @@ do meio (0.**3**.0).
   **boas-vindas** na primeira entrada e a dica de quem está na sala.
 - **Interface no tema do Habblaud** (pedido do Vitor): kit próprio com botões 3D, selects e multisseleção próprios
   (nunca o select nativo), campos com erro em linha, senha com gerador, abas, caixas de confirmação e avisos. **Pessoas**
-  refeita (cartões com boneco, papel e salas; formulário com o que cada papel pode; abas Contas, Convites e Registro).
+  refeita (cartões com avatar, papel e salas; formulário com o que cada papel pode; abas Contas, Convites e Registro).
   **Conversas estilo Teams**: cada conversa salva no servidor (1:1 por 180 dias, salas por 30), abas das conversas
-  abertas, bolhas com boneco e nome, dias separados, links seguros, emojis, "digitando…", urgente, busca nas mensagens e
+  abertas, bolhas com avatar e nome, dias separados, links seguros, emojis, "digitando…", urgente, busca nas mensagens e
   Nova conversa. **Cartão da pessoa** com faixa na cor do crachá, ações em ícones grandes e mensagem rápida. Lista de
-  online, Meu boneco, barra do boneco e as janelas das outras frentes no mesmo visual; o topo manda para o menu **Mais**
+  online, Meu avatar, barra do avatar e as janelas das outras frentes no mesmo visual; o topo manda para o menu **Mais**
   o que não cabe.
 
 ### Corrigido (fork Kaviski, `HABBLAUD_HUMANOS=1`)
 
-- **Clicar na grama, fora do prédio, não teletransporta mais o boneco.** O passo de andar do escritório, sem caminho
+- **Clicar na grama, fora do prédio, não teletransporta mais o avatar.** O passo de andar do escritório, sem caminho
   até o destino, punha o personagem lá direto; agora o clique fora do prédio (ou num lugar sem caminho) é ignorado.
 - **A dica "Lounge · você" não fica mais presa na tela.** A dica de quem está numa sala some ao tirar o mouse, ao
   apertar uma tecla e sozinha depois de 4 s (o CSS dela vencia o `hidden`).

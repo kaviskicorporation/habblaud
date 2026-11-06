@@ -13,7 +13,7 @@
 //   presenca      | Recepção → quadro de presença                   | Quem está online e o meu status
 //   mapa          | Recepção → mapa na parede                       | mini-mapa (N)
 //   ajuda         | Recepção → totem de informações                 | Ajuda (?)
-//   boneco        | Provador → espelhos                             | Meu boneco
+//   boneco        | Provador → espelhos                             | Meu avatar
 //   foco          | Foco → relógio do pomodoro                      | Modo foco (pomodoro)
 //   palco         | Auditório → púlpito                             | Palco (megafone)
 //   novo-agente   | Agentes → terminal                              | Novo agente
@@ -25,7 +25,7 @@
 //   atalhos       | TI → pôster das teclas                          | Atalhos
 //   voz           | TI → bancada de voz e vídeo                     | ajustes do microfone (com o LiveKit)
 //   config        | TI → rack                                       | Configurações
-//   ir-andando    | TI → engrenagem                                 | liga/desliga "abrir só quando o boneco chegar"
+//   ir-andando    | TI → engrenagem                                 | liga/desliga "abrir só ao chegar ao local"
 //   planta        | Arquitetura → maquete, planta na parede         | editor da planta (frente B registra)
 //   salas         | Arquitetura → prancheta                         | Salas (as próprias)
 //   conversas     | Correio → caixa de correio, telefone            | Conversas
@@ -98,7 +98,7 @@ export function kvBypassing(): boolean {
   return bypass;
 }
 
-/** O liga/desliga do "abrir só quando o boneco chegar" (go-and-do.ts preenche; salvo na conta da pessoa). */
+/** O liga/desliga do "abrir só ao chegar ao local" (go-and-do.ts preenche; salvo na conta da pessoa). */
 export const kvWalkPref = { get: () => false, set: (_on: boolean) => {} };
 
 export const KV_ACTION_DEFS: KvActionDef[] = [
@@ -124,7 +124,7 @@ export const KV_ACTION_DEFS: KvActionDef[] = [
     pose: 'read',
   },
   { key: 'ajuda', label: () => tr('Ajuda'), icon: '❓', button: '.ui-topbar button', match: (el) => label(el, tr('Ajuda (?)')), keys: ['?'], pose: 'use' },
-  { key: 'boneco', label: () => tr('Meu boneco'), icon: '🪞', open: () => kvOpenProfile(), can: () => !!kvPeople.client, pose: 'groom' },
+  { key: 'boneco', label: () => tr('Meu avatar'), icon: '🪞', open: () => kvOpenProfile(), can: () => !!kvPeople.client, pose: 'groom' },
   { key: 'foco', label: () => tr('Modo foco (pomodoro)'), icon: '🍅', button: '.kv-btn-focus', pose: 'use' },
   { key: 'palco', label: () => tr('Palco (megafone)'), icon: '📢', button: '.kv-dock__stage', pose: 'talk' },
   { key: 'novo-agente', team: true, label: () => tr('Novo agente'), icon: '🤖', button: '.ui-btn-spawn', pose: 'use' },
@@ -138,7 +138,7 @@ export const KV_ACTION_DEFS: KvActionDef[] = [
   { key: 'config', label: () => tr('Configurações'), icon: '⚙️', button: '.ui-topbar button', match: (el) => label(el, tr('Configurações')), pose: 'use' },
   {
     key: 'ir-andando',
-    label: () => tr('Abrir só quando o boneco chegar'),
+    label: () => tr('Abrir só ao chegar ao local'),
     icon: '🚶',
     open: () => kvWalkPref.set(!kvWalkPref.get()),
     pose: 'use',

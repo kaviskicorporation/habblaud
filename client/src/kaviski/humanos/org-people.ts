@@ -302,7 +302,7 @@ export class KvAgentsPane {
       h(
         'div',
         { class: 'kv-depts__head' },
-        h('div', {}, kvTitle('strong', tr('Agentes de IA fixos')), h('p', { class: 'kv-pp__muted', text: tr('Um lugar marcado para um agente: quem bate com a regra senta sempre na mesma cadeira e entra no organograma. Dica: clique numa cadeira de sala com o boneco e escolha "Fixar um agente aqui".') })),
+        h('div', {}, kvTitle('strong', tr('Agentes de IA fixos')), h('p', { class: 'kv-pp__muted', text: tr('Um lugar marcado para um agente: quem bate com a regra senta sempre na mesma cadeira e entra no organograma. Dica: andando com o seu avatar, clique numa cadeira de sala e escolha "Fixar um agente aqui".') })),
         kvBtn(tr('Novo agente fixo'), { variant: 'primary', icon: KV_ICONS.plus, onClick: () => hooks.edit(null) }),
       ),
       this.list,

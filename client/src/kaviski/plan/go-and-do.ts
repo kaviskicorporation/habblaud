@@ -2,7 +2,7 @@
 // planta ligada, cada função tem um item físico numa sala temática (themes.ts): clicar no botão do topo (ou no menu
 // Mais, ou a tecla que abre a janela) faz o boneco andar — correndo, se longe — até o item mais perto, virar para ele,
 // fazer a pose (mexer, ler, pentear no espelho, falar no púlpito) e um brilho aparece no item. Dois jeitos, pela
-// configuração "Abrir só quando o boneco chegar" (salva na conta da pessoa, humanos/prefs.ts; sem conta, no navegador):
+// configuração "Abrir só ao chegar ao local" (salva na conta da pessoa, humanos/prefs.ts; sem conta, no navegador):
 // - desligada (padrão): a janela abre NA HORA e o boneco vai andando até o lugar mesmo assim; fechar a janela antes de
 //   ele chegar para o boneco (go-and-do-model.ts); chegando com a janela aberta, só faz a pose.
 // - ligada: o boneco anda e a janela só abre quando ele chega (chip "Indo até o RH… · Esc cancela").
@@ -62,7 +62,7 @@ function setArriveFirst(on: boolean): void {
   void kvPrefs.set({ abrirAoChegar: on }).then((ok) => {
     if (!ok) toastChip(tr('Não deu para salvar na sua conta; ficou só neste navegador'));
   });
-  toastChip(on ? tr('Abrir só quando o boneco chegar: ligado') : tr('Abrir só quando o boneco chegar: desligado (a janela abre na hora e o boneco vai até lá)'));
+  toastChip(on ? tr('Abrir só ao chegar ao local: ligado') : tr('Abrir só ao chegar ao local: desligado (a janela abre na hora e o avatar vai até lá)'));
 }
 
 kvWalkPref.get = arriveFirst;
@@ -72,8 +72,8 @@ kvPrefs.on(() => syncPrefButtons());
 // Configurações › "Ir e fazer" (só aparece com o "ir e fazer" ligado: pessoas no escritório)
 kvRegisterSettingsGroup(() => {
   const sw = switchRow(
-    tr('Abrir só quando o boneco chegar'),
-    tr('Ligado: ao clicar num botão do topo, o seu boneco anda até o lugar da função e a janela só abre quando ele chega. Desligado: a janela abre na hora e o boneco vai andando até lá; fechar a janela antes de ele chegar faz ele parar. Shift+clique abre sem andar.'),
+    tr('Abrir só ao chegar ao local'),
+    tr('Ligado: ao clicar num botão do topo, o seu avatar caminha até o lugar da função e a janela só abre quando ele chega. Desligado: a janela abre na hora e o avatar vai até lá; fechar a janela antes de ele chegar faz ele parar. Shift+clique abre sem andar.'),
     () => setArriveFirst(!arriveFirst()),
   );
   const where = h('span', { class: 'ui-set__hint' });
@@ -199,7 +199,7 @@ function buttonOf(key: string): HTMLElement | null {
 }
 
 /**
- * "Ir e fazer": o boneco anda até o item da ação mais perto. Com "Abrir só quando o boneco chegar", a ação acontece
+ * "Ir e fazer": o boneco anda até o item da ação mais perto. Com "Abrir só ao chegar ao local", a ação acontece
  * quando ele chega; sem (padrão), abre na hora e ele vai andando até lá. Sem como andar: abre direto.
  * `spot` = um item escolhido (clique ou E nele).
  */
@@ -402,7 +402,7 @@ function bindButtons(): void {
   }
 }
 
-/** O botão "Abrir ao chegar" na lista de quem está online (ao lado de Meu boneco). */
+/** O botão "Abrir ao chegar" na lista de quem está online (ao lado de Meu avatar). */
 const prefButtons = new Set<HTMLButtonElement>();
 function syncPrefButtons(): void {
   const on = arriveFirst();
@@ -420,7 +420,7 @@ function injectPref(): void {
   const b = h('button', {
     class: 'ui-btn ui-btn--sm kv-gd-pref',
     type: 'button',
-    title: tr('Ligado: o seu boneco anda até o lugar da função e a janela só abre quando ele chega. Desligado: a janela abre na hora e o boneco vai junto (Shift+clique abre sem andar)'),
+    title: tr('Ligado: o seu avatar caminha até o lugar da função e a janela só abre quando ele chega. Desligado: a janela abre na hora e o avatar vai junto (Shift+clique abre sem andar)'),
     on: { click: () => setArriveFirst(!arriveFirst()) },
   });
   prefButtons.add(b);

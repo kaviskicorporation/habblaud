@@ -3,8 +3,8 @@
 export const KV_W1_EN: Readonly<Record<string, string>> = {
   "minha mesa": "my desk",
   "mesa de {0}": "{0}'s desk",
-  "Modo clássico ligado: o boneco descansa no lounge. Clique para voltar ao escritório.": "Classic mode on: your character rests in the lounge. Click to go back to the office.",
-  "Modo clássico: o Habblaud como o original e o boneco descansando no lounge": "Classic mode: Habblaud as the original, with your character resting in the lounge",
+  "Modo clássico ligado: o seu avatar descansa no lounge. Clique para voltar ao escritório.": "Classic mode on: your avatar rests in the lounge. Click to go back to the office.",
+  "Modo clássico: o Habblaud como o original e o seu avatar descansando no lounge": "Classic mode: Habblaud as the original, with your avatar resting in the lounge",
   "Tomar café": "Get a coffee",
   "Beber água": "Drink water",
   "Jogar fliperama": "Play arcade",
@@ -47,8 +47,8 @@ export const KV_W1_EN: Readonly<Record<string, string>> = {
 export const KV_W1_ES: Readonly<Record<string, string>> = {
   "minha mesa": "mi escritorio",
   "mesa de {0}": "escritorio de {0}",
-  "Modo clássico ligado: o boneco descansa no lounge. Clique para voltar ao escritório.": "Modo clásico activado: tu personaje descansa en el lounge. Haz clic para volver a la oficina.",
-  "Modo clássico: o Habblaud como o original e o boneco descansando no lounge": "Modo clásico: Habblaud como el original y tu personaje descansando en el lounge",
+  "Modo clássico ligado: o seu avatar descansa no lounge. Clique para voltar ao escritório.": "Modo clásico activado: tu avatar descansa en el lounge. Haz clic para volver a la oficina.",
+  "Modo clássico: o Habblaud como o original e o seu avatar descansando no lounge": "Modo clásico: Habblaud como el original y tu avatar descansando en el lounge",
   "Tomar café": "Tomar un café",
   "Beber água": "Beber agua",
   "Jogar fliperama": "Jugar a la máquina",
@@ -91,8 +91,8 @@ export const KV_W1_ES: Readonly<Record<string, string>> = {
 export const KV_W1_FR: Readonly<Record<string, string>> = {
   "minha mesa": "mon bureau",
   "mesa de {0}": "bureau de {0}",
-  "Modo clássico ligado: o boneco descansa no lounge. Clique para voltar ao escritório.": "Mode classique activé : votre personnage se repose au salon. Cliquez pour revenir au bureau.",
-  "Modo clássico: o Habblaud como o original e o boneco descansando no lounge": "Mode classique : Habblaud comme l'original, votre personnage au repos au salon",
+  "Modo clássico ligado: o seu avatar descansa no lounge. Clique para voltar ao escritório.": "Mode classique activé : votre avatar se repose au salon. Cliquez pour revenir au bureau.",
+  "Modo clássico: o Habblaud como o original e o seu avatar descansando no lounge": "Mode classique : Habblaud comme l'original, votre avatar au repos au salon",
   "Tomar café": "Prendre un café",
   "Beber água": "Boire de l'eau",
   "Jogar fliperama": "Jouer à la borne",

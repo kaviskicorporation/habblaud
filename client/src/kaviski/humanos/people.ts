@@ -206,7 +206,7 @@ export class PeopleDialog {
     this.password = kvPassword({ generator: true, minlength: KV_PASSWORD_MIN, onGenerate: () => kvToast(tr('Senha gerada e copiada. Passe para a pessoa por um canal seguro.'), { kind: 'ok' }) });
     this.password.input.addEventListener('input', () => this.validate());
     this.f = {
-      name: kvField(tr('Nome exibido'), this.name.el, { hint: tr('Aparece em cima do boneco e nas conversas.') }),
+      name: kvField(tr('Nome exibido'), this.name.el, { hint: tr('Aparece em cima do avatar e nas conversas.') }),
       user: kvField(tr('Usuário (para entrar)'), this.user.el),
       role: kvField(tr('Papel'), this.role.el),
       rooms: kvField(tr('Salas que vê'), this.rooms.el, { hint: tr('Cada pasta vale para ela e tudo dentro (ex.: a pasta do cliente cobre todos os projetos dele).') }),

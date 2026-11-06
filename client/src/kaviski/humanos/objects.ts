@@ -179,7 +179,7 @@ class KvMuralDialog {
     this.linkForm = h(
       'form',
       { class: 'kv-mural__form', on: { submit: (e: Event) => void this.addLink(e) } },
-      h('label', { class: 'kv-people__label', text: tr('Prender um link na parede (fica onde o seu boneco está)') }),
+      h('label', { class: 'kv-people__label', text: tr('Prender um link na parede (fica onde o seu avatar está)') }),
       this.linkTitle,
       this.linkUrl,
       h('div', { class: 'kv-people__actions' }, h('button', { class: 'ui-btn', type: 'submit', text: tr('Prender link') })),

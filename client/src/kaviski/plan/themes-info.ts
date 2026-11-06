@@ -106,7 +106,7 @@ function texts(key: KvThemeKey): { name: string; desc: string } {
     case 'recepcao':
       return { name: tr('Recepção de visitantes'), desc: tr('Balcão de convites, quadro de presença, mapa e informações') };
     case 'provador':
-      return { name: tr('Provador'), desc: tr('Espelho para trocar a aparência do boneco e o crachá') };
+      return { name: tr('Provador'), desc: tr('Espelho para trocar a aparência do avatar e o crachá') };
     case 'foco':
       return { name: tr('Cabines de foco'), desc: tr('Cabines silenciosas com o relógio do pomodoro') };
     case 'auditorio':

@@ -34,7 +34,7 @@ export function kvStartAgentExtras(warn: (text: string) => void): void {
       setTimeout(() => (btn.disabled = false), 2_000);
     }
   });
-  btn.title = tr('O agente vem até o seu boneco e fica um pouco perto de você (todos veem).');
+  btn.title = tr('O agente vem até você e fica um pouco por perto (todos veem).');
   kvAgentExtras.update = (anchor, agent) => {
     if (btn.previousElementSibling !== anchor) anchor.after(btn);
     agentId = agent?.id ?? '';

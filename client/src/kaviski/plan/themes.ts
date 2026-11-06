@@ -250,7 +250,7 @@ const ROOMS: Record<KvThemeKey, (P: KvPlacer) => void> = {
     wallDecor(P, ['clock', 'window', 'painting']);
   },
 
-  // Provador: espelhos de camarim (Meu boneco), espelho de corpo inteiro, arara de roupas e um puff.
+  // Provador: espelhos de camarim (Meu avatar), espelho de corpo inteiro, arara de roupas e um puff.
   provador(P) {
     floor(P, 'carpet', '#f5cde0', '#efc0d6');
     P.wall('mirror', 1, 'kv-vanity', { near: P.cx, use: 'boneco' });

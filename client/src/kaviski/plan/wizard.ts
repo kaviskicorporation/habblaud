@@ -213,7 +213,7 @@ export async function kvOpenWizard(o: KvWizardOpts): Promise<void> {
       { class: 'kv-pw__grid' },
       col(
         sec(tr('A empresa'), h('label', { class: 'kv-pw__field' }, h('span', { class: 'kv-pw__label', text: tr('Nome') }), name.el), h('label', { class: 'kv-pw__field' }, h('span', { class: 'kv-pw__label', text: tr('Quantas pessoas trabalham aqui') }), h('div', { class: 'kv-pw__people' }, people, peopleOut))),
-        sec(tr('Salas temáticas'), h('p', { class: 'kv-pw__hint', text: tr('Cada função do escritório tem uma sala com um item para usar (o boneco vai até lá).') }), chips, h('div', { class: 'kv-pw__row' }, mainBtn, allBtn, noneBtn)),
+        sec(tr('Salas temáticas'), h('p', { class: 'kv-pw__hint', text: tr('Cada função do escritório tem uma sala com um item para usar (o seu avatar vai até lá).') }), chips, h('div', { class: 'kv-pw__row' }, mainBtn, allBtn, noneBtn)),
         sec(tr('Mais salas'), meet.el, vac.el, projToggle.el, o.own.length ? ownToggle.el : null),
       ),
       col(sec(tr('Estilo do prédio'), styleCards), h('div', { class: 'kv-pw__preview-wrap' }, big, summary)),

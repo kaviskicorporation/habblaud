@@ -3,7 +3,7 @@
 //   "Tomar café" etc.; sentado, "Levantar" (andar também levanta).
 // - Clique num assento: menu pequeno com "Sentar aqui" e, nas cadeiras das salas, "Definir como minha mesa".
 // - Sentado numa cadeira de sala que não é a minha mesa: botão flutuante "Definir como minha mesa".
-// - "Minha mesa" na janela Meu boneco (deskSection): ir até ela, usar a cadeira onde estou, tirar.
+// - "Minha mesa" na janela Meu avatar (deskSection): ir até ela, usar a cadeira onde estou, tirar.
 // O servidor valida a mesa (POST /api/kaviski/humanos/desk: só salas que a pessoa vê, uma cadeira por pessoa).
 import { tr } from '../../../../shared/i18n';
 import type { KvPos } from '../../../../shared/kaviski-presence';
@@ -141,7 +141,7 @@ function isMyDesk(s: SpotDef): boolean {
   return Math.abs(p.x - d.x) < 8 && Math.abs(ny(p) - ny(d)) < 8;
 }
 
-/** "Minha mesa" na janela Meu boneco. */
+/** "Minha mesa" na janela Meu avatar. */
 export function kvDeskSection(warn: (text: string) => void = () => {}): HTMLElement {
   const text = h('span', { class: 'kv-desk__where' });
   const msg = h('p', { class: 'kv-desk__msg', attrs: { role: 'status' } });

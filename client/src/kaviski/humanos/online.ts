@@ -1,6 +1,6 @@
 // Fork Kaviski (KAVISKI-HUMANOS.md): quem está online (fase 1b), com o kit de interface (ui/). O chip "Nome · papel" do
 // topo vira um botão que abre a lista: eu (boneco, papel, status num select próprio), Andar no escritório (entrar/sair
-// com o boneco), Meu boneco (editor de aparência salvo na conta) e as pessoas online — perto de mim, no escritório e
+// com o boneco), Meu avatar (editor de aparência salvo na conta) e as pessoas online — perto de mim, no escritório e
 // fora dele —, com onde estão e atalhos (Mensagem, Ir até). Clicar em alguém abre o cartão da pessoa.
 import type { KvLook, KvPresencePerson, KvPresenceState, KvStatus } from '../../../../shared/kaviski-presence';
 import { KV_STATUSES } from '../../../../shared/kaviski-presence';
@@ -74,7 +74,7 @@ export class KvOnline {
       onChange: (s) => kvSetStatus({ status: s }),
     });
     this.walkBtn = kvBtn('', { size: 'sm', icon: KV_ICONS.walk, onClick: () => kvSetClassic(!kvPeople.resting) });
-    const lookBtn = kvBtn(tr('Meu boneco'), { size: 'sm', icon: KV_ICONS.user, onClick: () => kvOpenProfile() });
+    const lookBtn = kvBtn(tr('Meu avatar'), { size: 'sm', icon: KV_ICONS.user, onClick: () => kvOpenProfile() });
     this.meBox = h('div', { class: 'kv-ol__me-who' });
     this.search = kvInput({ placeholder: tr('Buscar pessoa'), icon: KV_ICONS.search, type: 'search', onInput: () => this.render(true) });
     this.list = h('div', { class: 'kv-ol__list' });
@@ -133,7 +133,7 @@ export class KvOnline {
     const resting = kvPeople.resting;
     this.walkBtn.querySelector('.kv-ui-btn__label')?.remove();
     this.walkBtn.append(h('span', { class: 'kv-ui-btn__label', text: resting ? tr('Voltar ao escritório') : tr('Modo clássico') }));
-    this.walkBtn.title = tr('Modo clássico: o Habblaud como o original e o boneco descansando no lounge');
+    this.walkBtn.title = tr('Modo clássico: o Habblaud como o original e o seu avatar descansando no lounge');
     this.walkBtn.className = `kv-ui-btn kv-ui-btn--${resting ? 'primary' : 'secondary'} kv-ui-btn--sm`;
     this.walkBtn.hidden = !this.me.person;
     if (this.pop.hidden) return;
@@ -215,7 +215,7 @@ function orgLine(id: string, mine = false): HTMLElement | null {
 
 let profileDialog: ProfileDialog | null = null;
 
-/** Abre o editor do meu boneco (botão Meu boneco e as boas-vindas do visitante). */
+/** Abre o editor do meu boneco (botão Meu avatar e as boas-vindas do visitante). */
 export function kvOpenProfile(): void {
   void (profileDialog ??= new ProfileDialog()).open();
 }
@@ -235,7 +235,7 @@ class ProfileDialog {
   private color = '#7cc8ff';
 
   constructor() {
-    this.modal = new KvModal({ title: tr('Meu boneco'), subtitle: tr('Como você aparece no escritório e nas conversas.'), icon: KV_ICONS.user, width: 780, cls: 'kv-pf' });
+    this.modal = new KvModal({ title: tr('Meu avatar'), subtitle: tr('Como você aparece no escritório e nas conversas.'), icon: KV_ICONS.user, width: 780, cls: 'kv-pf' });
     const roll = kvBtn(tr('Sortear'), { icon: KV_ICONS.dice, onClick: () => this.roll() });
     this.custom = h('input', { class: 'kv-pf__custom-input', type: 'color', attrs: { 'aria-label': tr('Outra cor'), tabindex: '-1' } });
     this.custom.addEventListener('input', () => this.setColor(this.custom.value));
@@ -310,7 +310,7 @@ class ProfileDialog {
         return fail(body.error ?? tr('Não deu para salvar.'));
       }
       this.modal.close();
-      kvToast(tr('Boneco salvo.'), { kind: 'ok' });
+      kvToast(tr('Avatar salvo.'), { kind: 'ok' });
     } catch {
       fail(tr('Sem conexão com o Habblaud.'));
     }

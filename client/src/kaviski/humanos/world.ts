@@ -94,7 +94,7 @@ function lookKey(l: KvLook): string {
 /** Estado das pessoas que o mundo do escritório usa (preenchido por humanos/index.ts quando HABBLAUD_HUMANOS está ligado). */
 export const kvPeople: {
   client: KvPresenceClient | null;
-  /** Meu boneco está no escritório (botão Andar). */
+  /** Meu avatar está no escritório (botão Andar). */
   inside: boolean;
   /** Leva a câmera até a pessoa (preenchido pelo mundo do escritório). */
   follow?: (id: string) => void;
@@ -435,7 +435,7 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
 
   const appearance = (look: KvLook) => ({ ...appearanceFromSeed(look.seed, { look: look.look, sub: false, parts: look.parts }), lanyard: look.color ?? '#7cc8ff' });
 
-  /** Meu boneco: entra (visitante do Sim), troca de aparência, ou sai. */
+  /** Meu avatar: entra (visitante do Sim), troca de aparência, ou sai. */
   const syncMe = (sim: Sim, state: KvPresenceState | null, now: number, timelapse: boolean) => {
     const mePerson = state?.people.find((p) => p.id === state.me);
     if (!present() || !mePerson || timelapse) {

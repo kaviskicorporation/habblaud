@@ -43,7 +43,7 @@ export const KV_SHORTCUTS: KvShortcutGroup[] = [
     color: '#4fd18b',
     icon: 'feet',
     items: [
-      { keys: ['←', '↑', '→', '↓'], text: tr('Andar com o boneco; sem o boneco, movem a câmera') },
+      { keys: ['←', '↑', '→', '↓'], text: tr('Andar com o avatar; sem avatar, movem a câmera') },
       { keys: ['W', 'A', 'S', 'D'], text: tr('Andar (o mesmo que as setas)') },
       { keys: ['Shift'], text: tr('Correr (segurando junto com as setas)') },
       { keys: [clique()], text: tr('Andar até o ponto clicado') },
@@ -59,7 +59,7 @@ export const KV_SHORTCUTS: KvShortcutGroup[] = [
     items: [
       { keys: ['Enter'], text: tr('Abrir a conversa da área onde estou') },
       { keys: ['G'], text: tr('Cumprimentar a pessoa mais perto (1–9 e 0 escolhem na roda)') },
-      { keys: ['1', '9'], range: true, text: tr('Reação rápida sobre o meu boneco (com a roda fechada)') },
+      { keys: ['1', '9'], range: true, text: tr('Reação rápida sobre o meu avatar (com a roda fechada)') },
       { keys: [{ m: tr('clique numa pessoa') }], text: tr('Abrir o cartão dela: mensagem, ir até, seguir, chamar…') },
     ],
   },
@@ -71,9 +71,9 @@ export const KV_SHORTCUTS: KvShortcutGroup[] = [
     items: [
       { keys: ['E'], text: tr('Usar o que está perto: sentar, café, quadro, mural, itens das salas temáticas') },
       { keys: ['E'], text: tr('Sentado: levantar (andar também levanta)') },
-      { keys: [{ m: tr('clique num item') }], text: tr('Usar o item, com o boneco perto dele') },
+      { keys: [{ m: tr('clique num item') }], text: tr('Usar o item, com o avatar perto dele') },
       { keys: [{ m: tr('clique numa cadeira') }], text: tr('Sentar, minha mesa ou fixar um agente de IA nela') },
-      { keys: ['Shift+' + tr('clique')], text: tr('Num botão do topo: abrir direto, sem o boneco andar até a sala') },
+      { keys: ['Shift+' + tr('clique')], text: tr('Num botão do topo: abrir direto, sem o avatar andar até a sala') },
     ],
   },
   {

@@ -60,7 +60,7 @@ export function kvOnClassic(cb: (on: boolean) => void): () => void {
 function paint(): void {
   if (!btn) return;
   const on = kvPeople.resting;
-  const label = on ? tr('Modo clássico ligado: o boneco descansa no lounge. Clique para voltar ao escritório.') : tr('Modo clássico: o Habblaud como o original e o boneco descansando no lounge');
+  const label = on ? tr('Modo clássico ligado: o seu avatar descansa no lounge. Clique para voltar ao escritório.') : tr('Modo clássico: o Habblaud como o original e o seu avatar descansando no lounge');
   btn.title = label;
   btn.setAttribute('aria-label', label);
   btn.setAttribute('aria-pressed', String(on));

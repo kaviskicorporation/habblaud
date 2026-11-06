@@ -42,19 +42,19 @@ design e a identidade do Habblaud. Decisões do Vitor (2026-11-05):
   papel (cliente: sem terminal, sem spawn, só as salas dele; equipe: tudo menos administração; admin: tudo).
 - **Filtro por sala no snapshot/SSE**: o cliente só recebe salas e agentes permitidos (no servidor, nunca só escondido no
   navegador).
-- **Boneco próprio** salvo na conta (aparência do `shared/appearance.ts`), nome e cor.
+- **Avatar próprio** salvo na conta (aparência do `shared/appearance.ts`), nome e cor.
 - **Andar no escritório**: setas/WASD e clique (A* do World), dentro e entre as salas permitidas.
 - **Presença ao vivo**: posição, sala e status (disponível, ocupado, ausente) por WebSocket
   (`/api/kaviski/humanos/ws`); lista "quem está online".
 - **Voz e vídeo**: LiveKit (container `livekit` em `127.0.0.1`, porta UDP para mídia); token emitido pelo servidor
   do Habblaud por sala (`/api/kaviski/humanos/livekit-token`); áudio por **sala** (entrou na sala, entra na chamada) e por
-  **proximidade** (volume pela distância); câmera em bolinha sobre/ao lado do boneco; compartilhar tela.
+  **proximidade** (volume pela distância); câmera em bolinha sobre/ao lado do avatar; compartilhar tela.
   Microfone e câmera exigem HTTPS ou localhost no navegador: com acesso por VPN, usar HTTPS na porta remota
   (certificado do `remote:setup`) ou um nome com certificado.
 - Tela de administração (admin): criar/editar contas, papéis e salas.
 
 ### 2. Conversa
-Chat de texto por sala e por proximidade, balões sobre o boneco, cumprimentos/curtidas (reaproveitar `social` do World),
+Chat de texto por sala e por proximidade, balões sobre o avatar, cumprimentos/curtidas (reaproveitar `social` do World),
 histórico curto por sala.
 
 ### 3. Pessoa + agente (o diferencial)
@@ -85,22 +85,22 @@ Liga com `HABBLAUD_HUMANOS=1` (e a porta remota configurada, como hoje). Sem a v
   rota nova do original não vaza). Timelapse e Meu dia somem da tela dele (são da empresa toda).
 - **Salas do cliente** = lista de pastas; cada uma vale para ela e tudo dentro (ex.: `/home/hostadmin/projetos/Clientes/14-FPF`
   cobre todos os projetos da FPF). Equipe e admin veem todas.
-- **Tela de Pessoas** (botão com dois bonecos no topo, só admin; pela porta local `http://localhost:4747` também): criar,
+- **Tela de Pessoas** (botão com dois avatares no topo, só admin; pela porta local `http://localhost:4747` também): criar,
   editar (nome, papel, salas, senha) e apagar. Rotas `GET|POST /api/kaviski/humanos/users`,
   `POST|DELETE /api/kaviski/humanos/users/:id`, `GET /api/kaviski/humanos/me`. Chip "Nome · papel" no topo.
 - Código: `server/kaviski/humanos/{index,gate,users,request,stream-filter}.ts` (+ `humanos.test.ts`),
   `shared/kaviski-humanos.ts`, `shared/locales/kaviski-humanos.ts` (traduções), `client/src/kaviski/humanos/{index,people}.ts`
   + `humanos.css`. Ganchos listados no `KAVISKI.md`.
 
-### 1b — boneco, andar e presença ao vivo (2026-11-06) ✅
-- **Meu boneco**: o "visitante" que o `Sim` já tem (`client/src/world/sim/visitor.ts`, o da cena Visita do Habblaud World)
+### 1b — avatar, andar e presença ao vivo (2026-11-06) ✅
+- **Meu avatar**: o "visitante" que o `Sim` já tem (`client/src/world/sim/visitor.ts`, o da cena Visita do Habblaud World)
   — chega pelo elevador da recepção, anda com setas/WASD (Shift corre, com colisão) ou clique (A*), a câmera segue. Com o
-  boneco no escritório as teclas são dele (a câmera continua no arrastar/roda). Botão **Andar/Sair do escritório** na
+  avatar no escritório as teclas são dele (a câmera continua no arrastar/roda). Botão **Andar/Sair do escritório** na
   lista de online (lembrado no navegador; padrão: entra).
-- **Aparência na conta**: "Meu boneco" abre as mesmas peças do editor de personagem (`AppearanceFields`) + cor do crachá;
+- **Aparência na conta**: "Meu avatar" abre as mesmas peças do editor de personagem (`AppearanceFields`) + cor do crachá;
   `GET|POST /api/kaviski/humanos/profile` guarda `{seed, look, parts, color}` no perfil (`users.json`; a conta do `.env`
-  em `builtinProfile`). Quem nunca escolheu ganha um boneco sorteado pelo id.
-- **Os outros**: "bonecos de corda" (`Character` do Sim) desenhados pelo mesmo renderer (o `people()` do `Sim` é
+  em `builtinProfile`). Quem nunca escolheu ganha um avatar sorteado pelo id.
+- **Os outros**: "avatares de corda" (`Character` do Sim) desenhados pelo mesmo renderer (o `people()` do `Sim` é
   embrulhado em tempo de execução) e indo suavemente até a última posição recebida. Etiqueta sempre com o nome e um selo
   (EQUIPE / CLIENTE, ou OCUPADO / AUSENTE).
 - **Presença ao vivo: SSE + POST, não WebSocket** (decisão técnica): o servidor não tem biblioteca de WebSocket e, com
@@ -121,9 +121,9 @@ Liga com `HABBLAUD_HUMANOS=1` (e a porta remota configurada, como hoje). Sem a v
 ### 1c — voz e vídeo (LiveKit) (2026-11-06) ✅
 - **Uma chamada por área** do escritório: cada sala de projeto, cada área comum do núcleo (recepção, copa, banheiros,
   lounge) e o corredor. Entrou na área (parado ~0,7 s), entra na chamada dela; saiu, sai. Dentro de sala de projeto,
-  volume cheio; nas áreas comuns e no corredor, **volume pela distância** entre os bonecos (cheio até 3 tiles, some em 11).
-- **Barra de voz** no topo (só com o boneco no escritório): "Na chamada: <área>", microfone, câmera e compartilhar tela.
-  Microfone e câmera começam desligados (escolha lembrada no navegador). Câmera = bolinha com o vídeo em cima do boneco
+  volume cheio; nas áreas comuns e no corredor, **volume pela distância** entre os avatares (cheio até 3 tiles, some em 11).
+- **Barra de voz** no topo (só com o avatar no escritório): "Na chamada: <área>", microfone, câmera e compartilhar tela.
+  Microfone e câmera começam desligados (escolha lembrada no navegador). Câmera = bolinha com o vídeo em cima do avatar
   (some quando a pessoa está longe demais para ser ouvida); tela compartilhada = quadro flutuante (clique amplia).
 - **Segurança no servidor**: o token do LiveKit (`POST /api/kaviski/humanos/livekit-token {area}`, JWT HS256 assinado
   com `node:crypto`, 2 h) só sai para áreas que a pessoa pode ouvir — cliente: as salas dele, as áreas comuns e o
@@ -152,7 +152,7 @@ Liga com `HABBLAUD_HUMANOS=1` (e a porta remota configurada, como hoje). Sem a v
   como evento `chat` do fluxo de presença **só a quem está na mesma área**. Sala de projeto: a sala toda lê, com
   **histórico curto** (50 falas, 24 h, `<dataDir>/kaviski/chat.json`, `GET /api/kaviski/humanos/chat?area=`). Áreas
   abertas: **por proximidade** (só quem está a até 11 tiles lê; não fica guardado).
-- **Balões** em cima do boneco de quem falou (o balão do próprio Sim, `showBubble`).
+- **Balões** em cima do avatar de quem falou (o balão do próprio Sim, `showBubble`).
 - **Cumprimentos**: a roda do Habblaud World (`GreetingWheel`, os mesmos 10 cumprimentos, `RateGate`), importada de
   `client/src/world/city/greetings.ts` sem copiar. Abre com **G** (pessoa mais perto) ou clicando numa pessoa; 1–9/0.
 - **Barra do topo** (`bar.ts`): área atual, botão da conversa (com contador de não lidas) e, com o LiveKit, microfone,
@@ -166,8 +166,8 @@ Liga com `HABBLAUD_HUMANOS=1` (e a porta remota configurada, como hoje). Sem a v
   `kvAttachWorld` (`client/src/world/index.ts`).
 - **"Chamar até mim"** (botão na gaveta, entra pelo `KvTwiccButton` — nenhum gancho novo no `drawer.ts`):
   `POST /api/kaviski/humanos/summon {agentId}` manda o evento `summon` a toda página que vê aquele agente; ele levanta,
-  anda até o boneco de quem chamou, fica até 45 s (ou até o status mudar) e volta sozinho. Vai até a mesa fixa de quem
-  chamou (`profile.desk`, onda Gather) ou, sem mesa, até onde o boneco está. 1 chamada a cada 15 s por pessoa.
+  anda até o avatar de quem chamou, fica até 45 s (ou até o status mudar) e volta sozinho. Vai até a mesa fixa de quem
+  chamou (`profile.desk`, onda Gather) ou, sem mesa, até onde o avatar está. 1 chamada a cada 15 s por pessoa.
 - **Registro** (`audit.ts`, `<dataDir>/kaviski/audit.jsonl`, 600, gira em 5 MB): mensagem, permissão (aprovar/recusar,
   com o título do pedido), novo agente, terminal aberto/fechado, encerrar/assumir, personagem, renomear sala, chamar
   agente — quem, quando, qual agente/sala, o quê e se deu certo. O corpo é copiado enquanto a rota original o lê
@@ -178,12 +178,12 @@ Liga com `HABBLAUD_HUMANOS=1` (e a porta remota configurada, como hoje). Sem a v
 - Código: `server/kaviski/humanos/{audit,index}.ts`, `client/src/kaviski/humanos/{agent,world,people}.ts`.
 
 ### Conversas estilo Teams e cartão de pessoa (2026-11-06) ✅ (pedido do Vitor)
-- **Cartão da pessoa** (`person-card.ts`): clicar no boneco de alguém (andando ou não) ou na pessoa na lista de online
-  abre um cartão com boneco, nome, papel, status, onde está e os botões de **todas as ações registradas** em
+- **Cartão da pessoa** (`person-card.ts`): clicar no avatar de alguém (andando ou não) ou na pessoa na lista de online
+  abre um cartão com avatar, nome, papel, status, onde está e os botões de **todas as ações registradas** em
   `person-actions.ts` (registro comum com a sessão d553e49d). Daqui: **Mensagem**, **Cumprimentar** e **Ir até** (o meu
-  boneco anda até perto da pessoa).
+  avatar anda até perto da pessoa).
 - **Conversas** (`chat.ts`): janela de duas colunas embaixo da barra do topo, com botão fixo no topo (com as não lidas),
-  na barra do boneco e no Enter. À esquerda: "Aqui" (a conversa da área, fase 2) e cada pessoa com quem posso falar
+  na barra do avatar e no Enter. À esquerda: "Aqui" (a conversa da área, fase 2) e cada pessoa com quem posso falar
   (online ou não), com bolinha de status, a última fala e quantas não li, e busca. À direita: a conversa (balões, meus à
   direita, falas seguidas agrupadas). Celular: uma coluna, com voltar.
 - **Conversa 1:1** (`server/kaviski/humanos/direct.ts`): `GET /api/kaviski/humanos/contacts`,
@@ -197,8 +197,8 @@ Liga com `HABBLAUD_HUMANOS=1` (e a porta remota configurada, como hoje). Sem a v
   desligar; antes a tela compartilhada caía ao andar); quem compartilha vê a própria tela com **Parar**; "Requested
   device not found" virou "Nenhuma câmera encontrada neste aparelho" (e bloqueada / em uso por outro programa).
 
-### Coisas saindo da cabeça do boneco (2026-11-06) ✅ (pedido do Vitor, como no Gather)
-- `client/src/kaviski/humanos/heads.ts`: pilha de miniaturas **ao lado da cabeça** de cada pessoa, acompanhando o boneco
+### Coisas saindo da cabeça do avatar (2026-11-06) ✅ (pedido do Vitor, como no Gather)
+- `client/src/kaviski/humanos/heads.ts`: pilha de miniaturas **ao lado da cabeça** de cada pessoa, acompanhando o avatar
   e a câmera (a bolinha da câmera continua em cima da cabeça). Hoje: a **tela compartilhada** ao vivo em miniatura
   (clique amplia o quadro grande; o quadro do canto continua) e o **começo de uma mensagem 1:1** que acabou de chegar
   (só quem recebe vê, some em 12 s — urgente, 60 s; clique abre a conversa). A conversa da área já aparecia como balão
@@ -257,7 +257,7 @@ de seguir / fecha, Enter abre a conversa, G cumprimenta, 1–9 reações, N mini
 ### Como as frentes se ligam
 - **Status**: agenda ("📅 Em reunião até…") e pomodoro ("🎧 Focado até…") entram pelo `auto-status.ts` no `status.ts`
   (camadas por fonte; o manual vence). Não perturbe silencia avisos (W2) e tira da chamada de voz (W3), mas não do palco.
-- **Modo clássico** (W1: `kvPeople.inside = false`, `resting = true`): sai da chamada de voz (W3) e o boneco descansa no
+- **Modo clássico** (W1: `kvPeople.inside = false`, `resting = true`): sai da chamada de voz (W3) e o avatar descansa no
   lounge com o selo DESCANSANDO; o pomodoro (W5) é outra coisa e pode estar ligado junto.
 - **Mesa fixa** (W1, `profile.desk`): vale em sala de projeto e na **sala pessoal** (W4) — o servidor confere pelo mesmo
   `kvAreaAllowed`; "Chamar até mim" leva o agente até ela; "alguém entrou na minha sala" (W2) usa a sala da mesa, senão a
@@ -266,24 +266,24 @@ de seguir / fecha, Enter abre a conversa, G cumprimenta, 1–9 reações, N mini
   O `kvAreaAllowed` (livekit.ts) consulta, nesta ordem, a guarda do W2 (tranca e roda privada), a sala própria (W4) e as
   salas do cliente.
 - **Andar até**: mini-mapa e "Ir para a reunião" (W5, `walk.ts`) usam `kvPeople.walkTo`/`goArea` do W1 (que levantam o
-  boneco antes); sala trancada (W2) desfaz o passo pelo `kvPeople.onFrame`/`stopMe` do W1.
+  avatar antes); sala trancada (W2) desfaz o passo pelo `kvPeople.onFrame`/`stopMe` do W1.
 - **Visitante** (W5, papel `visitante`): `kvRestricted` como o cliente; sem mesa fixa (403), sem convidar, sem agenda,
   sem palco, sem trancar.
 - **Janelas e teclado**: o `modalOpen()` do mundo conta qualquer `dialog[open]`/`[aria-modal="true"]`/popover aberto e
-  trava as setas. Janela nossa escondida não pode ficar com `aria-modal` (a grade de vídeo travava o boneco com o
+  trava as setas. Janela nossa escondida não pode ficar com `aria-modal` (a grade de vídeo travava o avatar com o
   LiveKit ligado; corrigido em 8354545).
 
-### Boneco, mesa fixa e móveis (frente W1)
+### Avatar, mesa fixa e móveis (frente W1)
 - **Modo clássico** (botão da lua no topo, lembrado em `habblaud.kv.classico`; quem tinha `habblaud.kv.andar` = '0' começa nele):
   substitui o "Andar/Sair do escritório". Ligado: `kvPeople.inside = false` (teclado, câmera, cliques, barra, conversa e
-  chamada de voz como fora do escritório) e `kvPeople.resting = true`: o boneco anda sozinho até o lounge, senta (sofá,
+  chamada de voz como fora do escritório) e `kvPeople.resting = true`: o avatar anda sozinho até o lounge, senta (sofá,
   poltrona ou puff livre) e a posição vai com `z: 1` (selo DESCANSANDO para os outros). Desligado: levanta e volta para
   a mesa fixa (ou para onde estava).
 - **Mesa fixa** (`profile.desk`, uma KvPos de sala): `GET|POST /api/kaviski/humanos/desk` (`server/kaviski/humanos/desk.ts`)
   — só cadeira dentro de sala que a pessoa vê (cliente: as dele; visitante não tem), a sala precisa existir e duas
   pessoas não ficam com a mesma cadeira (`kvSameDesk`, com o espelhamento do lado do corredor). A presença leva
   `desk` junto da pessoa, filtrada por sala. Escolher: clique na cadeira → "Definir como minha mesa", o botão 📌 que
-  aparece sentado numa cadeira de sala, ou "Minha mesa" na janela Meu boneco. O boneco nasce sentado nela (sem o
+  aparece sentado numa cadeira de sala, ou "Minha mesa" na janela Meu avatar. O avatar nasce sentado nela (sem o
   elevador); a cadeira fica reservada no `SpotRegistry` (`kvdesk:<id>`: agente nenhum a escolhe) e, vazia, mostra
   "mesa de Fulano". "Chamar até mim" leva o agente até a mesa, quando há.
 - **Móveis** (`seats.ts`, `me.ts`, `furniture.ts`): tecla E perto de cadeira, banqueta, poltrona, sofá, puff, banco e
@@ -291,13 +291,13 @@ de seguir / fecha, Enter abre a conversa, G cumprimenta, 1–9 reações, N mini
   E de novo, seta ou clique = levantar (o passo livre do teclado trata assento como parede, então sentar/levantar vão
   pela fila `go/enter/exit` do Sim e o teclado espera; o `canStand` original não mudou). Máquina de café/água (pose
   `use` e `drink`), fliperama (`game`), estante (`read`). A pose vai na posição (`KvPos.p`/`h`, `shared/kaviski-desk.ts`)
-  e o boneco de corda senta no assento mais perto da posição (e o reserva na página de quem vê).
+  e o avatar de corda senta no assento mais perto da posição (e o reserva na página de quem vê).
 - **Ações sobre outra pessoa** (`goto.ts`, desenhadas pelo cartão): Seguir (40; chip "Seguindo Fulano · Esc para
   parar"), Teleportar (45), Ir até a mesa (46). API no `kvPeople`: `walkTo(tx, ty, run?)`, `goTo(id)`/`goNear(id)`,
   `goArea(area)`, `followPerson`, `teleportTo`, `goDesk(id | null)`, `stopMe`, `myDesk`, `following`, `resting`,
   `onFrame` (ganchos por quadro de outros módulos), `toScreen`, `encode`, `ctl`.
 - **Toque** (`touch.ts`): joystick (8 direções; na borda corre) e botão E com o rótulo do que está perto, só em tela de
-  toque com o boneco andando; tocar no chão anda e a pinça dá zoom (do original). Botões da barra maiores
+  toque com o avatar andando; tocar no chão anda e a pinça dá zoom (do original). Botões da barra maiores
   (`pointer: coarse`). **Duplo clique** no chão corre (gancho `kv.doubleClick` no `world/index.ts`).
 - Código: `shared/kaviski-desk.ts`, `server/kaviski/humanos/desk.ts` (+ `desk.test.ts`),
   `client/src/kaviski/humanos/{w1,me,seats,furniture,goto,classic,touch,stick,desk-labels}.ts` + `w1.css` (+ `seats.test.ts`),
@@ -307,7 +307,7 @@ de seguir / fecha, Enter abre a conversa, G cumprimenta, 1–9 reações, N mini
 - **Status com nota** (`client/src/kaviski/humanos/status.ts`): disponível, ocupado, ausente e **não perturbe**
   (`KvStatus` ganhou `'naoperturbe'`), nota livre de até 60 caracteres (sugestões 🍽️ Almoçando, 📅 Em reunião, 🎧 Focado,
   🏠 Home office, ☕ Pausa, 🚗 A caminho) e "até" (30 min, 1 h, 2 h, 4 h, hoje). O servidor guarda `note`/`until` na
-  presença e limpa sozinho quando vence (`KvPresence.expire`, a cada 5 s). Aparece no selo do boneco, na lista de online e
+  presença e limpa sozinho quando vence (`KvPresence.expire`, a cada 5 s). Aparece no selo do avatar, na lista de online e
   no cartão. **API para outros módulos**: `kvSetStatus({status?, note?, until?, source?})`, `kvClearStatus(source)`,
   `kvStatusNow()`, `kvOnStatus(cb)`. Cada fonte é uma camada: vale a manual se não for a padrão (disponível sem nota);
   senão a automática mais recente ainda válida (agenda e foco entram por `auto-status.ts`); senão disponível. Por cima, o
@@ -324,13 +324,13 @@ de seguir / fecha, Enter abre a conversa, G cumprimenta, 1–9 reações, N mini
   (abre a 1:1). Só chama quem eu vejo (a mesma regra da presença); em não perturbe responde 409 "Fulano está em não
   perturbe". Limite: 1 a cada 15 s para a mesma pessoa e 6 por minuto. Vai ao Registro ("chamar pessoa", sem texto).
 - **Reações rápidas** (`reactions.ts`): botão 😀 na barra do topo e teclas **1–9** (foco no escritório, roda de
-  cumprimentos fechada). `POST /react {emoji}` → evento `react` só para quem vê o meu boneco; o emoji sobe e some sobre
+  cumprimentos fechada). `POST /react {emoji}` → evento `react` só para quem vê o meu avatar; o emoji sobe e some sobre
   a cabeça. **✋** levanta/baixa a mão: fica no `people` (`hand`) e aparece na pilha da cabeça (`kvHeads`, ordem 30) e na
   lista. Limite: 8 a cada 5 s.
 - **Trancar a sala / bater na porta** (`locks.ts`; servidor `social.ts`): numa sala (de projeto ou própria), **equipe e
   admin** trancam pelo cadeado da barra; **cliente e visitante não trancam** (mas, se estavam dentro, ficam na lista e
   respondem a quem bate). A lista de quem entra = quem estava dentro na hora + quem for deixado entrar; qualquer um da
-  lista destranca; **destranca sozinha** quando ninguém da lista está mais dentro. Trancada: cadeado na porta; o boneco de
+  lista destranca; **destranca sozinha** quando ninguém da lista está mais dentro. Trancada: cadeado na porta; o avatar de
   quem está fora volta para fora da porta e, perto dela, **E · Bater na porta**; quem está dentro recebe "Fulano quer
   entrar" com **Deixar entrar / Recusar**. No servidor: posição dentro da sala recusada (`guard` da presença), área do
   chat e **token do LiveKit recusados** (guarda no `kvAreaAllowed`, `kvSetAreaGuard`) para quem não está na lista; cliente
@@ -363,7 +363,7 @@ Tudo só com `HABBLAUD_HUMANOS=1` e o LiveKit configurado (sem ele, nada disto a
   efeito) e o modelo `selfie_segmenter.tflite` (250 kB, em `client/src/kaviski/humanos/assets/`) saem do próprio
   Habblaud (`/bundle/`); o `FilesetResolver.forVisionTasks` é trocado em tempo de execução para apontar para eles.
 - **Palco (megafone)**: admin e equipe têm o botão 📢 na barra; cliente e visitante não (`kvRestricted`). Quem sobe
-  fala para o andar inteiro: todo mundo online (com ou sem boneco; cliente também) vê "📢 Fulano no palco" e ouve numa
+  fala para o andar inteiro: todo mundo online (com ou sem avatar; cliente também) vê "📢 Fulano no palco" e ouve numa
   chamada à parte do LiveKit. Servidor (`server/kaviski/humanos/stage.ts`): `GET/POST /api/kaviski/humanos/stage`
   (`{on}`; um palco por vez; quem abriu ou um admin fecha) e `POST .../stage/token` — **só quem está no palco recebe
   `canPublish`**, os outros só `canSubscribe` (o LiveKit recusa se o ouvinte tentar publicar). Evento `stage` do fluxo
@@ -375,7 +375,7 @@ Tudo só com `HABBLAUD_HUMANOS=1` e o LiveKit configurado (sem ele, nada disto a
 - **Grade de vídeo** (botão na barra): todos da chamada em tela cheia — câmera ou a inicial, nome, 🔇, borda verde em
   quem fala, telas compartilhadas (a primeira vai grande sozinha). 📌 (ou duplo clique) fixa um quadro grande com os
   outros numa faixa. Esc fecha. Nas áreas abertas só aparece quem eu ouço (mesma proximidade das bolinhas).
-- **Quem está falando**: anel verde aceso no chão, embaixo do boneco de quem fala (o meu também, e o de quem está no
+- **Quem está falando**: anel verde aceso no chão, embaixo do avatar de quem fala (o meu também, e o de quem está no
   palco), desenhado num DOM nosso por cima do mundo (`kvPeople.locate`), sem gancho no renderer; 🔇 na pilha ao lado da
   cabeça (`kvHeads`, ordem 5) de quem está na minha chamada com o microfone desligado. A bolinha de vídeo ganha a borda
   verde. Com a grade aberta, bolinhas, anéis e pilhas somem (não ficam por cima dela).
@@ -417,7 +417,7 @@ Tudo só com `HABBLAUD_HUMANOS=1` e o LiveKit configurado (sem ele, nada disto a
   quem vê, paleta (as 10 do tema), cor da placa e **decoração**: grade da sala (14×9) e faixa da parede; escolhe o item
   (planta, planta alta, luminária, estante, arquivo, puff, quadro, pôster, relógio, tapete) e clica num lugar livre
   (clique no item tira). Até 16 itens. Lugar ocupado/porta/frente do quadro, placa e mural ficam bloqueados.
-- **Objetos de parede** (tecla **E** perto, via `interact.ts`, ou clique com o boneco na mesma área):
+- **Objetos de parede** (tecla **E** perto, via `interact.ts`, ou clique com o avatar na mesma área):
   - **Quadro branco** de cada sala (de projeto ou própria): caneta, 6 cores, 3 espessuras, borracha, texto, desfazer o
     meu último, limpar (só a equipe). Ao vivo: o traço sai em pedaços (~12/s, `POST /api/kaviski/humanos/board`) e
     chega pelo evento `board` só a quem pode ver a sala; gravado em `boards.json` (até 3000 traços). Nas salas próprias
@@ -426,7 +426,7 @@ Tudo só com `HABBLAUD_HUMANOS=1` e o LiveKit configurado (sem ele, nada disto a
     sala = quem entra nela escreve; recepção = só a equipe escreve (cliente lê). Apaga o autor, um admin ou o dono da
     sala própria. Bolinha vermelha piscando e "(1 novo)" na dica quando há nota de outra pessoa que eu não vi.
   - **Links na parede**: título + endereço (só `http`/`https`, sem usuário/senha embutidos), presos no trecho livre da
-    parede mais perto do boneco (fora de placa, quadro, mural, janela, porta e móveis encostados). Só a equipe prende;
+    parede mais perto do avatar (fora de placa, quadro, mural, janela, porta e móveis encostados). Só a equipe prende;
     abre em aba nova com `noopener,noreferrer`. Ícone de folha com tachinha desenhado na parede.
   - Rotas: `GET /objects`, `POST /notes`, `DELETE /notes/:id`, `POST /links`, `DELETE /links/:id`, `GET|POST /board`
     (todas em `/api/kaviski/humanos/`); evento `objects` (a página relê). Gravados em `objects.json` (600). Registro
@@ -440,7 +440,7 @@ Tudo só com `HABBLAUD_HUMANOS=1` e o LiveKit configurado (sem ele, nada disto a
 **Convite por link (visitante sem conta).** Quem é admin ou equipe abre **Convidar visitantes** (botão do envelope no
 topo) e gera um link: vale **1 h, 1 dia ou 7 dias**, **uso único ou várias pessoas** (até 50) e as **salas que o
 visitante vê** (como as do cliente; nenhuma = só recepção e áreas comuns). O link (`/convite/<id>.<assinatura>`) abre
-uma página que pede só o nome; o visitante entra com o papel **`visitante`** (selo VISITANTE), escolhe o boneco no tour
+uma página que pede só o nome; o visitante entra com o papel **`visitante`** (selo VISITANTE), escolhe o avatar no tour
 de boas-vindas e fica até o convite vencer.
 - Regras no servidor: `visitante` é `kvRestricted` como o cliente (snapshot, fluxo, presença, chat, voz: só as salas do
   convite; lista fechada de rotas) e mais: não pede tarefa, não chama agente, não convida, não tem agenda.
@@ -450,7 +450,7 @@ de boas-vindas e fica até o convite vencer.
   "a sua visita terminou").
 - Freio de tentativas por endereço no link e na entrada (`KvLoginLimiter`). Registro: "convite criado", "visitante
   entrou", "convite revogado" (`KvAudit`).
-- Dados: `<dataDir>/kaviski/invites.json` (600): convites, visitantes e o perfil deles (boneco). Convite vencido ou
+- Dados: `<dataDir>/kaviski/invites.json` (600): convites, visitantes e o perfil deles (avatar). Convite vencido ou
   revogado há mais de 7 dias é esquecido.
 - `HABBLAUD_PUBLIC_URL` (opcional, ex.: `https://escritorio.kaviski.com.br`): o link sai com esse endereço mesmo quando a
   tela é aberta pela porta local.
@@ -471,7 +471,7 @@ lugar de guardar).
 - Durante uma reunião "ocupada": status automático **"📅 Em reunião até 15h"** (fonte `agenda`; o manual vence).
   1 min antes de uma reunião, um aviso no topo.
 - **Sala da reunião**: se o local (ou a descrição) cita o nome de uma sala do escritório que a pessoa vê, a reunião
-  ganha "📍 sala" e **Ir para a reunião** (o boneco anda até a porta). Reservas de sala (de todas as agendas, **sem título
+  ganha "📍 sala" e **Ir para a reunião** (o avatar anda até a porta). Reservas de sala (de todas as agendas, **sem título
   nem dono**, só as salas que quem pede vê) aparecem na dica da sala ("Reunião às 15h nesta sala") e no mini-mapa
   (ponto vermelho). As **salas próprias** (frente W4) também valem, as de reunião primeiro: "Sala Azul" no local acha a
   sala de reunião "Sala Azul" (`agendaRooms` em `humanos/index.ts`).
@@ -485,7 +485,7 @@ lugar de guardar).
   teclas" posta em tempo de execução. Lista em `client/src/kaviski/humanos/shortcuts-list.ts` (fácil de editar).
 - **Modo foco (pomodoro)** — não confundir com o **Modo clássico** da frente W1 (lua): botão dos fones no topo, 25 ou 50 min, status **"🎧 Focado até 15h"** (fonte `foco`),
   minutos restantes no botão, som suave no fim (Web Audio; só uma aba toca), "Mais 25 min". Lembrado no navegador.
-- **Boas-vindas**: tour de 3–4 passos na primeira entrada (visitante: escolher o boneco; andar; conversar; E para usar
+- **Boas-vindas**: tour de 3–4 passos na primeira entrada (visitante: escolher o avatar; andar; conversar; E para usar
   as coisas; modo foco e agenda), lembrado por pessoa no navegador; "Ver o tour de novo" na janela de Atalhos.
 - **Quem está na sala**: parar o mouse sobre uma sala ou área comum mostra as pessoas, quantos agentes e a reunião
   marcada.
@@ -501,17 +501,17 @@ Pedido do Vitor: "a tela de criar user está horrível, os selects são os feios
 salve chats por conversa como Teams; pode usar o tema do Habblaud".
 - **Kit de interface** (`client/src/kaviski/humanos/ui/`): `kit.ts` (botões primário/secundário/perigo/fantasma em 3D,
   `kvField` com erro em linha, `kvInput`, `kvPassword` com mostrar/ocultar e gerador, `kvToggle`, `kvTabs`, `kvAvatar` —
-  boneco ou iniciais na cor do crachá, com bolinha de status —, `kvRoleBadge`, `kvEmpty`, `kvChip`, `kvTitle` que só usa
+  avatar ou iniciais na cor do crachá, com bolinha de status —, `kvRoleBadge`, `kvEmpty`, `kvChip`, `kvTitle` que só usa
   a Pixelify quando o texto não tem "C" maiúsculo nem dígitos), `select.ts` (`KvSelect` e `KvMultiSelect` com chips:
   teclado, busca a partir de 8 opções, digitar pula; abre dentro do `<dialog>` aberto), `modal.ts` (`KvModal`,
   `kvConfirm`), `toast.ts` (`kvToast`, um por chave), `icons.ts` (ícones em pixel), `kit.css`.
 - **Ponte de tema** (`ui/bridge.css` + `ui/enhance.ts`): as janelas das outras frentes (convites, agenda, salas próprias,
-  quadro, mural, atalhos, nota do status, mesa fixa, barra do boneco) ganham o visual do kit sem mexer no código delas, e
+  quadro, mural, atalhos, nota do status, mesa fixa, barra do avatar) ganham o visual do kit sem mexer no código delas, e
   todo `<select>` das telas das pessoas (classe `kv-*` nele ou num pai) vira o select do kit sozinho — o nativo fica
   escondido e continua a fonte da verdade (`value`, `change`, opções novas). Os do Habblaud original não mudam.
 - **Topo que cabe** (`ui/topfit.ts`): quando os botões das pessoas não cabem numa linha, os de maior `order` vão para o
   menu **Mais** (com o nome de cada um; contadores aparecem lá). Conversas é o último a sair.
-- **Pessoas** (`people.ts` + `people.css`): contas em cartões (boneco, papel, @usuário, salas em chips, "pede tarefas"),
+- **Pessoas** (`people.ts` + `people.css`): contas em cartões (avatar, papel, @usuário, salas em chips, "pede tarefas"),
   busca e filtro por papel; formulário com papel num select com explicação e a lista do que cada papel pode, salas com
   busca e chips (aceita colar uma pasta), senha com gerador (copia), validação em linha (`kvValidatePerson`, testada) e
   confirmação ao apagar. Abas **Contas**, **Convites** (o conteúdo da janela de convites, `kvMountInvites` em
@@ -520,19 +520,19 @@ salve chats por conversa como Teams; pode usar o tema do Habblaud".
   incluída), "Recentes" (cada 1:1 e cada sala de projeto em que estive, lembradas no navegador) e "Online agora"; busca
   em pessoas e, com 2+ letras, nas mensagens das minhas conversas (no servidor; clicar leva até a fala e a destaca); Nova
   conversa escolhendo a pessoa. À direita, **abas** das conversas abertas (até 6, lembradas), dias separados, falas
-  agrupadas (5 min), bolhas minhas e dos outros com boneco e nome, links só http/https (`kvLinkify`, testado), emojis,
+  agrupadas (5 min), bolhas minhas e dos outros com avatar e nome, links só http/https (`kvLinkify`, testado), emojis,
   urgente, "digitando…", Carregar anteriores. Sala em que não estou: só leitura, com "Ir até a sala".
 - **Servidor** (`direct.ts`, `index.ts`): 1:1 guardada por conversa (1000 falas, 180 dias), `GET /dm?with=&before=&limit=`
   em páginas (`{messages, more}`), `POST /dm/typing {to}` (evento `typing` só para a outra pessoa, 1 a cada 1,5 s),
   `GET /dm/search?q=` (só nas conversas de quem busca e com quem ainda pode conversar, até 40). Salas: 300 falas por 30
   dias (`KV_CHAT_HISTORY*`). Testes em `server/kaviski/humanos/conversas.test.ts`. O fluxo de presença liga sozinho os
   eventos novos que alguém ouvir (`presence.ts` `bind`).
-- **Cartão da pessoa** (`person-card.ts` + `.css`): faixa na cor do crachá com xadrez em pixel, boneco grande com o
+- **Cartão da pessoa** (`person-card.ts` + `.css`): faixa na cor do crachá com xadrez em pixel, avatar grande com o
   status, papel, status com nota (W2) e onde está; ações do registro em botões grandes de ícone (a primeira em azul);
   **mensagem rápida** (Enter manda a 1:1 e abre a conversa numa aba).
 - **Quem está online** (`online.ts` + `online.css`): eu com o status num select próprio (a nota da W2 entra logo abaixo),
-  Modo clássico (W1), Meu boneco, busca e as pessoas "Perto de você", "No escritório" e "Fora do escritório", com
-  atalhos de Mensagem e Ir até. **Meu boneco** no `KvModal`, cores do crachá em amostras e a Minha mesa (W1).
+  Modo clássico (W1), Meu avatar, busca e as pessoas "Perto de você", "No escritório" e "Fora do escritório", com
+  atalhos de Mensagem e Ir até. **Meu avatar** no `KvModal`, cores do crachá em amostras e a Minha mesa (W1).
 - Celular: conversas em uma coluna (lista ou conversa, com voltar), Pessoas em uma coluna, o joystick e o E somem com a
   conversa/lista/cartão abertos, o Mais não sai da tela.
 - Traduções em `shared/locales/kaviski-ui.ts`. Ganchos novos só em arquivos do fork: uma linha em `humanos/index.ts`
@@ -666,7 +666,7 @@ Arquitetura (ação `planta` do "ir e fazer", `kvOpenPlanEditor({focus?, templat
   gestor escondido não aparece (a pessoa vira topo). Nunca veem outros clientes. Os agentes ao vivo que aparecem são os
   do snapshot que já chega filtrado.
 - **Organograma** (`client/src/kaviski/humanos/org-chart.ts` + `.css`; `kvOpenOrgChart({focus?})`, também na aba
-  Organograma da tela Pessoas e no botão do topo "Organograma"): árvore com cartões 3D em pixel (boneco de verdade, nome,
+  Organograma da tela Pessoas e no botão do topo "Organograma"): árvore com cartões 3D em pixel (avatar de verdade, nome,
   cargo, área na cor dela, status ao vivo), linhas em degrau (`kvOrgLayout`, puro e testado: pai no meio dos filhos,
   muitas folhas viram coluna), agrupado por **Hierarquia** ou **Por área** (áreas como grupos coloridos, a hierarquia
   dentro delas), filtros Todos / Pessoas / Agentes, busca (acende quem bate e leva até ele), zoom (roda, pinça, botões,
@@ -678,14 +678,14 @@ Arquitetura (ação `planta` do "ir e fazer", `kvOpenPlanEditor({focus?, templat
   o agente ao vivo que bate com a regra (`main` / `provider:claude|codex` / `sub` / `name:<texto>`; a mais específica
   escolhe primeiro, `kvMatchFixedAgents`, testado) ganha a cadeira como `homeSpot` (o Sim leva o agente até ela). Sem
   agente: a cadeira fica reservada (`kvfixed:<id>`, nenhum outro agente senta) com a plaquinha roxa "mesa de <nome>".
-  Pessoa (mesa fixa, boneco sentado) vence o agente. Aparência opcional pelo `sim.agentPatches`. A posição é a mesma da
+  Pessoa (mesa fixa, avatar sentado) vence o agente. Aparência opcional pelo `sim.agentPatches`. A posição é a mesma da
   mesa fixa das pessoas (KvPos relativa à sala): vale no prédio original e na planta (a frente A mantém a KvPos).
-  Cadastrar: clique numa cadeira com o boneco → **"🤖 Fixar um agente aqui"** (ou "Mesa de X: editar o agente"), ou
+  Cadastrar: clique numa cadeira com o avatar → **"🤖 Fixar um agente aqui"** (ou "Mesa de X: editar o agente"), ou
   Pessoas → **Agentes fixos** → Novo (com **Escolher no escritório**: o próximo clique numa cadeira, com ou sem
-  boneco). Formulário (`fixed-agents-form.ts`): nome (sugerido "Claude · Sala"), sala, qual agente, cadeira, cargo, área,
+  avatar). Formulário (`fixed-agents-form.ts`): nome (sugerido "Claude · Sala"), sala, qual agente, cadeira, cargo, área,
   gestor e aparência (as peças do editor de personagem).
 - **Tela Pessoas**: seção **Organograma** no formulário da conta (cargo, área no select do kit com a cor e o ícone,
-  gestor no select com o boneco), cargo e área nos cartões; abas novas **Organograma**, **Áreas** (nome, 10 cores ou
+  gestor no select com o avatar), cargo e área nos cartões; abas novas **Organograma**, **Áreas** (nome, 10 cores ou
   qualquer uma, 14 ícones em pixel, área-mãe, responsável, ordem; grava de uma vez) e **Agentes fixos**.
   `kvOpenPeople(tab?, personId?)` exportada (a frente C usa no RH).
 - **Cargo à mostra**: no cartão da pessoa (cargo, chip da área, "Responde a"), na lista de online ("Meu cargo: ..." e o
@@ -708,8 +708,8 @@ Arquitetura (ação `planta` do "ir e fazer", `kvOpenPlanEditor({focus?, templat
   nos perfis; o agente fixo só muda a cadeira de um agente real na página).
 
 ### Salas temáticas fixas e "ir e fazer" (frente C)
-Pedido do Vitor: "salas temáticas fixas relacionadas ao que tem de funções e interações; quero poder pedir para o boneco
-ir nelas e interagir; se eu clicar num menu, o boneco vai até o local/item e sai daquela ação; tudo deve ter um
+Pedido do Vitor: "salas temáticas fixas relacionadas ao que tem de funções e interações; quero poder pedir para o avatar
+ir nelas e interagir; se eu clicar num menu, o avatar vai até o local/item e sai daquela ação; tudo deve ter um
 item/sala interativo fixo". Tudo só com `HABBLAUD_HUMANOS=1` **e** uma planta ligada; sem planta, os botões abrem
 direto como sempre.
 - **12 salas temáticas** (`KvThemeKey`), cada uma com piso, tapete, cores, plantas e os itens interativos marcados com a
@@ -722,11 +722,11 @@ direto como sempre.
   | Diretoria | organograma grande → **Organograma**; luneta → **Visão geral (O)**; mesa da diretoria, estante, poltronas |
   | Reunião | calendário → **Minha agenda**; telão; mesa(s) com banquetas |
   | Recepção de visitantes | balcão → **Convidar visitantes**; quadro de presença → **Quem está online / meu status**; mapa → **mini-mapa**; totem "i" → **Ajuda (?)**; espera |
-  | Provador | espelhos de camarim (com reflexo) e espelho de corpo inteiro → **Meu boneco** (o boneco penteia o cabelo); arara de roupas |
+  | Provador | espelhos de camarim (com reflexo) e espelho de corpo inteiro → **Meu avatar** (o avatar penteia o cabelo); arara de roupas |
   | Cabines de foco | relógio de tomate → **Modo foco (pomodoro)**; cabines de mesa com vidro |
   | Auditório | púlpito → **Palco (megafone)**; telão; fileiras de banquetas com corredor |
   | Central dos agentes | terminal → **Novo agente**; TV grande → **Timelapse (L)**; painel → **Meu dia (M)**; estante → **Histórico**; impressora → **Feed** |
-  | TI e ajustes | sino → **Avisos**; pôster das teclas → **Atalhos**; bancada → **Ajustes de voz e vídeo**; rack → **Configurações**; engrenagem → liga/desliga **Abrir só quando o boneco chegar** |
+  | TI e ajustes | sino → **Avisos**; pôster das teclas → **Atalhos**; bancada → **Ajustes de voz e vídeo**; rack → **Configurações**; engrenagem → liga/desliga **Abrir só ao chegar ao local** |
   | Arquitetura | maquete e planta emoldurada → **Planta da empresa** (frente B); prancheta → **Salas** |
   | Correio | caixa de correio e telefone → **Conversas**; escaninho → **Entregas** |
   | Sala de descanso | rede → **Modo clássico**; fliperama (E = jogar, da W1); TV com sofá, poltronas, puffs |
@@ -745,19 +745,19 @@ direto como sempre.
   planta emoldurada, painel de voz. Cada um usa um móvel do catálogo como **suporte** (footprint e se bloqueia) com a
   variante `kv-*` (`themes-dims.ts`, `kvSpriteDims`); o motor confere a largura real na parede. Gancho de 1 linha:
   `const art = kvArt(artModule)` em `client/src/world/index.ts` (`themes-art.ts`; `kvRegisterSprite` para outros).
-- **"Ir e fazer"** (`go-and-do.ts`, `kvGoAndDo(key, {direct?, spot?})`): o boneco anda (corre se longe) até o item da
+- **"Ir e fazer"** (`go-and-do.ts`, `kvGoAndDo(key, {direct?, spot?})`): o avatar anda (corre se longe) até o item da
   ação mais perto (`kvPlanWorld.actionSpots()`, calculado por `kvComputeActionSpots` em `themes-spots.ts`), vira para
   ele, faz a pose (mexer, ler papéis, pentear no espelho, falar no púlpito) e um brilho com o ícone sobe do item. Dois
-  jeitos, pela configuração **"Abrir só quando o boneco chegar"** (por pessoa, ver abaixo):
-  - **desligada (padrão)**: a janela abre **na hora do clique**, como antes do "ir e fazer", e o boneco vai andando até
-    o item mesmo assim (pose e brilho ao chegar; não reabre nada). **Fechar a janela antes de ele chegar para o boneco**
+  jeitos, pela configuração **"Abrir só ao chegar ao local"** (por pessoa, ver abaixo):
+  - **desligada (padrão)**: a janela abre **na hora do clique**, como antes do "ir e fazer", e o avatar vai andando até
+    o item mesmo assim (pose e brilho ao chegar; não reabre nada). **Fechar a janela antes de ele chegar para o avatar**
     (cancela o trajeto): `KvOpenWatch` (`go-and-do-model.ts`) olha as janelas novas (`dialog`, `[popover]`,
     `[role=dialog]`...) que apareceram até 1,5 s depois do clique e o `aria-expanded`/`aria-pressed` do botão; clicar
-    de novo no botão (ou a tecla) fecha a janela e para o boneco. Ação sem janela visível (mini-mapa, Visão geral...):
-    o boneco só vai até lá.
-  - **ligada**: o boneco anda e a janela **só abre quando ele chega**. Chip "Indo até o RH… · Esc cancela"; clicar de
+    de novo no botão (ou a tecla) fecha a janela e para o avatar. Ação sem janela visível (mini-mapa, Visão geral...):
+    o avatar só vai até lá.
+  - **ligada**: o avatar anda e a janela **só abre quando ele chega**. Chip "Indo até o RH… · Esc cancela"; clicar de
     novo, Esc ou andar cancela.
-  Nos dois: Esc ou andar cancela a ida; Shift+clique abre direto, sem andar. Sem boneco, modo clássico, boneco no
+  Nos dois: Esc ou andar cancela a ida; Shift+clique abre direto, sem andar. Sem avatar, modo clássico, avatar no
   elevador, sem planta ou sem item: abre direto.
   - **Botões ligados** sem reescrever os módulos das outras frentes (`themes-actions.ts`, `KV_ACTION_DEFS`): um
     listener de captura em cada botão (os do topo, os que foram para o menu **Mais** — continuam os mesmos — e o "?"
@@ -765,11 +765,11 @@ direto como sempre.
     direto; botão já ligado/aberto (conversa aberta, foco ligado, modo clássico) fecha direto. Teclas **L**, **M** e
     **?** também passam por ele. Ações registradas pelas irmãs (`organograma`, `planta`) valem igual.
   - **Tecla E** perto de um item ("E · Registro (RH)", também no botão de toque do celular), **clique no item** (perto ou
-    longe: o boneco vai e usa) e **contorno aceso** com o nome ao passar o mouse.
+    longe: o avatar vai e usa) e **contorno aceso** com o nome ao passar o mouse.
   - **Quem pode**: cada ação pergunta ao botão dela (escondido = não pode) e Timelapse, Meu dia, Histórico e Novo agente
     são só da equipe (cliente e visitante: o servidor já recusava). Item de ação que eu não posso não acende, não tem E
     nem clique.
-  - **Configuração "Abrir só quando o boneco chegar"** (padrão desligada), **salva por pessoa**: `profile.prefs`
+  - **Configuração "Abrir só ao chegar ao local"** (padrão desligada), **salva por pessoa**: `profile.prefs`
     (`{abrirAoChegar}`) no `users.json` da conta (`<dataDir>/kaviski/`; visitante: no perfil do convite), lida e gravada
     só pela própria pessoa em `GET/POST /api/kaviski/humanos/prefs` (`server/kaviski/humanos/prefs.ts`; formato e
     validação em `shared/kaviski-prefs.ts`: chave desconhecida some, valor de tipo errado = 400; acesso local sem login
@@ -777,9 +777,9 @@ direto como sempre.
     sem conta ou sem resposta, fica no `localStorage` (`habblaud.kv.prefs`). A opção antiga `habblaud.kv.irAndando`
     (que desligava a caminhada) é ignorada: o padrão novo já abre na hora. Onde mudar: **Configurações › Ir e fazer**
     (grupo registrado em `client/src/kaviski/settings-groups.ts`), o botão "🚶 Abrir ao chegar" na lista de quem está
-    online (ao lado de Meu boneco) e a engrenagem da sala de TI.
+    online (ao lado de Meu avatar) e a engrenagem da sala de TI.
 - Testes no navegador (Playwright, instância 4811/4812, planta `habblaud.kvPlan.example()` com as 12 salas, 38 itens):
-  cada ação do topo leva o boneco ao item certo e abre a janela; Esc cancela; Shift abre direto; E e clique; contorno;
+  cada ação do topo leva o avatar ao item certo e abre a janela; Esc cancela; Shift abre direto; E e clique; contorno;
   pose no espelho; cliente sem Pessoas/Registro/Convites/Novo agente/Timelapse/Meu dia/Histórico e sem "E · Pessoas" no
   balcão; celular (menu Mais → anda até o RH; botão de toque "E · Registro (RH)"). Depuração: `habblaud.kvGoAndDo(key)`,
   `habblaud.kvActions()`, `habblaud.kvPlanWorld.actionSpots()`.

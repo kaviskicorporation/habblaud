@@ -489,7 +489,7 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
     const person = whoIs(req);
     if (!person) {
       req.resume();
-      return sendJson(res, 403, { error: tr('entre com a sua conta para ter um boneco') });
+      return sendJson(res, 403, { error: tr('entre com a sua conta para ter um avatar') });
     }
     if (method === 'GET' || method === 'HEAD') {
       req.resume();
@@ -503,7 +503,7 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
     readJson(req, 8192)
       .then((body) => {
         const look = kvParseLook((body as { look?: unknown })?.look);
-        if (!look) throw new HttpError(400, tr('boneco inválido'));
+        if (!look) throw new HttpError(400, tr('avatar inválido'));
         if (!users.setProfile(person.id, { ...users.profile(person.id), look })) throw new HttpError(404, tr('pessoa não encontrada'));
         presence.touch();
         sendJson(res, 200, { look });

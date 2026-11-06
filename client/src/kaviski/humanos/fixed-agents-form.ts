@@ -69,7 +69,7 @@ export class KvFixedAgentForm {
     this.seatText = h('span', { class: 'kv-faf__seat-text' });
     const pick = kvBtn(tr('Escolher no escritório'), { icon: KV_ORG_ICONS.chair, onClick: () => void this.pickSeat() });
     this.seatClear = kvBtn(tr('Sem cadeira'), { variant: 'ghost', onClick: () => ((this.draft.seat = undefined), (this.draft.seatSide = undefined), this.paintSeat()) });
-    this.lookOn = kvToggle(tr('Aparência própria'), { hint: tr('Sem isso, o agente usa o boneco que já tem.'), onChange: (v) => (this.lookBox.hidden = !v) });
+    this.lookOn = kvToggle(tr('Aparência própria'), { hint: tr('Sem isso, o agente usa o avatar que já tem.'), onChange: (v) => (this.lookBox.hidden = !v) });
     const roll = kvBtn(tr('Sortear'), { icon: KV_ICONS.dice, onClick: () => this.roll() });
     this.lookBox = h('div', { class: 'kv-faf__look ui-char', hidden: true }, h('div', { class: 'ui-char__top kv-pf__top' }, this.fields.preview, h('div', { class: 'kv-pf__side' }, roll)), this.fields.groups);
     this.error = h('p', { class: 'kv-pp__error', attrs: { role: 'alert' }, hidden: true });
