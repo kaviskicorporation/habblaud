@@ -167,4 +167,20 @@ describe('motor da planta', () => {
     expect(t.rect).toEqual({ x: 64, y: 0, w: 16, h: 12 });
     expect(t.spots.length).toBe(orig.spots.length);
   });
+  for (const kind of ['reuniao', 'descanso', 'pessoal', 'outra'] as const) {
+    it(`sala própria "${kind}" de 8x8 a 30x20: lugares só da sala, nada na porta`, () => {
+      for (const [w, h] of [
+        [8, 8],
+        [16, 12],
+        [30, 20],
+      ] as const) {
+        const info = { id: 'kvsala-x', name: 'Sala', seed: 1, slot: 0, kvOwn: { kind, decor: [{ kind: 'planta', x: 3, y: 3 }] } } as never;
+        const a = kvLayoutPlanRoom({ id: 'kvsala-x', rect: { x: 0, y: 0, w, h }, doors: [{ side: 's', at: 2 }], theme: THEME, seed: 5, item: { id: 'el-p', kind: 'propria', ref: 'kvsala-x', x: 0, y: 0, w, h }, furnisher: `propria:${kind}`, info });
+        expect(a.spots.every((sp) => ['desk', 'stool', 'nook', 'stand', 'switch', 'whiteboard'].includes(sp.kind)), `${kind} ${w}x${h}`).toBe(true);
+        if (w >= 16) expect(a.spots.filter((sp) => sp.kind !== 'switch' && sp.kind !== 'whiteboard').length).toBeGreaterThan(1);
+        // a passagem da porta (2 tiles para dentro) fica livre
+        for (const f of a.furniture) expect(!(f.tx >= 2 && f.tx <= 3 && f.ty >= h - 3 && f.ty <= h - 2), `${f.id}`).toBe(true);
+      }
+    });
+  }
 });

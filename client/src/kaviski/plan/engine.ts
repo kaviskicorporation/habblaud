@@ -18,7 +18,7 @@ import { kvLayoutRoom, kvLayoutRoomOriginal, kvOwnMark } from '../humanos/rooms-
 import { kvPlanWorld } from './api';
 import { kvBridgeFloors, kvBuildFromStatics, kvOutsideSides, kvPlanStatics, kvStripItem, kvTranslateArea, type KvBuilding, type KvStatics } from './engine-build';
 import { kvPlanExterior } from './engine-ext';
-import { kvFixedSlot, kvIndexPlan, kvInRect, kvSlotPlace, kvStripCount, type KvPlanIndex } from './engine-geom';
+import { kvFixedSlot, kvIndexPlan, kvInRect, kvSlotPlace, kvStripCount, kvStripRect, type KvPlanIndex } from './engine-geom';
 import { kvLayoutPlanRoom } from './engine-room';
 import { kvPlanHooks, type KvPlanEngineHooks } from './hooks';
 import { kvThemeColor, kvThemeInfo } from './themes-info';
@@ -49,6 +49,7 @@ const planned = new WeakSet<Sim>();
 /** Tags de cada layout de sala (furnishers) e cache das áreas fixas. */
 const roomTags = new WeakMap<AreaLayout, Map<string, string[]>>();
 let staticsCache: KvStatics | null = null;
+const stripOf = new WeakMap<Sim, { plan: KvPlan; n: number }>();
 let extCache: { key: number; ext: ExteriorLayout } | null = null;
 const lastSims = new Set<WeakRef<Sim>>();
 
@@ -89,7 +90,16 @@ function staticsFor(sim: Sim): KvStatics | null {
   if (!plan || !ix) return null;
   const slots: number[] = [];
   for (const r of sim.rooms.values()) if (r.present) slots.push(r.slot);
-  const n = kvStripCount(ix, slots);
+  let n = kvStripCount(ix, slots);
+  // a faixa só encolhe quando ninguém está no pedaço que vai sumir (como o prédio original); senão espera o próximo relayout
+  const was = stripOf.get(sim);
+  if (was && was.plan === plan && n < was.n) {
+    const gone = kvStripRect(plan.auto, was.n);
+    const keep = kvStripRect(plan.auto, n);
+    const inTail = (x: number, y: number) => !!gone && kvInRect(gone, x, y) && !(keep && kvInRect(keep, x, y));
+    for (const ch of sim.people()) if (!ch.gone && inTail(Math.floor(ch.x / TILE), Math.floor(ch.y / TILE))) n = was.n;
+  }
+  stripOf.set(sim, { plan, n });
   if (!staticsCache || staticsCache.plan !== plan || staticsCache.stripN !== n) staticsCache = kvPlanStatics(plan, n, themeFor, ix);
   return staticsCache;
 }
@@ -118,6 +128,7 @@ function applyTo(sim: Sim): void {
     const s = ch.atSpot ? sim.spots.get(ch.atSpot) : undefined;
     if (s) seated.set(ch.id, { kind: s.kind, x: s.x, y: s.y });
   }
+  if (ix) staticsFor(sim); // as salas olham a planta já montada (lados que dão para a grama)
   for (const r of rooms) {
     r.layout = kvLayoutRoom({ id: r.info.id, slot: r.slot, seed: r.seed }, r.theme, r.info, sim);
     r.version++;

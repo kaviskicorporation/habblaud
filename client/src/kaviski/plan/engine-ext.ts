@@ -171,7 +171,9 @@ export function kvPatioShell(slot: number, rect: TileRect, open: KvEdgeRuns): Sl
   props.push({ kind: 'tree', x: x0 + px(1) + 6, y: y0 + px(Math.min(rect.h - 1, 3)), seed: seed(), slot });
   props.push({ kind: rng() < 0.5 ? 'pine' : 'tree', x: x0 + px(rect.w - 1) - 6, y: y0 + px(Math.min(rect.h - 1, 3)) + 6, seed: seed(), slot });
   if (rect.h >= 10) props.push({ kind: 'rock', x: x0 + px(rect.w - 2), y: y0 + px(rect.h - 3), seed: slot + 3, slot });
-  return { slot, rect, walls, windows, floors, props };
+  // o retângulo da casca é onde a luz do corredor bate à noite (lighting.ts): a linha da parede que fecha o corredor
+  const lit = open.s.length ? { x: rect.x, y: rect.y + rect.h - 1, w: rect.w, h: 1 } : open.n.length ? { x: rect.x, y: rect.y, w: rect.w, h: 1 } : { x: rect.x, y: rect.y, w: rect.w, h: 0 };
+  return { slot, rect: lit, walls, windows, floors, props };
 }
 
 /** Fechamento de um corredor nos lados encostados na grama (nunca some: slot que nenhuma sala usa). */
