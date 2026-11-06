@@ -381,3 +381,16 @@
   border: 1px solid var(--ui-line);
   background: rgba(0, 0, 0, 0.2);
 }
+
+/* celular: o chip fica só com o nome */
+@media (max-width: 520px) {
+  .kv-me {
+    max-width: 120px;
+    margin-left: 2px;
+  }
+
+  .kv-me__role,
+  .kv-me__count {
+    display: none;
+  }
+}

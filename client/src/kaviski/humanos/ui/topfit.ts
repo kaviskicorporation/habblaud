@@ -111,8 +111,11 @@ function openMenu(): void {
   );
   const r = more.getBoundingClientRect();
   menu.hidden = false;
+  // alinhado pela direita do botão, sem sair da tela (no celular o botão fica no meio)
+  const w = Math.min(menu.offsetWidth, window.innerWidth - 16);
+  menu.style.maxWidth = `${window.innerWidth - 16}px`;
   menu.style.top = `${Math.round(r.bottom + 8)}px`;
-  menu.style.right = `${Math.round(Math.max(8, window.innerWidth - r.right))}px`;
+  menu.style.left = `${Math.round(Math.max(8, Math.min(window.innerWidth - w - 8, r.right - w)))}px`;
   more.setAttribute('aria-expanded', 'true');
   menu.querySelector<HTMLButtonElement>('button')?.focus();
 }

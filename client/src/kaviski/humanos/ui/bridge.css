@@ -361,3 +361,11 @@
   color: var(--ui-accent);
   background: var(--ui-accent-soft);
 }
+
+/* celular: com a conversa, a lista de online ou o cartão abertos (tela cheia), o joystick e o botão E (touch.ts)
+   saem da frente */
+@media (max-width: 700px) {
+  .ui-root:has(.kv-cv:not([hidden]), .kv-ol:not([hidden]), .kv-pc:not([hidden])) :is(.kv-stick, .kv-touch-act) {
+    display: none !important;
+  }
+}
