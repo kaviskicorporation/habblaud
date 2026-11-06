@@ -138,9 +138,13 @@
 .kv-sc-group__title {
   margin: 0;
   flex: 1;
+  font: 800 14px/1.1 var(--font-ui);
+  color: color-mix(in srgb, var(--kv-sc) 70%, #fff);
+}
+/* a fonte em pixel só quando o título não tem "C" maiúsculo nem dígitos (ela os confunde) */
+.kv-sc-group__title.is-px {
   font: 500 15px/1.1 var(--font-px);
   letter-spacing: 0.03em;
-  color: color-mix(in srgb, var(--kv-sc) 70%, #fff);
 }
 .kv-sc-group__n {
   min-width: 22px;

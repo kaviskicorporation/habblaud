@@ -8,7 +8,7 @@ import { tr } from '../../../../shared/i18n';
 import { h } from '../../ui/dom';
 import { pixelIcon } from '../../ui/icons';
 import { KV_SHORTCUTS, kvKeyName, kvKeyParts, kvOnShortcuts, kvShortcutHit, type KvKey, type KvShortcut, type KvShortcutGroup } from './shortcuts-list';
-import { KV_ICONS, kvBtn, kvInput } from './ui/kit';
+import { KV_ICONS, kvBtn, kvInput, kvPxSafe } from './ui/kit';
 import { KvModal } from './ui/modal';
 import './shortcuts.css';
 
@@ -96,7 +96,7 @@ function groupCards(team: boolean, compact: boolean): { el: HTMLElement; rows: {
     const card = h(
       'section',
       { class: 'kv-sc-group', attrs: { 'data-group': g.key } },
-      h('header', { class: 'kv-sc-group__head' }, groupIcon(g), h('h3', { class: 'kv-sc-group__title', text: g.title }), h('span', { class: 'kv-sc-group__n', text: String(items.length) })),
+      h('header', { class: 'kv-sc-group__head' }, groupIcon(g), h('h3', { class: `kv-sc-group__title${kvPxSafe(g.title) ? ' is-px' : ''}`, text: g.title }), h('span', { class: 'kv-sc-group__n', text: String(items.length) })),
       list,
     );
     card.style.setProperty('--kv-sc', g.color);
