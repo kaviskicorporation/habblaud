@@ -10,6 +10,8 @@ export const KV_MARCA_EN: Readonly<Record<string, string>> = {
   'Sem nome de empresa.': 'No company name.',
   'empresa.json ilegível ({0}); vale o HABBLAUD_BRAND.': 'empresa.json unreadable ({0}); using HABBLAUD_BRAND.',
   'só quem é admin muda o nome da empresa': 'only admins can change the company name',
+  'Conexão segura': 'Secure connection',
+  'Escritório no ar': 'Office online',
 };
 
 export const KV_MARCA_ES: Readonly<Record<string, string>> = {
@@ -22,6 +24,8 @@ export const KV_MARCA_ES: Readonly<Record<string, string>> = {
   'Sem nome de empresa.': 'Sin nombre de empresa.',
   'empresa.json ilegível ({0}); vale o HABBLAUD_BRAND.': 'empresa.json ilegible ({0}); vale HABBLAUD_BRAND.',
   'só quem é admin muda o nome da empresa': 'solo quien es admin cambia el nombre de la empresa',
+  'Conexão segura': 'Conexión segura',
+  'Escritório no ar': 'Oficina en línea',
 };
 
 export const KV_MARCA_FR: Readonly<Record<string, string>> = {
@@ -34,4 +38,6 @@ export const KV_MARCA_FR: Readonly<Record<string, string>> = {
   'Sem nome de empresa.': "Pas de nom d'entreprise.",
   'empresa.json ilegível ({0}); vale o HABBLAUD_BRAND.': 'empresa.json illisible ({0}) ; HABBLAUD_BRAND est utilisé.',
   'só quem é admin muda o nome da empresa': "seuls les admins peuvent changer le nom de l'entreprise",
+  'Conexão segura': 'Connexion sécurisée',
+  'Escritório no ar': 'Bureau en ligne',
 };

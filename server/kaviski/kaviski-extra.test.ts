@@ -112,6 +112,10 @@ describe('marca (HABBLAUD_BRAND)', () => {
     expect(branded).toContain('<title>Kaviski &lt;Corp&gt; · entrar</title>');
     expect(branded).toContain('escritório virtual · Habblaud');
     expect(branded).not.toContain('<h1>Habblaud</h1>');
+    expect(branded).toContain('/assets/brand/login-wallpaper.png');
+    expect(branded).toContain('class="kv-bg"');
+    expect(branded.indexOf('kv-field')).toBeLessThan(branded.indexOf('</body>'));
+    expect(branded).toContain('id="f"'); // o formulário original continua
   });
 });
 

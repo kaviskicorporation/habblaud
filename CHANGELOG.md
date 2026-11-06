@@ -12,6 +12,12 @@ do meio (0.**3**.0).
 
 ### Adicionado (fork Kaviski)
 
+- **Tela de login nova.** Fundo com um wallpaper em pixel art gerado por IA (escritório noturno com a cidade ao
+  fundo, nas cores do Voxtrin) em zoom lento, estrelas piscando, brilhos e partículas subindo e estrelas cadentes.
+  O card virou vidro fosco com borda que gira em vermelho e prata, sombra em camadas, o "V" flutuando no alto e uma
+  leve inclinação 3D que segue o mouse; campos com ícones, botão "mostrar senha", saudação do dia, botão com relevo
+  que afunda ao clicar e aviso "Escritório no ar". Vale também para a página de convite. Com "reduzir movimento"
+  ligado no sistema, nada se mexe.
 - **Barra de ações nova (tecla E).** Perto de um móvel ou objeto, sobre o avatar aparece uma pílula com o ícone
   colorido da ação (azul para sentar, laranja para comer e beber, rosa para jogos, verde para o quadro...), o nome e a
   tecla **E**; com várias coisas por perto, as outras ações vêm embaixo, menores: **Tab** escolhe qual o E usa e um

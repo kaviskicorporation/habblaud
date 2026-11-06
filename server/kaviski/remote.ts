@@ -6,6 +6,7 @@ import { tr } from '../../shared/i18n';
 import { kvProduto } from '../../shared/kaviski-marca';
 import { kvEmpresaNome } from './empresa';
 import { frameAncestorsDirective } from './frame';
+import { KV_LOGIN_BG, KV_LOGIN_CSS, kvLoginScript } from './login-visual';
 
 /** `target` ("/login" ou "/") com o `?sala=` (ou `?room=`) de `reqUrl`, se houver. */
 export function kvKeepRoomQuery(target: string, reqUrl: string | undefined): string {
@@ -38,14 +39,18 @@ function esc(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-/** Logotipo do Voxtrin (assets/brand/wordmark.png, liberado sem login: PUBLIC_STATIC) e as cores do site. */
+/** Logotipo do Voxtrin (assets/brand/wordmark.png, liberado sem login: PUBLIC_STATIC), as cores do site e o visual novo
+ * (login-visual.ts: wallpaper, animações e o card de vidro). */
 const LOGIN_HEAD = `<link rel="icon" href="/assets/brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="preload" as="image" href="/assets/brand/login-wallpaper.png">
+<meta name="theme-color" content="#0b0d14">
 <style>
   .kv-logo { display: block; width: 210px; max-width: 70%; height: auto; margin: 0 0 18px; filter: drop-shadow(0 8px 22px rgba(226,44,63,.28)); }
   .kv-sub { margin: -2px 0 14px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #8b8f9c; }
   input:focus { border-color: #e22c3f !important; }
   button { background: #e22c3f !important; color: #fff !important; }
   h1 { color: #eef0f4 !important; }
+${KV_LOGIN_CSS}
 </style>
 </head>`;
 
@@ -61,6 +66,8 @@ export function kvBrandLogin(html: string, env: NodeJS.ProcessEnv = process.env)
   const logo = `<img class="kv-logo" src="/assets/brand/wordmark.png" alt="${produto}" width="210" height="51">`;
   const out = html
     .replace('</head>', LOGIN_HEAD)
+    .replace(/<body>/, () => `<body>\n${KV_LOGIN_BG}`)
+    .replace(/<\/body>/, () => `${kvLoginScript()}\n</body>`)
     .replace('<meta name="apple-mobile-web-app-title" content="Habblaud">', `<meta name="apple-mobile-web-app-title" content="${brand ? esc(brand) : produto}">`);
   if (!brand) return out.replace('<h1>Habblaud</h1>', `${logo}\n  <h1 class="kv-sr" style="position:absolute;left:-9999px">${produto}</h1>`);
   return out
