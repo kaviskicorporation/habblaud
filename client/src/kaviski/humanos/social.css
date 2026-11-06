@@ -1,0 +1,351 @@
+/* Fork Kaviski (KAVISKI-HUMANOS.md, W2): status com nota, avisos, reações, sala trancada e roda privada. */
+
+/* ---- não perturbe: bolinha roxa com um traço ---- */
+
+.kv-me[data-status='naoperturbe'] .kv-me__dot,
+.kv-st--naoperturbe::before,
+.kv-online__dot.kv-st--naoperturbe,
+.kv-chat__presence.kv-st--naoperturbe {
+  background: #b07cff;
+  box-shadow: inset 0 0 0 2px #b07cff, inset 0 -3px 0 -1px #fff;
+}
+
+/* ---- nota do status (na lista de online) ---- */
+
+.kv-stnote {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kv-stnote__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kv-stnote__input {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--ui-line-strong);
+  background: var(--ui-bg);
+  color: var(--ui-text);
+  font: 12.5px/1.3 var(--font-ui);
+}
+
+.kv-stnote__until {
+  padding: 4px 4px;
+  border-radius: 6px;
+  border: 1px solid var(--ui-line-strong);
+  background: var(--ui-bg);
+  color: var(--ui-text);
+  font: 12px/1.3 var(--font-ui);
+}
+
+.kv-stnote__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.kv-stnote__chip {
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--ui-line);
+  background: none;
+  color: var(--ui-muted);
+  font: 11.5px/1.5 var(--font-ui);
+  cursor: pointer;
+}
+
+.kv-stnote__chip:hover {
+  color: var(--ui-text);
+  border-color: var(--ui-line-strong);
+  background: var(--ui-bg-hover);
+}
+
+.kv-stnote__info {
+  flex: 1;
+  margin: 0;
+  color: var(--ui-muted);
+  font-size: 11.5px;
+}
+
+/* ---- avisos na página ---- */
+
+.kv-toasts {
+  position: fixed;
+  z-index: 70;
+  right: 14px;
+  bottom: 14px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  width: min(340px, calc(100vw - 28px));
+  pointer-events: none;
+}
+
+.kv-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 10px 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--ui-line-strong);
+  background: var(--ui-bg-solid);
+  box-shadow: 0 18px 50px rgba(5, 7, 12, 0.55);
+  color: var(--ui-text);
+  font: 13px/1.4 var(--font-ui);
+  pointer-events: auto;
+  animation: kv-toast-in 0.18s ease-out;
+}
+
+.kv-toast--call {
+  border-color: var(--ui-accent);
+  box-shadow: 0 0 0 1px var(--ui-accent-soft), 0 18px 50px rgba(5, 7, 12, 0.55);
+}
+
+.kv-toast--call .kv-toast__icon {
+  animation: kv-wiggle 0.9s ease-in-out infinite;
+}
+
+.kv-toast__icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.kv-toast__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kv-toast__text {
+  color: var(--ui-muted);
+  overflow-wrap: anywhere;
+}
+
+.kv-toast__actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+@keyframes kv-toast-in {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+}
+
+@keyframes kv-wiggle {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25% {
+    transform: rotate(-14deg);
+  }
+  75% {
+    transform: rotate(14deg);
+  }
+}
+
+/* ---- sino do topo ---- */
+
+.kv-btn-alerts.is-dnd {
+  color: #b07cff;
+}
+
+.kv-alerts {
+  position: fixed;
+  z-index: 60;
+  width: 290px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--ui-line-strong);
+  background: var(--ui-bg-solid);
+  box-shadow: 0 18px 50px rgba(5, 7, 12, 0.55);
+  color: var(--ui-text);
+  font: 13px/1.4 var(--font-ui);
+}
+
+.kv-alerts[hidden] {
+  display: none;
+}
+
+.kv-alerts__hint,
+.kv-alerts__state {
+  margin: 0;
+  color: var(--ui-muted);
+  font-size: 12px;
+}
+
+.kv-alerts__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kv-alerts .is-on {
+  color: #b07cff;
+  border-color: #b07cff;
+}
+
+/* ---- barra do topo ---- */
+
+.kv-dock__social {
+  display: contents;
+}
+
+.kv-dock__plain::after {
+  display: none;
+}
+
+.kv-dock__plain {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.kv-react-strip {
+  display: inline-flex;
+  gap: 1px;
+}
+
+.kv-react-strip[hidden] {
+  display: none;
+}
+
+.kv-react-strip__btn {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.kv-react-strip__btn:hover {
+  background: var(--ui-bg-hover);
+  transform: translateY(-1px);
+}
+
+.kv-react-strip__btn.is-on {
+  background: var(--ui-accent-soft);
+}
+
+.kv-lock-btn.is-on {
+  color: var(--st-waiting);
+  background: rgba(255, 181, 71, 0.14);
+}
+
+.kv-bubble-btn {
+  white-space: nowrap;
+}
+
+.kv-bubble-btn.is-on {
+  color: var(--ui-accent);
+  border-color: var(--ui-accent);
+}
+
+/* ---- por cima do escritório ---- */
+
+.kv-react-layer,
+.kv-lock-layer,
+.kv-bubble-layer {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.kv-react-layer {
+  z-index: 32;
+}
+
+.kv-lock-layer {
+  z-index: 31;
+}
+
+.kv-bubble-layer {
+  z-index: 29;
+}
+
+.kv-float,
+.kv-lock-pad {
+  position: absolute;
+  left: 0;
+  top: 0;
+  line-height: 1;
+  will-change: transform;
+}
+
+.kv-float {
+  font-size: 26px;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
+}
+
+.kv-hand {
+  display: inline-block;
+  font-size: 20px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
+  animation: kv-hand 1.6s ease-in-out infinite;
+}
+
+.kv-lock-pad[hidden] {
+  display: none;
+}
+
+@keyframes kv-hand {
+  0%,
+  100% {
+    rotate: -8deg;
+  }
+  50% {
+    rotate: 10deg;
+  }
+}
+
+.kv-lock-pad {
+  padding: 2px;
+  border-radius: 6px;
+  background: rgba(16, 20, 32, 0.78);
+  box-shadow: 0 0 0 1px rgba(255, 181, 71, 0.7);
+}
+
+.kv-lock-pad.is-in {
+  box-shadow: 0 0 0 1px rgba(79, 209, 139, 0.7);
+}
+
+.kv-bubble-ring {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 50%;
+  border: 2px dashed rgba(124, 200, 255, 0.35);
+  background: rgba(124, 200, 255, 0.05);
+  will-change: transform;
+}
+
+.kv-bubble-ring.is-mine {
+  border-color: rgba(124, 200, 255, 0.7);
+  background: rgba(124, 200, 255, 0.09);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kv-hand,
+  .kv-toast,
+  .kv-toast--call .kv-toast__icon {
+    animation: none;
+  }
+}

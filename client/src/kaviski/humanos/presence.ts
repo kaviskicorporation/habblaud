@@ -4,6 +4,10 @@
 import type { KvChatMessage, KvDirectMessage, KvPos, KvPresencePerson, KvPresenceState, KvStatus } from '../../../../shared/kaviski-presence';
 
 const URL_ = '/api/kaviski/humanos/presence';
+/** Eventos do fluxo da frente W2 (social.ts): chamar, reações, roda privada, bater na porta; `dm` é da conversa 1:1. */
+const KV_SOCIAL_EVENTS = ['ring', 'react', 'bubble', 'knock', 'knock-answer', 'dm'] as const;
+export type KvSocialEvent = (typeof KV_SOCIAL_EVENTS)[number];
+type KvStatusPart = { status?: KvStatus; note?: string; until?: number };
 export const SEND_MS = 120;
 
 type Listener = (s: KvPresenceState) => void;
@@ -14,21 +18,21 @@ export class KvPresenceClient {
   private readonly listeners = new Set<Listener>();
   /** Outros eventos do fluxo (chat da fase 2, chamada de agente da fase 3). */
   private readonly events = new Map<string, Set<(data: unknown) => void>>();
-  private pending: { pos?: KvPos | null; area?: string | null; status?: KvStatus } = {};
+  private pending: { pos?: KvPos | null; area?: string | null } & KvStatusPart = {};
   private lastArea: string | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private lastSent = 0;
   private lastPosKey = '';
   /** A última posição mandada (para mandar de novo depois de uma reconexão). */
   private lastPos: KvPos | null = null;
-  private lastStatus: KvStatus | null = null;
+  private lastStatus: KvStatusPart | null = null;
 
   start(): void {
     if (this.es) return;
     this.es = new EventSource(URL_, { withCredentials: true });
     this.es.addEventListener('open', () => {
       // reconectou (servidor reiniciado): o servidor me esqueceu, manda de novo onde estou
-      if (this.lastPos || this.lastStatus) this.queue({ ...(this.lastPos ? { pos: this.lastPos, area: this.lastArea } : {}), ...(this.lastStatus ? { status: this.lastStatus } : {}) }, true);
+      if (this.lastPos || this.lastStatus) this.queue({ ...(this.lastPos ? { pos: this.lastPos, area: this.lastArea } : {}), ...(this.lastStatus ?? {}) }, true);
     });
     this.es.addEventListener('people', (ev) => {
       try {
@@ -38,7 +42,7 @@ export class KvPresenceClient {
       }
       for (const cb of this.listeners) cb(this.state);
     });
-    for (const name of ['chat', 'summon', 'dm']) {
+    for (const name of ['chat', 'summon', ...KV_SOCIAL_EVENTS]) {
       this.es.addEventListener(name, (ev) => {
         let data: unknown;
         try {
@@ -51,8 +55,8 @@ export class KvPresenceClient {
     }
   }
 
-  /** Ouve um evento do fluxo de presença (`chat`, `summon`, `dm`). */
-  onEvent<T>(name: 'chat' | 'summon' | 'dm', cb: (data: T) => void): () => void {
+  /** Ouve um evento do fluxo de presença (`chat`, `summon`, `dm` e os da W2). */
+  onEvent<T>(name: 'chat' | 'summon' | KvSocialEvent, cb: (data: T) => void): () => void {
     let set = this.events.get(name);
     if (!set) this.events.set(name, (set = new Set()));
     set.add(cb as (data: unknown) => void);
@@ -145,12 +149,13 @@ export class KvPresenceClient {
     this.queue({ pos, area: pos ? area : null }, !pos || pos.m === 0 || areaChanged);
   }
 
-  setStatus(status: KvStatus): void {
-    this.lastStatus = status;
-    this.queue({ status }, true);
+  /** Meu status; W2: com a nota e o "até" (status.ts kvSetStatus decide qual vale). */
+  setStatus(status: KvStatus, note = '', until = 0): void {
+    this.lastStatus = { status, note, until };
+    this.queue({ status, note, until }, true);
   }
 
-  private queue(part: { pos?: KvPos | null; area?: string | null; status?: KvStatus }, now: boolean): void {
+  private queue(part: { pos?: KvPos | null; area?: string | null } & KvStatusPart, now: boolean): void {
     Object.assign(this.pending, part);
     if (this.timer) {
       if (!now) return;

@@ -40,7 +40,7 @@ function isTyping(t: EventTarget | null): boolean {
 
 /** A fala da área chega a mim? Sala de projeto: sempre; área aberta: só se quem falou está perto (ou fui eu). */
 export function kvChatAudible(m: Pick<KvChatMessage, 'area' | 'from'>, me: string, dist: number | null): boolean {
-  if (m.from.id === me || m.area.startsWith('r:')) return true;
+  if (m.from.id === me || m.area.startsWith('r:') || m.area.startsWith('b:')) return true; // W2: b: = roda privada
   return dist !== null && dist <= CHAT_RANGE;
 }
 
@@ -320,7 +320,9 @@ export class KvChatPanel {
         ? tr('Entre no escritório (Andar) para conversar aqui.')
         : this.area?.startsWith('r:')
           ? tr('Todos nesta sala leem.')
-          : tr('Por proximidade: só quem está perto lê.');
+          : this.area?.startsWith('b:')
+            ? tr('Conversa privada: só quem está na roda lê.')
+            : tr('Por proximidade: só quem está perto lê.');
       this.greetBtn.hidden = false;
       this.input.disabled = !name;
       return;
@@ -398,7 +400,7 @@ export class KvChatPanel {
 
   /** Trocou de área: a conversa "Aqui" recomeça (e, numa sala de projeto, busca o histórico curto). */
   private watchArea(): void {
-    const area = kvPeople.inside ? kvPeople.area : null;
+    const area = kvPeople.inside ? (kvPeople.callArea ?? kvPeople.area) : null; // W2: na roda privada, a fala dela
     if (area === this.area) return;
     this.area = area;
     this.areaUnread = 0;
@@ -419,7 +421,7 @@ export class KvChatPanel {
       return;
     }
     if (!area.startsWith('r:')) {
-      this.list.append(h('li', { class: 'kv-chat__hint', text: tr('Aqui a conversa é por proximidade: só quem está perto lê.') }));
+      this.list.append(h('li', { class: 'kv-chat__hint', text: area.startsWith('b:') ? tr('Conversa privada: só quem está na roda lê.') : tr('Aqui a conversa é por proximidade: só quem está perto lê.') }));
       return;
     }
     void this.client.history(area).then((msgs) => {

@@ -296,6 +296,53 @@ lugar de guardar).
   `client/src/kaviski/humanos/{w1,me,seats,furniture,goto,classic,touch,stick,desk-labels}.ts` + `w1.css` (+ `seats.test.ts`),
   traduções em `shared/locales/kaviski-w1.ts`.
 
+### Chamar, avisos, status com nota, reações, sala trancada e roda privada (2026-11-06) ✅ (pacote Gather, W2)
+- **Status com nota** (`client/src/kaviski/humanos/status.ts`): disponível, ocupado, ausente e **não perturbe**
+  (`KvStatus` ganhou `'naoperturbe'`), nota livre de até 60 caracteres (sugestões 🍽️ Almoçando, 📅 Em reunião, 🎧 Focado,
+  🏠 Home office, ☕ Pausa, 🚗 A caminho) e "até" (30 min, 1 h, 2 h, 4 h, hoje). O servidor guarda `note`/`until` na
+  presença e limpa sozinho quando vence (`KvPresence.expire`, a cada 5 s). Aparece no selo do boneco, na lista de online e
+  no cartão. **API para outros módulos**: `kvSetStatus({status?, note?, until?, source?})`, `kvClearStatus(source)`,
+  `kvStatusNow()`, `kvOnStatus(cb)`. Cada fonte é uma camada: vale a manual se não for a padrão (disponível sem nota);
+  senão a automática mais recente ainda válida (agenda e foco entram por `auto-status.ts`); senão disponível. Por cima, o
+  **ausente automático**: aba escondida 10 min ou sem mexer 15 min (menos em não perturbe), volta sozinho. A manual
+  fica lembrada no navegador.
+- **Avisos fora da aba** (`alerts.ts`): toque curto feito na hora (WebAudio, sem arquivo), notificação do navegador
+  (permissão só pelo botão "Permitir notificações" do sino **Avisos** no topo, nunca ao abrir), título piscando com o
+  contador e o contador também no ícone da aba; voltar à aba zera. Avisa: chamada, 1:1 (evento `dm`), **@menção** no chat
+  da área (primeira palavra do nome ou o usuário, sem acento), batida na porta e **alguém entrando na minha sala** (a da
+  mesa fixa `kvPeople.myDesk`, a sala própria `kvPeople.myRoom()` ou, sem elas, a sala em que estou). Preferências (sons,
+  notificações) lembradas. Não perturbe: sem som e sem notificação (aviso na página e contador continuam, quietos).
+- **Chamar** (`ring.ts`, ação "Chamar" 🔔 no cartão): `POST /api/kaviski/humanos/ring {to}` → evento `ring` só para
+  quem foi chamado; toque, notificação e aviso com **Ir até** (`kvPeople.goTo`, senão leva a câmera) e **Responder**
+  (abre a 1:1). Só chama quem eu vejo (a mesma regra da presença); em não perturbe responde 409 "Fulano está em não
+  perturbe". Limite: 1 a cada 15 s para a mesma pessoa e 6 por minuto. Vai ao Registro ("chamar pessoa", sem texto).
+- **Reações rápidas** (`reactions.ts`): botão 😀 na barra do topo e teclas **1–9** (foco no escritório, roda de
+  cumprimentos fechada). `POST /react {emoji}` → evento `react` só para quem vê o meu boneco; o emoji sobe e some sobre
+  a cabeça. **✋** levanta/baixa a mão: fica no `people` (`hand`) e aparece na pilha da cabeça (`kvHeads`, ordem 30) e na
+  lista. Limite: 8 a cada 5 s.
+- **Trancar a sala / bater na porta** (`locks.ts`; servidor `social.ts`): numa sala (de projeto ou própria), **equipe e
+  admin** trancam pelo cadeado da barra; **cliente e visitante não trancam** (mas, se estavam dentro, ficam na lista e
+  respondem a quem bate). A lista de quem entra = quem estava dentro na hora + quem for deixado entrar; qualquer um da
+  lista destranca; **destranca sozinha** quando ninguém da lista está mais dentro. Trancada: cadeado na porta; o boneco de
+  quem está fora volta para fora da porta e, perto dela, **E · Bater na porta**; quem está dentro recebe "Fulano quer
+  entrar" com **Deixar entrar / Recusar**. No servidor: posição dentro da sala recusada (`guard` da presença), área do
+  chat e **token do LiveKit recusados** (guarda no `kvAreaAllowed`, `kvSetAreaGuard`) para quem não está na lista; cliente
+  não fica sabendo de tranca em sala que não é dele. Registro: trancar, destrancar, deixar entrar, recusar.
+- **Conversa privada** (`bubble.ts`): nas áreas abertas (núcleo e corredor), "🤫 Conversa privada" junta quem está a até
+  3 tiles num grupo `b:<id>` do servidor (que confere mesma área, visibilidade e distância). **Voz** (token próprio:
+  `kvAreaAllowed('b:<id>')` só para membros) e **chat** (o `chat.ts` usa `callAreaOf`) só do grupo; quem chega perto
+  depois não ouve nem lê (um membro chama pelo cartão: "Chamar para a conversa privada"). Contorno tracejado no chão em
+  volta do grupo. Afastar-se 6 tiles dos outros por 2,5 s (ou sair da área) tira da roda; com menos de 2, ela acaba.
+  `kvPeople.callArea` = a área de voz e chat que vale para mim (`media.ts` e `chat.ts` usam).
+- Rotas novas: `POST /api/kaviski/humanos/{ring,react,lock,knock,knock/answer,bubble}`; eventos novos do fluxo de
+  presença: `ring`, `react`, `bubble`, `knock`, `knock-answer`; campos novos: `note`, `until`, `hand`, `bubble` (pessoa) e
+  `locks` (estado). Ganchos genéricos nas deps do `KvPresence`: `guard`, `extra`, `state`, `callArea`, `changed`.
+- Código: `server/kaviski/humanos/social.ts` (+ `social.test.ts`), `shared/kaviski-social.ts`,
+  `shared/locales/kaviski-social.ts`, `client/src/kaviski/humanos/{social,social-api,status,status-text,alerts,ring,
+  reactions,locks,bubble,overlay}.ts` + `social.css`; mudanças pequenas em `presence.ts` (servidor e página),
+  `livekit.ts`, `chat.ts` (servidor e página), `index.ts` (servidor e página), `world.ts` (rótulo e selo), `online.ts`,
+  `person-card.ts`, `bar.ts` e `auto-status.ts` (agora repassa ao `status.ts`).
+
 ### Endereço público: https://escritorio.kaviski.com.br (2026-11-06)
 Decisão do Vitor: **sem VPS**. O nome só funciona na rede local e pela VPN (Tailscale, que roteia 192.168.1.0/24).
 Infraestrutura feita pela sessão `01.Geral` (rede/proxy: não mexer sem avisar):

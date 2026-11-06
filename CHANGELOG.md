@@ -24,6 +24,13 @@ do meio (0.**3**.0).
   Fulano" e o agente chamado vai até ela. **Tecla E** perto dos móveis: sentar, levantar, tomar café, beber água,
   jogar fliperama, pegar um livro — os outros veem a pose. No cartão da pessoa: **Seguir**, **Teleportar** e **Ir até a
   mesa**. Duplo clique no chão corre. No celular: joystick e botão E na tela.
+- **Chamar** uma pessoa (toque, notificação do navegador e aviso com "Ir até" / "Responder"), **avisos fora da aba**
+  (título piscando, contador no ícone, sons e notificações para chamada, 1:1, @menção, batida na porta e alguém
+  entrando na sua sala) e o sino de **Avisos** no topo.
+- **Status com nota e "até"** ("🍽️ Almoçando até 13h"), **não perturbe** e **ausente automático** com a aba parada.
+- **Reações rápidas** (👍 ❤️ 😂 🎉 👏 ☕ ✋ 😮 🙏, teclas 1–9) sobre o boneco; ✋ fica levantada até baixar.
+- **Trancar a sala** (cadeado na porta, quem está fora bate com E e quem está dentro deixa entrar) e **conversa
+  privada** nas áreas abertas (voz e chat só do grupo).
 
 ## [1.0.3] - 2026-10-16
 

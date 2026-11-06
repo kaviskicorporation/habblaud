@@ -13,6 +13,7 @@ const CHAT_ICON = pixelIcon(['.########.', '#........#', '#.##.##..#', '#.......
 export function kvAreaLabel(area: string | null, store: OfficeStore): string {
   if (!area) return '';
   if (area === 'c') return tr('corredor');
+  if (area.startsWith('b:')) return tr('conversa privada'); // W2: roda privada
   if (area.startsWith('a:')) {
     const names: Record<string, string> = { 'core:recepcao': tr('Recepção'), 'core:copa': tr('Copa'), 'core:banheiros': tr('Banheiros'), 'core:lounge': tr('Lounge') };
     return names[area.slice(2)] ?? area.slice(2);
@@ -76,7 +77,7 @@ export class KvBar {
 
   paint(): void {
     this.el.hidden = !kvPeople.inside;
-    const name = kvAreaLabel(kvPeople.area, this.store);
+    const name = kvAreaLabel(kvPeople.callArea ?? kvPeople.area, this.store);
     this.where.textContent = !name ? tr('Entrando…') : this.inCall ? tr('Na chamada: {0}', [name]) : name;
   }
 }

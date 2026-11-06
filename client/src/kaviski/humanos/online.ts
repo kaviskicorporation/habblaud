@@ -15,6 +15,7 @@ import { h, iconButton } from '../../ui/dom';
 import { ICONS } from '../../ui/icons';
 import { ROLE_LABEL } from './people';
 import { kvPeople, kvRandomSeed, STATUS_LABEL } from './world';
+import { kvSetStatus, kvStatusLine } from './status';
 import { kvOpenPersonCard } from './person-card';
 import { kvOnClassic, kvSetClassic } from './classic'; // fork Kaviski W1: modo clássico no lugar de Andar/Sair
 import { kvDeskSection } from './furniture';
@@ -59,7 +60,7 @@ export class KvOnline {
     this.walkBtn = h('button', { class: 'ui-btn ui-btn--sm', type: 'button', on: { click: () => kvSetClassic(!kvPeople.resting) } });
     const status = h('div', { class: 'kv-online__status', role: 'group', attrs: { 'aria-label': tr('Meu status') } });
     for (const s of KV_STATUSES) {
-      const b = h('button', { class: `ui-btn ui-btn--sm kv-st kv-st--${s}`, type: 'button', text: STATUS_LABEL[s], on: { click: () => kvPeople.client?.setStatus(s) } });
+      const b = h('button', { class: `ui-btn ui-btn--sm kv-st kv-st--${s}`, type: 'button', text: STATUS_LABEL[s], on: { click: () => kvSetStatus({ status: s }) } });
       this.statusBtns.set(s, b);
       status.append(b);
     }
@@ -140,7 +141,7 @@ export class KvOnline {
               'span',
               { class: 'kv-online__who' },
               h('span', { class: 'kv-online__name' }, h('span', { class: `kv-online__dot kv-st--${p.status}`, title: STATUS_LABEL[p.status] }), h('strong', { text: p.id === s?.me ? tr('{0} (você)', [p.name]) : p.name })),
-              h('span', { class: 'kv-online__where', text: `${ROLE_LABEL[p.role]} · ${STATUS_LABEL[p.status]} · ${whereText(p, snap)}` }),
+              h('span', { class: 'kv-online__where', text: `${ROLE_LABEL[p.role]} · ${kvStatusLine(p)} · ${whereText(p, snap)}` }),
             ),
           ),
         ),

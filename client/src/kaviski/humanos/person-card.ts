@@ -8,7 +8,8 @@ import { createAvatar } from '../../ui/avatar';
 import { h } from '../../ui/dom';
 import { kvOnPersonActions, kvPersonActions, kvRegisterPersonAction } from './person-actions';
 import { ROLE_LABEL } from './people';
-import { kvPeople, STATUS_LABEL } from './world';
+import { kvPeople } from './world';
+import { kvStatusLine } from './status';
 import type { KvPresenceClient } from './presence';
 import { whereText } from './online';
 import { kvOpenDirect, type KvChatPanel } from './chat';
@@ -78,7 +79,7 @@ export class KvPersonCard {
           { class: 'kv-person-card__who' },
           h('strong', { class: 'kv-person-card__name', text: p.name }),
           h('span', { class: `kv-role kv-role--${p.role}`, text: ROLE_LABEL[p.role] }),
-          h('span', { class: 'kv-person-card__status' }, h('span', { class: `kv-online__dot kv-st--${p.status}` }), h('span', { text: STATUS_LABEL[p.status] })),
+          h('span', { class: 'kv-person-card__status' }, h('span', { class: `kv-online__dot kv-st--${p.status}` }), h('span', { text: kvStatusLine(p) })),
           h('span', { class: 'kv-person-card__where', text: whereText(p, this.store.liveSnapshot ?? null) }),
         ),
       ),
