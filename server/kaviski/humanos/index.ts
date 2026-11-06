@@ -36,6 +36,7 @@ import { KvStage, kvStageRoute } from './stage';
 import { KvRooms, kvRoomsRoute, kvUseRooms, ROOMS_PATH } from './rooms';
 import { KvObjects, kvObjectsRoute } from './objects';
 import { kvCanEditOwnRoom } from '../../../shared/kaviski-rooms';
+import { KvPlanStore, kvIsPlanPath, kvPlanRoute, kvUsePlan } from './plan';
 
 export const HUMANOS_API = '/api/kaviski/humanos';
 const USERS_PATH = `${HUMANOS_API}/users`;
@@ -72,6 +73,8 @@ export interface KvHumanos {
   /** Salas próprias (rooms.ts) e objetos de parede (objects.ts). */
   readonly rooms: KvRooms;
   readonly objects: KvObjects;
+  /** Planta da empresa (plan.ts). */
+  readonly plan: KvPlanStore;
   /** Põe o login por pessoa na frente do gate original (sem HABBLAUD_HUMANOS=1, devolve o original). */
   gate(original: Gate, builtin: RemoteSessions, cfg: RemoteConfig): Gate;
   /** Liga o registro de mensagens (cliente que pode pedir tarefas). */
@@ -248,6 +251,12 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
     },
     enabled ? dir : null,
   );
+  // Planta livre (plan.ts): a planta da empresa, as salas fixas dela entram no snapshot (server/kaviski/index.ts).
+  const plan = new KvPlanStore(dir ? join(dir, 'plan.json') : null);
+  if (enabled) {
+    plan.load();
+    kvUsePlan(plan);
+  }
   const auditNote = (person: KvPerson, action: string, detail: string, ok: boolean) => audit.add(person, action, { detail: kvShort(detail), ok });
   let messages: KvMessageSender | undefined;
   const summoned = new Map<string, number>();
@@ -623,6 +632,7 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
     presence,
     rooms,
     objects,
+    plan,
     attachMessages(registry) {
       messages = registry;
     },
@@ -716,6 +726,17 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
           audit: auditNote,
           changed: () => presence.emit('rooms', { at: Date.now() }, () => true),
           removed: (id) => objects.dropArea(`r:${id}`),
+        });
+        return true;
+      }
+      if (kvIsPlanPath(path)) {
+        kvPlanRoute(req, res, path, {
+          store: plan,
+          whoIs,
+          view: { seesOwn: (id, p) => rooms.canSee(id, p) },
+          knownPaths: () => deps.snapshot().rooms.map((r) => r.path).filter((p): p is string => !!p),
+          audit: auditNote,
+          changed: (version) => presence.emit('plan', { version, at: Date.now() }, () => true),
         });
         return true;
       }

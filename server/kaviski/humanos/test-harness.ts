@@ -33,6 +33,7 @@ export const INTERNO = '/proj/Interno/Sites/01.Site';
 export interface Harness {
   base: string;
   localBase: string;
+  dataDir: string;
   close(): Promise<void>;
 }
 
@@ -102,7 +103,7 @@ export async function start(extra: Partial<KvHumanosDeps> = {}): Promise<Harness
     tmp.cleanup();
   };
   closers.push(close);
-  return { base: `http://127.0.0.1:${(remote.address() as AddressInfo).port}`, localBase: `http://127.0.0.1:${(local.address() as AddressInfo).port}`, close };
+  return { base: `http://127.0.0.1:${(remote.address() as AddressInfo).port}`, localBase: `http://127.0.0.1:${(local.address() as AddressInfo).port}`, dataDir, close };
 }
 
 export const json = { 'Content-Type': 'application/json' };

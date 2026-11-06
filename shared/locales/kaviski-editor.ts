@@ -1,0 +1,49 @@
+// Fork Kaviski (KAVISKI-HUMANOS.md → "Planta livre"): traduções do editor da empresa, da planta no servidor e dos
+// modelos ("Monte a sua empresa"). Entram nos dicionários com `...KV_EDITOR_XX` em en.ts, es.ts e fr.ts.
+export const KV_EDITOR_EN: Readonly<Record<string, string>> = {
+  "Planta: não deu para ler {0} ({1}).": "Floor plan: could not read {0} ({1}).",
+  "Planta: não deu para gravar {0} ({1}).": "Floor plan: could not write {0} ({1}).",
+  "só quem é admin (ou a equipe, se liberada) muda a planta": "only admins (or the team, if allowed) can change the floor plan",
+  "falta a versão de base (base)": "missing base version (base)",
+  "a planta mudou enquanto você editava (versão {0})": "the floor plan changed while you were editing (version {0})",
+  "planta inválida": "invalid floor plan",
+  "versão não encontrada": "version not found",
+  "voltou para a versão {0}": "went back to version {0}",
+  "Planta: aviso de mudança falhou ({0}).": "Floor plan: change notification failed ({0}).",
+  "versão {0} (de {1})": "version {0} (from {1})",
+  "versão {0} · {1} itens{2}": "version {0} · {1} items{2}",
+  " · desligada": " · off",
+  "Planta: {0} gravou a versão {1}.": "Floor plan: {0} saved version {1}.",
+};
+
+export const KV_EDITOR_ES: Readonly<Record<string, string>> = {
+  "Planta: não deu para ler {0} ({1}).": "Planta: no se pudo leer {0} ({1}).",
+  "Planta: não deu para gravar {0} ({1}).": "Planta: no se pudo guardar {0} ({1}).",
+  "só quem é admin (ou a equipe, se liberada) muda a planta": "solo un admin (o el equipo, si está habilitado) cambia la planta",
+  "falta a versão de base (base)": "falta la versión base (base)",
+  "a planta mudou enquanto você editava (versão {0})": "la planta cambió mientras editabas (versión {0})",
+  "planta inválida": "planta inválida",
+  "versão não encontrada": "versión no encontrada",
+  "voltou para a versão {0}": "volvió a la versión {0}",
+  "Planta: aviso de mudança falhou ({0}).": "Planta: el aviso de cambio falló ({0}).",
+  "versão {0} (de {1})": "versión {0} (de {1})",
+  "versão {0} · {1} itens{2}": "versión {0} · {1} elementos{2}",
+  " · desligada": " · apagada",
+  "Planta: {0} gravou a versão {1}.": "Planta: {0} guardó la versión {1}.",
+};
+
+export const KV_EDITOR_FR: Readonly<Record<string, string>> = {
+  "Planta: não deu para ler {0} ({1}).": "Plan : impossible de lire {0} ({1}).",
+  "Planta: não deu para gravar {0} ({1}).": "Plan : impossible d’enregistrer {0} ({1}).",
+  "só quem é admin (ou a equipe, se liberada) muda a planta": "seuls les admins (ou l’équipe, si autorisée) modifient le plan",
+  "falta a versão de base (base)": "version de base manquante (base)",
+  "a planta mudou enquanto você editava (versão {0})": "le plan a changé pendant votre modification (version {0})",
+  "planta inválida": "plan invalide",
+  "versão não encontrada": "version introuvable",
+  "voltou para a versão {0}": "retour à la version {0}",
+  "Planta: aviso de mudança falhou ({0}).": "Plan : la notification de changement a échoué ({0}).",
+  "versão {0} (de {1})": "version {0} (depuis {1})",
+  "versão {0} · {1} itens{2}": "version {0} · {1} éléments{2}",
+  " · desligada": " · désactivé",
+  "Planta: {0} gravou a versão {1}.": "Plan : {0} a enregistré la version {1}.",
+};

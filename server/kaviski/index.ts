@@ -19,6 +19,7 @@ import { log } from '../log';
 import { HttpError, readJson, sendJson } from '../http/app';
 import { parseRoomStyles, RoomStyles } from './room-styles';
 import { kvDecorateRooms } from './pinned';
+import { kvOnPlanPinned, kvPlanPinned } from './humanos/plan';
 import { isTruthy } from '../config';
 import { attachTwiccApprovals, TWICC_REQUESTS_PATH, type KvApprovalsOffice, type KvPermissionRegistry, type KvTwiccApprovals } from './twicc-approvals';
 import { attachTwiccMessages, TWICC_ACK_PATH, TWICC_POLL_PATH, type KvMessageRegistry, type KvTwiccMessages, type KvTwiccOffice } from './twicc-messages';
@@ -74,14 +75,26 @@ export function createKaviski(opts: { dataDir: string | null; env?: NodeJS.Proce
   let office: KvOffice | undefined;
 
   const decorate = (snap: OfficeSnapshot): void => {
-    if (styles.size) {
+    // salas fixas da planta livre (humanos/plan.ts) juntas com as `pinned` do mapa (o mapa vence: cor, grupo, nome)
+    const planPinned = kvPlanPinned();
+    if (styles.size || planPinned.length) {
       const hidden = new Set(styles.entries().filter(([, e]) => e.hidden).map(([k]) => k));
       if (hidden.size) {
         // Salas escondidas: some a sala e todo agente dela (principal e subagentes), como se não existissem.
         snap.rooms = snap.rooms.filter((r) => !hidden.has(kvPathKey(r.path ?? r.id)));
         snap.agents = snap.agents.filter((a) => !hidden.has(kvPathKey(a.roomId)));
       }
-      snap.rooms = kvDecorateRooms(snap.rooms, styles.entries().filter(([, e]) => !e.hidden), { alias: opts.roomAlias, createdAt: startedAt });
+      const entries = styles.entries().filter(([, e]) => !e.hidden);
+      const keys = new Set(entries.map(([k]) => k));
+      for (const [k, e] of planPinned) {
+        if (hidden.has(k)) continue;
+        if (!keys.has(k)) entries.push([k, e]);
+        else {
+          const i = entries.findIndex(([x]) => x === k);
+          if (!entries[i][1].pinned) entries[i] = [k, { ...entries[i][1], pinned: true, path: entries[i][1].path ?? e.path }];
+        }
+      }
+      snap.rooms = kvDecorateRooms(snap.rooms, entries, { alias: opts.roomAlias, createdAt: startedAt });
     }
     if (twiccUrl || brand) {
       const meta: KvMeta = {};
@@ -169,7 +182,8 @@ export function createKaviski(opts: { dataDir: string | null; env?: NodeJS.Proce
         if (r.changed) decorate(r.snapshot);
         return r;
       };
-      if (styles.size || twiccUrl || brand) o.markDirty();
+      kvOnPlanPinned(() => o.markDirty());
+      if (styles.size || twiccUrl || brand || kvPlanPinned().length) o.markDirty();
     },
   };
   return kv;
