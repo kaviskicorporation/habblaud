@@ -24,6 +24,11 @@
   image-rendering: pixelated;
 }
 
+/* enquanto se edita, só o mundo e o editor (janelas, avisos e listas de escolha continuam) */
+html.kv-pe-open .ui-root > :not(.kv-pe):not(dialog):not([popover]):not([class*='toast']):not([class*='kv-ui-']) {
+  visibility: hidden !important;
+}
+
 body.kv-pe-dragging,
 body.kv-pe-dragging * {
   cursor: grabbing !important;

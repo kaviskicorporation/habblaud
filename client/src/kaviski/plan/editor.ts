@@ -112,6 +112,9 @@ export function kvStartPlanEditor(m: KvMe, store: OfficeStore | null, root: Pare
   };
   kvOnPlanDoc(sync);
   sync();
+  // console (testes): habblaud.kvPlanEditor.open({templates: true})
+  const w = window as { habblaud?: Record<string, unknown> };
+  w.habblaud = Object.assign(w.habblaud ?? {}, { kvPlanEditor: { open: kvOpenPlanEditor } });
 }
 
 /** Salas de projeto que dá para pôr na planta: as do prédio e as pastas conhecidas (lista do Novo agente). */
@@ -132,6 +135,20 @@ async function projectOptions(): Promise<KvProjectOption[]> {
     }
   }
   for (const f of folders) if (!out.has(f.ref)) out.set(f.ref, f);
+  // pelo próprio computador, o mapa de estilos também lista as salas da empresa (fixas, com nome)
+  if (me?.local) {
+    try {
+      const res = await fetch('/api/rooms/style', { credentials: 'same-origin', cache: 'no-store' });
+      const j = res.ok ? ((await res.json()) as { rooms?: Record<string, { path?: string; name?: string; hidden?: boolean }> }) : {};
+      for (const [key, e] of Object.entries(j.rooms ?? {})) {
+        const path = e.path ?? key;
+        if (e.hidden || !path.startsWith('/') || out.has(kvPlanRoomRef(path))) continue;
+        out.set(kvPlanRoomRef(path), { ref: kvPlanRoomRef(path), path, name: e.name || path.split('/').pop() || path });
+      }
+    } catch {
+      // sem o mapa
+    }
+  }
   return [...out.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -221,7 +238,7 @@ class KvPlanEditor {
       h('span', { class: 'kv-pe__grow' }),
       this.mobile ? null : kvBtn(tr('Modelos'), { icon: kvIcon('modelos'), onClick: () => this.openTemplates(), title: tr('Monte a sua empresa a partir de um modelo') }),
       this.mobile ? null : kvBtn(tr('Versões'), { icon: kvIcon('relogio'), onClick: () => void this.openVersions(), title: tr('Histórico de versões') }),
-      kvBtn(tr('Descartar'), { variant: 'ghost', onClick: () => void this.discard(), title: tr('Voltar para a planta gravada') }),
+      kvBtn(tr('Descartar'), { variant: 'ghost', icon: KV_ICONS.back, onClick: () => void this.discard(), title: tr('Voltar para a planta gravada') }),
       this.saveBtn,
       kvIconBtn(KV_ICONS.close, tr('Sair do editor (Esc)'), () => void this.close()),
     );
@@ -240,6 +257,8 @@ class KvPlanEditor {
       );
     }
     (document.querySelector('.ui-root') ?? document.body).append(this.root);
+    // só o mundo e o editor: a interface do escritório (topo, listas, atividade, barra) some enquanto se edita
+    document.documentElement.classList.add('kv-pe-open');
     // câmera: sem seguir o boneco, solta para passear pela planta inteira
     const cam = kvPeople.camera;
     this.camSaved = cam ? { bounds: { ...cam.bounds }, minZoom: cam.minZoom, follow: cam.follow } : null;
@@ -369,10 +388,11 @@ class KvPlanEditor {
       y1 = Math.max(y1, it.y + it.h);
     }
     const r = this.worldRect();
-    const left = this.mobile ? 0 : 236;
-    const right = 300;
-    const top = 96;
-    const bottom = 70;
+    // a área livre entre a paleta, o painel e a barra (no celular o painel fica embaixo)
+    const left = this.mobile ? 8 : 236;
+    const right = this.mobile ? 8 : 300;
+    const top = this.mobile ? 150 : 96;
+    const bottom = this.mobile ? Math.round(r.height * 0.45) : 70;
     const zw = (r.width - left - right - 80) / (x1 * TILE);
     const zh = (r.height - top - bottom) / (y1 * TILE);
     const z = Math.max(0.25, Math.min(4, zw, zh));
@@ -1497,6 +1517,7 @@ class KvPlanEditor {
       cam.clamp();
     }
     document.body.classList.remove('kv-pe-dragging');
+    document.documentElement.classList.remove('kv-pe-open');
     this.root.remove();
     this.onClose();
   }

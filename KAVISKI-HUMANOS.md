@@ -617,7 +617,8 @@ Arquitetura (ação `planta` do "ir e fazer", `kvOpenPlanEditor({focus?, templat
   `KV_PLAN_SIZE`, clique na borda da parede da sala escolhida põe/tira porta e arrastar a porta a move (pelas paredes),
   Delete apaga (com "Desfazer" no aviso), setas movem 1 tile (Shift: 4), Ctrl+Z/Ctrl+Shift+Z, Ctrl+D duplica, Ctrl+S
   grava, L trava, F sala fixa, Enter/duplo clique editam o nome, Esc solta/sai; roda = zoom, arrastar o vazio, espaço ou
-  o botão do meio = câmera; arrastando perto da borda a câmera acompanha. **Paleta** à esquerda (arrastar ou clicar):
+  o botão do meio = câmera; arrastando perto da borda a câmera acompanha. Enquanto se edita, a interface do escritório
+  (topo, listas, atividade, barra) some e fica só o mundo + o editor. Console: `habblaud.kvPlanEditor.open({templates})`. **Paleta** à esquerda (arrastar ou clicar):
   Corredor, Jardim, Vaga, as 12 salas temáticas (catálogo da frente C), salas de projeto (as do prédio + as pastas do
   Novo agente, com busca), salas próprias e o núcleo. **Painel** à direita: nome na placa, projeto/sala/tema, Sala fixa,
   Travar, paleta e cor da placa, mobília (estilos do furnisher), portas, largura/altura/X/Y, Duplicar/Apagar; sem nada
