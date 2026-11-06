@@ -14,6 +14,8 @@ export interface KvToastOpts {
   /** Clique no aviso. */
   onClick?: () => void;
   action?: { label: string; run: () => void };
+  /** Aviso com a mesma chave troca o anterior (ex.: várias mensagens da mesma pessoa viram um aviso só). */
+  key?: string;
   /** Tempo na tela (ms); 0 = até fechar. */
   ms?: number;
 }
@@ -68,6 +70,10 @@ export function kvToast(text: string, o: KvToastOpts = {}): () => void {
     });
   }
   const s = host();
+  if (o.key) {
+    el.dataset.key = o.key;
+    for (const old of s.querySelectorAll<HTMLElement>('.kv-ui-toast')) if (old.dataset.key === o.key) old.remove();
+  }
   s.append(el);
   while (s.childElementCount > MAX) s.firstElementChild?.remove();
   const ms = o.ms ?? (kind === 'error' ? 8000 : 5000);

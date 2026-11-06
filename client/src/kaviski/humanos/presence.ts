@@ -42,23 +42,31 @@ export class KvPresenceClient {
       }
       for (const cb of this.listeners) cb(this.state);
     });
-    for (const name of ['chat', 'summon', 'stage', ...KV_SOCIAL_EVENTS]) {
-      this.es.addEventListener(name, (ev) => {
-        let data: unknown;
-        try {
-          data = JSON.parse((ev as MessageEvent<string>).data);
-        } catch {
-          return;
-        }
-        for (const cb of this.events.get(name) ?? []) cb(data);
-      });
-    }
+    for (const name of new Set<string>(['chat', 'summon', 'stage', ...KV_SOCIAL_EVENTS, ...this.events.keys()])) this.bind(name);
   }
 
-  /** Ouve um evento do fluxo de presença (`chat`, `summon`, `dm`, `stage` e os da W2). */
-  onEvent<T>(name: 'chat' | 'summon' | 'stage' | KvSocialEvent, cb: (data: T) => void): () => void {
+  private readonly bound = new Set<string>();
+
+  /** Liga um evento do fluxo (uma vez por nome; os eventos novos de outros módulos entram sozinhos). */
+  private bind(name: string): void {
+    if (!this.es || this.bound.has(name)) return;
+    this.bound.add(name);
+    this.es.addEventListener(name, (ev) => {
+      let data: unknown;
+      try {
+        data = JSON.parse((ev as MessageEvent<string>).data);
+      } catch {
+        return;
+      }
+      for (const cb of this.events.get(name) ?? []) cb(data);
+    });
+  }
+
+  /** Ouve um evento do fluxo de presença (`chat`, `summon`, `dm`, `stage`, os da W2 e `typing` das conversas). */
+  onEvent<T>(name: 'chat' | 'summon' | 'stage' | 'typing' | KvSocialEvent | (string & {}), cb: (data: T) => void): () => void {
     let set = this.events.get(name);
     if (!set) this.events.set(name, (set = new Set()));
+    this.bind(name);
     set.add(cb as (data: unknown) => void);
     return () => void set.delete(cb as (data: unknown) => void);
   }
