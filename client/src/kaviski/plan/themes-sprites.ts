@@ -503,10 +503,35 @@ function archive(): BufFurniture {
   return finish(s, [1, 13, 14, 4]);
 }
 
+/** Cavalete (1x1) com uma folha grande: organograma, calendário ou gráfico (quando a parede não tem lugar). */
+function easel(kind: 'org' | 'cal' | 'chart'): BufFurniture {
+  const s = floorSheet(1, 1, 26);
+  const b = s.buf;
+  const w = M.oakDark;
+  b.line(4, -6, 1, 15, w.dk);
+  b.line(11, -6, 14, 15, w.dk);
+  b.line(8, -2, 8, 13, w.base);
+  frame(b, 1, -22, 14, 17, ramp('#c3cad4', 0.06), '#fbfaf6');
+  b.rect(1, -6, 14, 2, w.base);
+  b.hline(1, 14, -6, w.lt);
+  if (kind === 'org') {
+    b.rect(6, -20, 4, 3, '#f2c14e');
+    b.vline(7, -17, -15, INK);
+    b.hline(3, 12, -15, INK);
+    for (const [x, c] of [[2, '#3f7fd8'], [6, '#4cae6a'], [10, '#e47aa8']] as const) b.rect(x, -14, 4, 3, c);
+  } else if (kind === 'cal') {
+    b.rect(2, -21, 12, 3, '#e05a5a');
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) b.rect(3 + c * 3, -17 + r * 3, 2, 2, r === 1 && c === 2 ? '#3f7fd8' : '#d6d2c8');
+  } else {
+    [4, 7, 5, 9].forEach((h, i) => b.rect(3 + i * 3, -8 - h, 2, h, ACCENTS[i]!));
+  }
+  return finish(s, [1, 13, 14, 4]);
+}
+
 // =================================================================== parede
 
 /** Organograma (3 ou 4 tiles): quadro branco com a árvore de cargos colorida. */
-function orgchart(tiles: 3 | 4): BufFurniture {
+function orgchart(tiles: 2 | 3 | 4): BufFurniture {
   const s = wallSheet(tiles);
   const b = s.buf;
   const W = tiles * TILE;
@@ -521,7 +546,7 @@ function orgchart(tiles: 3 | 4): BufFurniture {
   box3(b, cx - 4, y + 5, 8, 5, '#f2c14e', 1);
   bust(b, cx - 2, y + 5, '#c9922e');
   b.vline(cx, y + 10, y + 12, INK);
-  const kids = tiles === 4 ? 4 : 3;
+  const kids = tiles === 4 ? 4 : tiles === 3 ? 3 : 2;
   const span = Math.floor((w - 12) / (kids - 1));
   const x0 = x + 6;
   b.hline(x0 + 3, x0 + span * (kids - 1) + 3, y + 12, INK);
@@ -777,6 +802,10 @@ const BUILD: Record<KvSpriteKey, (seed: number) => BufFurniture> = {
   'kv-archive': archive,
   'kv-orgchart': () => orgchart(3),
   'kv-orgchart-big': () => orgchart(4),
+  'kv-orgchart-small': () => orgchart(2),
+  'kv-easel-org': () => easel('org'),
+  'kv-easel-cal': () => easel('cal'),
+  'kv-easel-chart': () => easel('chart'),
   'kv-presence': presence,
   'kv-map': map,
   'kv-calendar': calendar,

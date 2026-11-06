@@ -35,9 +35,13 @@ export const KV_SPRITES = {
   'kv-clothes': F('bookshelf', 2, 1, 20),
   'kv-stand-mirror': F('filing_cabinet', 1, 1, 22),
   'kv-archive': F('filing_cabinet', 1, 1, 10),
+  'kv-easel-org': F('filing_cabinet', 1, 1, 22),
+  'kv-easel-cal': F('filing_cabinet', 1, 1, 22),
+  'kv-easel-chart': F('filing_cabinet', 1, 1, 22),
   // ---- parede
   'kv-orgchart': Wl('shelf_wall', 3),
   'kv-orgchart-big': Wl('shelf_wall', 4),
+  'kv-orgchart-small': Wl('shelf_wall', 2),
   'kv-presence': Wl('shelf_wall', 2),
   'kv-map': Wl('shelf_wall', 3),
   'kv-calendar': Wl('shelf_wall', 2),
