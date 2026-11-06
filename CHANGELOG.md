@@ -31,6 +31,10 @@ do meio (0.**3**.0).
 - **Reações rápidas** (👍 ❤️ 😂 🎉 👏 ☕ ✋ 😮 🙏, teclas 1–9) sobre o boneco; ✋ fica levantada até baixar.
 - **Trancar a sala** (cadeado na porta, quem está fora bate com E e quem está dentro deixa entrar) e **conversa
   privada** nas áreas abertas (voz e chat só do grupo).
+- **Voz e vídeo estilo Gather** (com o LiveKit): desfoque e troca do fundo da câmera, filtro de ruído forte (RNNoise) e escolha de microfone, câmera e alto-falante (setinha ao lado dos botões);
+  **palco** para a equipe falar com o andar inteiro (todos ouvem, dá para silenciar); **grade de vídeo** em tela cheia
+  (fixar um quadro, Esc fecha); anel aceso em quem está falando e 🔇 em quem está mudo; em **não perturbe** não entra
+  em chamada; ao trocar de área ninguém mais ouve a sala que ficou para trás; reconecta sozinho.
 
 ## [1.0.3] - 2026-10-16
 

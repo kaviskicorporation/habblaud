@@ -33,6 +33,7 @@ const MIME: Record<string, string> = {
   '.ogg': 'audio/ogg',
   '.wav': 'audio/wav',
   '.txt': 'text/plain; charset=utf-8',
+  '.wasm': 'application/wasm', // fork Kaviski (KAVISKI-HUMANOS.md): filtro de ruído e fundo da câmera
 };
 
 /** Pasta dos arquivos com hash do Vite (igual a `build.assetsDir` em vite.config.ts). */

@@ -122,6 +122,9 @@ As sessões do TwiCC rodam pelo SDK (sem terminal): o plugin `habblaud-mensagens
 | `client/src/world/render/overlay.ts` (humanos) | +4/−3 | import; `visitor = ... \|\| !!kvPersonBadge(ch)` (2 lugares: etiqueta sempre à mostra) e o selo `kvPersonBadge(ch) ?? visitorBadge()` (medida e desenho) | idem |
 | `shared/locales/{en,es,fr}.ts` (humanos) | +8 cada | imports e `...KV_HUMANOS_XX`, `...KV_EXTRAS_XX` (convites, agenda, mini-mapa, foco: `kaviski-extras.ts`), `...KV_W1_XX` (boneco, mesa, móveis: `kaviski-w1.ts`), `...KV_SOCIAL_XX` (chamar, reações, status com nota, sala trancada, roda privada: `kaviski-social.ts`) no começo do objeto | idem; juntar as linhas dos dois lados |
 | `package.json` / `package-lock.json` (humanos) | +1 | `livekit-client` (Apache 2.0) em `devDependencies` (voz e vídeo, carregado sob demanda) | manter os dois lados; `npm install` |
+| `package.json` / `package-lock.json` (voz e vídeo, onda Gather) | +2 | `@livekit/track-processors` (Apache 2.0, fundo da câmera) e `@sapphi-red/web-noise-suppressor` (MIT, RNNoise BSD-3) em `devDependencies`, carregados sob demanda | manter os dois lados; `npm install` |
+| `server/http/static.ts` (voz e vídeo) | +1 | `'.wasm': 'application/wasm'` no `MIME` (filtro de ruído e fundo da câmera) | idem |
+| `shared/locales/{en,es,fr}.ts` (voz e vídeo) | +2 cada | import e `...KV_MEDIA_XX` (`shared/locales/kaviski-media.ts`) logo depois do `KV_HUMANOS_XX` | idem |
 | `docker-compose.yml` | +5 | `HABBLAUD_FRAME_ANCESTORS`, `HABBLAUD_TWICC_URL`, `HABBLAUD_TWICC_MESSAGES` e `HABBLAUD_BRAND` no `environment:` | manter os dois lados |
 
 `server/model/office.ts` **não** foi tocado: `kaviski.attach(office)` embrulha `office.commit()` em tempo de execução e

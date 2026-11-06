@@ -139,6 +139,48 @@ Liga com `HABBLAUD_HUMANOS=1` (e a porta remota configurada, como hoje). Sem a v
   microfone/câmera falsos): mesma chamada, áudio e vídeo dos dois lados.
 - Código: `server/kaviski/humanos/livekit.ts`, `client/src/kaviski/humanos/media.ts`.
 
+### Voz e vídeo — onda Gather (2026-11-06) ✅
+Tudo só com `HABBLAUD_HUMANOS=1` e o LiveKit configurado (sem ele, nada disto aparece, como antes).
+- **Ajustes (setinha ▾ ao lado do microfone e da câmera, ou botão direito neles)**, lembrados neste navegador
+  (`habblaud.kv.media.fx`): microfone, câmera e alto-falante (este só no Chrome/Edge: `setSinkId`); **redução de ruído e
+  eco do navegador** (`noiseSuppression`/`echoCancellation`/`autoGainControl`, ligada por padrão; mudar recaptura o
+  microfone); **filtro de ruído forte RNNoise** (opcional; `@sapphi-red/web-noise-suppressor` MIT + RNNoise BSD-3, em
+  WebAssembly num AudioWorklet a 48 kHz). O Krisp do LiveKit é só do LiveKit Cloud (não usamos).
+- **Fundo da câmera**: sem efeito, desfocar, três fundos em pixel art desenhados na hora (escritório, jardim, cidade à
+  noite) ou uma imagem própria (reduzida a 640×480 e guardada no navegador). `@livekit/track-processors` (Apache 2.0)
+  com a segmentação do MediaPipe (Apache 2.0). **Nada vem de CDN**: o wasm do MediaPipe (~9 MB, só baixa ao ligar o
+  efeito) e o modelo `selfie_segmenter.tflite` (250 kB, em `client/src/kaviski/humanos/assets/`) saem do próprio
+  Habblaud (`/bundle/`); o `FilesetResolver.forVisionTasks` é trocado em tempo de execução para apontar para eles.
+- **Palco (megafone)**: admin e equipe têm o botão 📢 na barra; cliente e visitante não (`kvRestricted`). Quem sobe
+  fala para o andar inteiro: todo mundo online (com ou sem boneco; cliente também) vê "📢 Fulano no palco" e ouve numa
+  chamada à parte do LiveKit. Servidor (`server/kaviski/humanos/stage.ts`): `GET/POST /api/kaviski/humanos/stage`
+  (`{on}`; um palco por vez; quem abriu ou um admin fecha) e `POST .../stage/token` — **só quem está no palco recebe
+  `canPublish`**, os outros só `canSubscribe` (o LiveKit recusa se o ouvinte tentar publicar). Evento `stage` do fluxo
+  de presença para todas as páginas (e uma consulta a cada 30 s de garantia). Cada palco aberto é uma chamada nova
+  (token velho não serve); fecha sozinho quando quem abriu sai (fechou a página) ou depois de 2 h; conta rebaixada a
+  cliente sai do palco. Registro: "palco aberto"/"palco fechado". Cada um pode **silenciar o palco** no navegador;
+  **não perturbe não corta o palco** (é aviso para todos). Enquanto alguém está no palco, a voz dele na chamada da área
+  fica muda para quem ouve o palco (não chega em dobro).
+- **Grade de vídeo** (botão na barra): todos da chamada em tela cheia — câmera ou a inicial, nome, 🔇, borda verde em
+  quem fala, telas compartilhadas (a primeira vai grande sozinha). 📌 (ou duplo clique) fixa um quadro grande com os
+  outros numa faixa. Esc fecha. Nas áreas abertas só aparece quem eu ouço (mesma proximidade das bolinhas).
+- **Quem está falando**: anel verde aceso no chão, embaixo do boneco de quem fala (o meu também, e o de quem está no
+  palco), e 🔇 em cima de quem está na minha chamada com o microfone desligado. A bolinha de vídeo ganha a borda verde.
+  Desenhado num DOM nosso por cima do mundo (`kvPeople.locate`), sem gancho no renderer.
+- **Não perturbe** (status `naoperturbe`, do W2): não entro em chamada de área nem toco o áudio de ninguém (só o palco,
+  se não estiver silenciado). **Modo foco** (`kvPeople.resting`, do W1): também fora da chamada (microfone e câmera
+  desligados; a preferência fica). **Roda privada** (`kvPeople.callArea`, do W2): `b:<id>` vale no lugar da área, com
+  volume cheio como numa sala.
+- **Robustez**: ao sair de uma área, **antes mesmo de a chamada trocar** (os 0,7 s de espera e a conexão), o meu
+  microfone fica mudo e o volume de todos vai a zero — nada vaza para a sala que deixei. Reconecta sozinho (aviso na
+  barra); se a chamada cai de vez, o tick entra de novo. Sem HTTPS os botões ficam apagados com a explicação. Bolinhas de
+  vídeo diminuem com a distância nas áreas abertas.
+- Código: `client/src/kaviski/humanos/media-{fx,menu,stage,grid,speak,rules,extras}.ts`, `media.css`, ganchos no
+  `media.ts`; `server/kaviski/humanos/stage.ts` (+ `stage.test.ts`), `shared/kaviski-media.ts`,
+  `shared/locales/kaviski-media.ts`; `media-rules.test.ts`. Depuração: `habblaud.kvMedia` no console.
+- **Limite conhecido**: quem perde acesso a uma sala (tela de Pessoas) continua na chamada dela até sair da área (o
+  token do LiveKit já emitido vale até 2 h; o servidor não expulsa pela API do LiveKit).
+
 ### Ajustes da fase 1 (2026-11-06) ✅
 - **Freio de login por endereço e por usuário** (`KvLoginLimiter` em `gate.ts`): cada chave tem o seu freio (5 falhas,
   depois a espera dobra até 5 min); quem erra muito trava só a si mesmo (o do original era um só para todos). Atrás do
