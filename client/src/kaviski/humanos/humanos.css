@@ -748,3 +748,17 @@ button.kv-me:hover {
   color: var(--ui-muted);
   overflow-wrap: anywhere;
 }
+
+/* Tecla E: dica "E · Sentar" sobre o meu boneco (interact.ts). */
+.kv-interact-hint {
+  position: fixed;
+  z-index: 40;
+  transform: translate(-50%, -100%);
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(16, 20, 32, 0.88);
+  color: #fff;
+  font: 600 12px/1.4 var(--ui-font, system-ui, sans-serif);
+  pointer-events: none;
+  white-space: nowrap;
+}
