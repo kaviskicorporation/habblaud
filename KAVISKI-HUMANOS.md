@@ -208,6 +208,16 @@ Liga com `HABBLAUD_HUMANOS=1` (e a porta remota configurada, como hoje). Sem a v
   (`HABBLAUD_DATA_DIR`). Antes, a instância de teste (4757/4758) e a produção, no mesmo LiveKit, caíam na mesma chamada
   da mesma área.
 
+### Janelas no tema do Habblaud: Salas, Agenda, Convites e campos 3D (2026-11-06) ✅ (pedido do Vitor)
+- **Salas** (`rooms-dialog.ts` + `rooms-dialog.css`), **Agenda** (`agenda.ts`) e **Convites** (`invites.ts`, também na aba
+  Convites da tela Pessoas) no mesmo padrão da tela Pessoas: `KvModal` com ícone, lista em cartões (ou estado vazio
+  explicado, centralizado) e formulário em seções com ícone. Escolhas que eram listas viraram blocos com ícone (tipo da
+  sala, quem entra, validade, uma/várias pessoas, itens da decoração com ícones em pixel coloridos); salas marcáveis
+  com o visto em pixel; paleta como mini-salas; a sala da decoração nas cores da paleta; confirmações no tema.
+- Kit (`ui/kit.css`, `ui/bridge.css`): **campo de texto afundado** × **lista de seleção elevada** (antes iguais), rótulo
+  com o quadradinho de pixel, caixas de marcar e seletor de cor nativos no tema. Peças comuns em `ui/section.ts`
+  (`kvSection`, `kvSplit`, `kvSeg`, `kvPick`, `kvTip`) + `ui/section.css`.
+
 ### Endereço público: https://escritorio.kaviski.com.br (2026-11-06)
 Decisão do Vitor: **sem VPS**. O nome só funciona na rede local e pela VPN (Tailscale, que roteia 192.168.1.0/24).
 Infraestrutura feita pela sessão `01.Geral` (rede/proxy: não mexer sem avisar):
