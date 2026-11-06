@@ -20,6 +20,11 @@ do meio (0.**3**.0).
 - **Nome da empresa pela tela** (Configurações › Empresa, só admin): vai no título da aba ("<empresa> · Voxtrin"), na
   tela de login, nos convites e nas notificações do navegador. `HABBLAUD_BRAND` continua como valor inicial. A linha
   pequena com o nome da empresa acima do logotipo, no topo, saiu.
+- **Cartões de uso compactos, com as logos do Claude e do Codex.** Os cartões de uso por conta no topo deixaram de
+  espremer o menu: agora são uma pílula de uma linha só, com a logo da ferramenta, o nome e dois mini anéis (sessão de
+  5 h e semana) com o % nas cores de alerta e o tempo até renovar. Quando falta espaço, somem primeiro o nome e os
+  horários (a letra da conta vai para a logo) e, por fim, fica só a logo com o % da semana. E-mail, plano, horários
+  exatos e origem dos números continuam na dica do cartão.
 - **Responder pelo escritório às sessões do TwiCC**: perguntas, aprovação de ferramenta e de plano das sessões que rodam
   no TwiCC aparecem no cartão "pede permissão" do agente e são respondidas no Habblaud (aprovar, recusar com motivo,
   "sempre permitir", responder), sem abrir o TwiCC. Precisa da senha do TwiCC em `~/.habblaud/twicc-senha`.

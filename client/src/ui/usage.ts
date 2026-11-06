@@ -16,6 +16,7 @@ import { isCodex } from './provider';
 import { usageRowFits } from './usage-row';
 import { createAccountChip, createProviderTag, updateAccountChip, updateProviderTag } from './widgets';
 import { tr } from '../../../shared/i18n';
+import { kvUsageLogo } from '../kaviski/provider-logos'; // fork Kaviski (KAVISKI.md)
 
 export const SOURCE_LABEL: Record<NonNullable<AccountInfo['usage']>['source'], string> = {
   cache: tr('cache do /usage do Claude Code'),
@@ -338,6 +339,7 @@ export class UsageCards {
     const now = this.ctx.now();
     const codex = isCodex(a);
     updateAccountChip(r.chip, a);
+    kvUsageLogo(card, a); // fork Kaviski: logo do Claude/Codex no lugar do chip (KAVISKI.md)
     setStyleVar(card, '--acc', a.color);
     setText(r.name, a.name);
     updateProviderTag(r.prov, codex ? 'codex' : 'claude', a.name);

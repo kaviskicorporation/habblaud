@@ -1,0 +1,435 @@
+/* Fork Kaviski (KAVISKI.md): cartões de uso por conta compactos, numa linha só (≤ 34 px de altura), com a logo da
+   ferramenta (provider-logos.ts) e dois mini anéis (5 h e semana). Os detalhes (e-mail, plano, horários exatos, origem)
+   continuam na dica do cartão. Só sobrepõe regras de ui/styles.css: o card ganha a classe .kv-usage no gancho.
+   O que cada cartão mostra depende do espaço livre na barra (consultas de contêiner no fim do arquivo). */
+
+.ui-usage .ui-usage-card.kv-usage {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  /* Encolhe até o min-width (abaixo) cortando o nome com reticências; nunca passa por cima dos botões. */
+  flex: 0 1 auto;
+  width: auto;
+  height: 34px;
+  padding: 0 10px 0 8px;
+  border-radius: 17px;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--acc) 16%, transparent), transparent 70%),
+    var(--ui-bg-soft);
+  white-space: nowrap;
+}
+
+/* O chip com letra dá lugar à logo. */
+.ui-usage .kv-usage > .ui-acc-chip {
+  display: none;
+}
+
+.kv-usage-logo {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  /* Espaço para a letra da conta, que sai um pouco para a direita. */
+  margin-right: 2px;
+}
+
+.kv-usage-logo .kv-logo {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+.kv-usage-logo[data-provider='claude'] {
+  color: #d97757;
+}
+
+.kv-usage-logo[data-provider='codex'] {
+  color: #e6e9f0;
+}
+
+/* Letra da conta (A, B…) na cor dela: só quando o nome some, para distinguir duas contas do Claude. */
+.kv-usage-logo__tag {
+  position: absolute;
+  right: -4px;
+  bottom: -3px;
+  display: none;
+  min-width: 10px;
+  height: 10px;
+  padding: 0 1px;
+  border-radius: 3px;
+  background: var(--acc);
+  box-shadow: 0 0 0 1.5px var(--ui-bg-solid, #12151d);
+  color: #12151d;
+  font: 800 7.5px/10px var(--font-ui);
+  text-align: center;
+}
+
+/* Selo de "números antigos" sobre a logo (celular e telas médias, onde a idade em texto some; ela fica na dica). */
+.ui-usage .kv-usage > .ui-usage-card__flag {
+  left: 3px;
+  top: 3px;
+  width: 12px;
+  height: 12px;
+}
+
+.ui-usage .kv-usage .ui-usage-card__body {
+  /* Sem contêiner: o cartão tem a largura do conteúdo (as consultas de contêiner do original não se aplicam). */
+  container-type: normal;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex: 0 1 auto;
+  gap: 9px;
+  min-width: 0;
+}
+
+/* Cabeçalho "desmontado": nome antes dos anéis, idade dos números depois deles (ordem no corpo). */
+.ui-usage .kv-usage .ui-usage-card__head {
+  display: contents;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.ui-usage .kv-usage .ui-usage-card__meters,
+.ui-usage .kv-usage .ui-usage-card__msg {
+  order: 1;
+}
+
+.ui-usage .kv-usage .ui-usage-card__name {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--ui-text);
+}
+
+/* E-mail/plano e o selo "Codex": a logo e a dica já dizem. */
+.ui-usage .kv-usage .ui-usage-card__email,
+.ui-usage .kv-usage .ui-prov {
+  display: none;
+}
+
+/* Idade dos números (Codex ou leitura antiga): selinho discreto depois dos anéis. */
+.ui-usage .kv-usage .ui-usage-card__state {
+  order: 2;
+  margin-left: 0;
+  padding: 2px 5px;
+  border-radius: 8px;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.ui-usage .kv-usage .ui-usage-card__state[hidden] {
+  display: none;
+}
+
+/* Os dois anéis lado a lado. */
+.ui-usage .kv-usage .ui-usage-card__meters {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.ui-usage .kv-usage .ui-usage-card__meters[hidden] {
+  display: none;
+}
+
+.ui-usage .kv-usage .ui-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: auto;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.ui-usage .kv-usage .ui-meter__label {
+  order: 1;
+  color: var(--ui-muted);
+  font-size: 10px;
+}
+
+.ui-usage .kv-usage .ui-meter__label-long,
+.ui-usage .kv-usage .ui-meter__reset-long {
+  display: none;
+}
+
+.ui-usage .kv-usage .ui-meter__label-short,
+.ui-usage .kv-usage .ui-meter__reset-short {
+  display: inline;
+}
+
+/* Mini anel no lugar da barra: arco na cor do nível (ok/warn/crit) sobre um trilho apagado. */
+.ui-usage .kv-usage .ui-meter__bar {
+  order: 0;
+  flex: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: conic-gradient(var(--lv) calc(var(--pct, 0) * 1%), rgba(255, 255, 255, 0.13) 0);
+  -webkit-mask: radial-gradient(circle, transparent 4px, #000 4.6px);
+  mask: radial-gradient(circle, transparent 4px, #000 4.6px);
+}
+
+.ui-usage .kv-usage .ui-meter.is-zero .ui-meter__bar,
+.ui-usage .kv-usage .ui-meter.is-none .ui-meter__bar {
+  background: rgba(255, 255, 255, 0.13);
+}
+
+.ui-usage .kv-usage .ui-meter__fill {
+  display: none;
+}
+
+/* Números antigos: arco cinza contínuo (o original listra a barra). */
+.ui-usage .kv-usage .ui-usage-card__meters.is-dim .ui-meter__bar {
+  background: conic-gradient(rgba(163, 171, 189, 0.75) calc(var(--pct, 0) * 1%), rgba(255, 255, 255, 0.1) 0);
+}
+
+.ui-usage .kv-usage .ui-meter__pct {
+  order: 2;
+  min-width: 0;
+  font: 700 11.5px/1 var(--font-ui);
+}
+
+.ui-usage .kv-usage .ui-meter__reset {
+  order: 3;
+  color: var(--ui-faint);
+  font-size: 10px;
+}
+
+.ui-usage .kv-usage .ui-meter__reset:empty,
+.ui-usage .kv-usage .ui-meter__reset:has(> span:empty + span:empty) {
+  display: none;
+}
+
+/* Sem números ("sem dados" / "sem cota"): a forma curta, na mesma linha. */
+.ui-usage .kv-usage .ui-usage-card__msg {
+  gap: 6px;
+  font-size: 11px;
+}
+
+.ui-usage .kv-usage .ui-usage-card__msg-long,
+.ui-usage .kv-usage .ui-usage-card__how-long {
+  display: none;
+}
+
+.ui-usage .kv-usage .ui-usage-card__msg-short,
+.ui-usage .kv-usage .ui-usage-card__how-short {
+  display: inline;
+}
+
+/* A dica abre logo abaixo da barra (o cartão é mais baixo que ela). */
+.ui-usage .kv-usage .ui-usage-tip {
+  top: calc(100% + 15px);
+}
+
+/* A fila de cartões ocupa o espaço livre da barra e é um contêiner: o que cada cartão mostra depende da largura que
+   sobra por cartão (não da janela), então nunca passa por cima dos botões quando outros itens (ex.: contador de
+   shells) aparecem. Níveis: tudo (nome, anéis, %, reinício, idade) com ~318 px por cartão; sem nome, reinício nem
+   idade (a letra da conta vai para a logo) com ~184 px; abaixo disso só logo + % semanal. Se nem isso couber,
+   ui/usage.ts manda a fila para a segunda linha (ele soma os min-width abaixo). Regras por número de contas (até 6;
+   mais que isso conta como 6). */
+.ui-topbar .ui-usage:has(> .kv-usage) {
+  container: kv-usage / inline-size;
+}
+
+/* Na linha da barra (no celular e na segunda linha a fila já ocupa a largura toda: blocos do original). */
+@media (min-width: 601px) {
+  .ui-root:not(.has-usage-row) .ui-topbar .ui-usage:has(> .kv-usage) {
+    flex: 1 1 0;
+    justify-content: flex-end;
+  }
+}
+
+/* Mínimo usado por ui/usage.ts para decidir se os cartões cabem na linha: o do nível mais estreito. A regra do
+   original para 4+ contas (min-width: 128px) tem mais especificidade: por isso o .ui-topbar na frente. */
+.ui-topbar .ui-usage .ui-usage-card.kv-usage {
+  min-width: 84px;
+}
+
+/* Nível médio: sem nome, reinício nem idade em texto (tudo na dica); números antigos viram o selo na logo. */
+@container kv-usage (max-width: 317px) {
+  .ui-usage .kv-usage .ui-usage-card__name,
+  .ui-usage .kv-usage .ui-meter__reset,
+  .ui-usage .kv-usage .ui-usage-card__state {
+    display: none;
+  }
+
+  .ui-usage .kv-usage .kv-usage-logo__tag {
+    display: block;
+  }
+
+  .ui-usage .kv-usage > .ui-usage-card__flag {
+    display: grid;
+  }
+}
+
+@container kv-usage (max-width: 635px) {
+  .ui-usage:has(> .ui-usage-card:nth-child(2)) .kv-usage .ui-usage-card__name,
+  .ui-usage:has(> .ui-usage-card:nth-child(2)) .kv-usage .ui-meter__reset,
+  .ui-usage:has(> .ui-usage-card:nth-child(2)) .kv-usage .ui-usage-card__state {
+    display: none;
+  }
+
+  .ui-usage:has(> .ui-usage-card:nth-child(2)) .kv-usage .kv-usage-logo__tag {
+    display: block;
+  }
+
+  .ui-usage:has(> .ui-usage-card:nth-child(2)) .kv-usage > .ui-usage-card__flag {
+    display: grid;
+  }
+}
+
+@container kv-usage (max-width: 953px) {
+  .ui-usage:has(> .ui-usage-card:nth-child(3)) .kv-usage .ui-usage-card__name,
+  .ui-usage:has(> .ui-usage-card:nth-child(3)) .kv-usage .ui-meter__reset,
+  .ui-usage:has(> .ui-usage-card:nth-child(3)) .kv-usage .ui-usage-card__state {
+    display: none;
+  }
+
+  .ui-usage:has(> .ui-usage-card:nth-child(3)) .kv-usage .kv-usage-logo__tag {
+    display: block;
+  }
+
+  .ui-usage:has(> .ui-usage-card:nth-child(3)) .kv-usage > .ui-usage-card__flag {
+    display: grid;
+  }
+}
+
+@container kv-usage (max-width: 1271px) {
+  .ui-usage:has(> .ui-usage-card:nth-child(4)) .kv-usage .ui-usage-card__name,
+  .ui-usage:has(> .ui-usage-card:nth-child(4)) .kv-usage .ui-meter__reset,
+  .ui-usage:has(> .ui-usage-card:nth-child(4)) .kv-usage .ui-usage-card__state {
+    display: none;
+  }
+
+  .ui-usage:has(> .ui-usage-card:nth-child(4)) .kv-usage .kv-usage-logo__tag {
+    display: block;
+  }
+
+  .ui-usage:has(> .ui-usage-card:nth-child(4)) .kv-usage > .ui-usage-card__flag {
+    display: grid;
+  }
+}
+
+@container kv-usage (max-width: 1589px) {
+  .ui-usage:has(> .ui-usage-card:nth-child(5)) .kv-usage .ui-usage-card__name,
+  .ui-usage:has(> .ui-usage-card:nth-child(5)) .kv-usage .ui-meter__reset,
+  .ui-usage:has(> .ui-usage-card:nth-child(5)) .kv-usage .ui-usage-card__state {
+    display: none;
+  }
+
+  .ui-usage:has(> .ui-usage-card:nth-child(5)) .kv-usage .kv-usage-logo__tag {
+    display: block;
+  }
+
+  .ui-usage:has(> .ui-usage-card:nth-child(5)) .kv-usage > .ui-usage-card__flag {
+    display: grid;
+  }
+}
+
+@container kv-usage (max-width: 1907px) {
+  .ui-usage:has(> .ui-usage-card:nth-child(6)) .kv-usage .ui-usage-card__name,
+  .ui-usage:has(> .ui-usage-card:nth-child(6)) .kv-usage .ui-meter__reset,
+  .ui-usage:has(> .ui-usage-card:nth-child(6)) .kv-usage .ui-usage-card__state {
+    display: none;
+  }
+
+  .ui-usage:has(> .ui-usage-card:nth-child(6)) .kv-usage .kv-usage-logo__tag {
+    display: block;
+  }
+
+  .ui-usage:has(> .ui-usage-card:nth-child(6)) .kv-usage > .ui-usage-card__flag {
+    display: grid;
+  }
+}
+
+/* Nível estreito: só logo + % semanal. */
+@container kv-usage (max-width: 183px) {
+  .ui-usage .kv-usage .ui-meter:first-child,
+  .ui-usage .kv-usage .ui-meter__label {
+    display: none;
+  }
+
+  .ui-usage .ui-usage-card.kv-usage {
+    gap: 6px;
+    padding: 0 9px 0 7px;
+  }
+}
+
+@container kv-usage (max-width: 367px) {
+  .ui-usage:has(> .ui-usage-card:nth-child(2)) .kv-usage .ui-meter:first-child,
+  .ui-usage:has(> .ui-usage-card:nth-child(2)) .kv-usage .ui-meter__label {
+    display: none;
+  }
+
+  .ui-usage:has(> .ui-usage-card:nth-child(2)) .ui-usage-card.kv-usage {
+    gap: 6px;
+    padding: 0 9px 0 7px;
+  }
+}
+
+@container kv-usage (max-width: 551px) {
+  .ui-usage:has(> .ui-usage-card:nth-child(3)) .kv-usage .ui-meter:first-child,
+  .ui-usage:has(> .ui-usage-card:nth-child(3)) .kv-usage .ui-meter__label {
+    display: none;
+  }
+
+  .ui-usage:has(> .ui-usage-card:nth-child(3)) .ui-usage-card.kv-usage {
+    gap: 6px;
+    padding: 0 9px 0 7px;
+  }
+}
+
+@container kv-usage (max-width: 735px) {
+  .ui-usage:has(> .ui-usage-card:nth-child(4)) .kv-usage .ui-meter:first-child,
+  .ui-usage:has(> .ui-usage-card:nth-child(4)) .kv-usage .ui-meter__label {
+    display: none;
+  }
+
+  .ui-usage:has(> .ui-usage-card:nth-child(4)) .ui-usage-card.kv-usage {
+    gap: 6px;
+    padding: 0 9px 0 7px;
+  }
+}
+
+@container kv-usage (max-width: 919px) {
+  .ui-usage:has(> .ui-usage-card:nth-child(5)) .kv-usage .ui-meter:first-child,
+  .ui-usage:has(> .ui-usage-card:nth-child(5)) .kv-usage .ui-meter__label {
+    display: none;
+  }
+
+  .ui-usage:has(> .ui-usage-card:nth-child(5)) .ui-usage-card.kv-usage {
+    gap: 6px;
+    padding: 0 9px 0 7px;
+  }
+}
+
+@container kv-usage (max-width: 1103px) {
+  .ui-usage:has(> .ui-usage-card:nth-child(6)) .kv-usage .ui-meter:first-child,
+  .ui-usage:has(> .ui-usage-card:nth-child(6)) .kv-usage .ui-meter__label {
+    display: none;
+  }
+
+  .ui-usage:has(> .ui-usage-card:nth-child(6)) .ui-usage-card.kv-usage {
+    gap: 6px;
+    padding: 0 9px 0 7px;
+  }
+}
+
+/* Celular: a fila tem linha própria; os cartões dividem a largura e, se não couberem, a fila rola (original). */
+@media (max-width: 600px) {
+  .ui-usage .ui-usage-card.kv-usage {
+    flex: 1 0 auto;
+    height: 30px;
+  }
+
+  .ui-topbar .ui-usage .ui-usage-card.kv-usage {
+    min-width: 0;
+  }
+}

@@ -48,3 +48,19 @@ describe('companion do TwiCC', () => {
     expect(kvCompanionSrc('javascript:alert(1)', true)).toBeUndefined();
   });
 });
+
+describe('logos dos cartões de uso', () => {
+  it('Claude e Codex têm SVGs próprios, com viewBox e sem cor fixa (a cor vem do CSS)', async () => {
+    const { kvProviderLogoSvg, CLAUDE_LOGO_SVG, CODEX_LOGO_SVG } = await import('./provider-logos');
+    expect(kvProviderLogoSvg('claude')).toBe(CLAUDE_LOGO_SVG);
+    expect(kvProviderLogoSvg('codex')).toBe(CODEX_LOGO_SVG);
+    for (const svg of [CLAUDE_LOGO_SVG, CODEX_LOGO_SVG]) {
+      expect(svg).toMatch(/^<svg [^>]*viewBox="-12 -12 24 24"/);
+      expect(svg).toContain('currentColor');
+      expect(svg).not.toContain('NaN');
+    }
+    // 12 raios na estrela, 6 cápsulas na flor.
+    expect(CLAUDE_LOGO_SVG.match(/M/g)).toHaveLength(12);
+    expect(CODEX_LOGO_SVG.match(/<rect /g)).toHaveLength(6);
+  });
+});
