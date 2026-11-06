@@ -27,6 +27,9 @@ import { KvAudit, kvShort, kvTapBody, type KvAuditEntry } from './audit';
 import type { OutboxMessage } from '../../../shared/types';
 import { kvParseLook, type KvLook } from '../../../shared/kaviski-presence';
 import { BUILTIN_ID, KvUsers, publicPerson } from './users';
+import { KvInvites } from './invites';
+import { kvInvitesRoute, INVITES_PATH } from './invites-route';
+import { AGENDA_PATH, AGENDA_ROOMS_PATH, KvAgenda, kvAgendaRoute, type KvAgendaRoom } from './agenda';
 
 export const HUMANOS_API = '/api/kaviski/humanos';
 const USERS_PATH = `${HUMANOS_API}/users`;
@@ -74,6 +77,8 @@ export interface KvHumanosDeps {
   /** Snapshot atual completo (hub.current()). */
   snapshot: () => OfficeSnapshot;
   env?: NodeJS.ProcessEnv;
+  /** Busca do ICS da agenda (os testes trocam; padrão: https com as travas de agenda.ts). */
+  agendaFetcher?: (url: string) => Promise<string>;
 }
 
 export function createHumanos(deps: KvHumanosDeps): KvHumanos {
@@ -84,6 +89,24 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
   const users = new KvUsers(dir ? join(dir, 'users.json') : null, builtinUser);
   if (enabled) users.load();
   const builtinName = () => kvPersonName(users.profile(BUILTIN_ID).name) ?? builtinUser ?? 'admin';
+  // Convites por link (fase 4): a chave sai do remote-secret, como a do login por pessoa.
+  let secret: Buffer | undefined;
+  const secretOf = () => (secret ??= loadSecret(join(deps.dataDir ?? '', 'remote-secret')));
+  const invites = new KvInvites(dir ? join(dir, 'invites.json') : null, secretOf);
+  if (enabled) invites.load();
+  users.attachGuests(invites);
+  // Agenda por ICS: relida a cada 5 min (o endereço fica em agenda.json, nunca volta ao navegador).
+  const agenda = new KvAgenda({ file: dir ? join(dir, 'agenda.json') : null, fetcher: deps.agendaFetcher });
+  if (enabled) {
+    agenda.load();
+    agenda.start();
+  }
+  /** Salas que a pessoa vê, para achar a sala da reunião no texto do evento (salas próprias: acrescentar aqui). */
+  const agendaRooms = (person: KvPerson): KvAgendaRoom[] => {
+    const snap = deps.snapshot();
+    const ids = kvRestricted(person) ? kvAllowedRoomIds(snap, person.rooms) : null;
+    return snap.rooms.filter((r) => !ids || ids.has(r.id)).map((r) => ({ id: r.id, name: r.name, ...(r.path ? { path: r.path } : {}), area: `r:${r.id}` }));
+  };
 
   const lk = enabled ? kvLiveKitConfig(env) : {};
   if (lk.warning) log.warn(tr('   Pessoas: voz e vídeo desligados ({0} inválida ou faltando).', [lk.warning]));
@@ -171,6 +194,13 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
   };
   let messages: KvMessageSender | undefined;
   const summoned = new Map<string, number>();
+  // Visitante cujo convite venceu (ou foi revogado) sai do escritório mesmo com a página aberta.
+  if (enabled) {
+    const sweep = setInterval(() => {
+      for (const o of presence.online()) if (o.person.role === 'visitante' && !invites.person(o.person.id)) presence.refresh(undefined, o.person.id);
+    }, 30_000);
+    sweep.unref?.();
+  }
 
   /** Agente (e a sala dele) pelo id, se a pessoa pode vê-lo. */
   const agentFor = (person: KvPerson, id: unknown) => {
@@ -304,9 +334,9 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
       res.setHeader('Allow', 'POST');
       return sendJson(res, 405, { error: tr('método não permitido') });
     }
-    if (!person) {
+    if (!person || person.role === 'visitante') {
       req.resume();
-      return sendJson(res, 403, { error: tr('entre com a sua conta para aparecer no escritório') });
+      return sendJson(res, 403, { error: person ? tr('visitante não chama agentes') : tr('entre com a sua conta para aparecer no escritório') });
     }
     readJson(req, 4096)
       .then((body) => {
@@ -537,10 +567,12 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
     },
     gate(original, builtin, cfg) {
       if (!enabled) return original;
-      const secret = loadSecret(join(deps.dataDir ?? '', 'remote-secret'));
-      const sessions = new KvPersonSessions(secret, (id) => users.get(id)?.hash, Date.now, dir ? join(dir, 'revoked.json') : undefined);
+      const sessions = new KvPersonSessions(secretOf(), (id) => users.get(id)?.hash, Date.now, dir ? join(dir, 'revoked.json') : undefined);
       log.info(tr('   Pessoas (HABBLAUD_HUMANOS): login por pessoa na porta remota; {0} conta(s) além de {1}.', [users.size, cfg.user]));
-      return createPeopleGate({ original, config: cfg, builtin, people: sessions, users, secure: !!cfg.tls, caFile: cfg.tls?.caFile, builtinName });
+      return createPeopleGate({
+        original, config: cfg, builtin, people: sessions, users, secure: !!cfg.tls, caFile: cfg.tls?.caFile, builtinName, invites,
+        onJoin: (p) => audit.add(p, 'visitante entrou', { detail: kvShort(p.rooms.join(', ')), ok: true }),
+      });
     },
     before(req, res, url) {
       if (!enabled) return false;
@@ -583,6 +615,20 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
       }
       if (path === PROFILE_PATH) {
         profileRoute(req, res);
+        return true;
+      }
+      if (path === AGENDA_PATH || path === AGENDA_ROOMS_PATH) {
+        kvAgendaRoute(req, res, path, {
+          who: whoIs(req),
+          agenda,
+          roomsFor: agendaRooms,
+          personById: (id) => (id === BUILTIN_ID ? builtinPerson(builtinUser ?? 'admin', builtinName()) : users.get(id) ? publicPerson(users.get(id)!) : undefined),
+          audit,
+        });
+        return true;
+      }
+      if (path === INVITES_PATH || path.startsWith(`${INVITES_PATH}/`)) {
+        kvInvitesRoute(req, res, path, { who: whoIs(req), invites, presence, audit, snapshot: deps.snapshot });
         return true;
       }
       if (path === USERS_PATH || path.startsWith(`${USERS_PATH}/`)) {

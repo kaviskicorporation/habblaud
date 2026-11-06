@@ -4,7 +4,7 @@
 //   (presence.ts) e o meu boneco andando no escritório (world.ts);
 // - para quem é admin (ou pela porta local, no próprio computador), o botão Pessoas no grupo de painéis.
 // O filtro das salas é do servidor: a página só mostra o que recebe.
-import type { KvMe } from '../../../../shared/kaviski-humanos';
+import { kvRestricted, type KvMe } from '../../../../shared/kaviski-humanos';
 import { tr } from '../../../../shared/i18n';
 import { iconButton } from '../../ui/dom';
 import { pixelIcon } from '../../ui/icons';
@@ -70,7 +70,7 @@ export function kvStartHumanos(store: OfficeStore, root: ParentNode = document):
       client.onEvent<{ agentId: string; to: string; name: string }>('summon', (e) => kvPeople.summon?.(e.agentId, e.to === client.state?.me ? null : e.to, e.name));
       void kvStartMedia(bar);
     }
-    if (m.person?.role === 'cliente') {
+    if (kvRestricted(m.person)) {
       // O servidor recusa o timelapse, o Meu dia e o terminal ao cliente (são da empresa toda): os botões somem e os
       // atalhos L, M e T também (o atalho do original ignora a tecla já tratada: defaultPrevented).
       const day = tr('Meu dia: para onde foi o tempo (M)');

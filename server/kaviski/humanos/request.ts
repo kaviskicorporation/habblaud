@@ -1,7 +1,7 @@
 // Fork Kaviski (KAVISKI-HUMANOS.md): quem fez cada requisição da porta remota (marcado pelo gate de pessoas). Módulo
 // pequeno e sem dependências, para os ganchos (remote-pty.ts, index.ts) perguntarem o papel sem import circular.
 import type { IncomingMessage } from 'node:http';
-import type { KvPerson } from '../../../shared/kaviski-humanos';
+import { kvRestricted, type KvPerson } from '../../../shared/kaviski-humanos';
 
 const people = new WeakMap<IncomingMessage, KvPerson>();
 
@@ -14,9 +14,9 @@ export function kvPersonOf(req: IncomingMessage | undefined): KvPerson | undefin
   return req ? people.get(req) : undefined;
 }
 
-/** A requisição é de um cliente (que nunca age: só vê as salas dele)? */
+/** A requisição é de um cliente ou visitante (que nunca age: só vê as salas dele)? */
 export function kvIsCliente(req: IncomingMessage | undefined): boolean {
-  return kvPersonOf(req)?.role === 'cliente';
+  return kvRestricted(kvPersonOf(req));
 }
 
 /**
@@ -27,6 +27,6 @@ export function kvIsCliente(req: IncomingMessage | undefined): boolean {
 export function kvRemoteAllows(allowed: boolean, req: IncomingMessage | undefined, feature?: string): boolean {
   if (!allowed) return false;
   const p = kvPersonOf(req);
-  if (p?.role !== 'cliente') return true;
-  return feature === 'messages' && !!p.request;
+  if (!kvRestricted(p)) return true;
+  return feature === 'messages' && p?.role === 'cliente' && !!p.request;
 }

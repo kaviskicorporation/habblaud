@@ -12,12 +12,14 @@ export const ROLE_LABEL: Record<KvRole, string> = {
   admin: tr('admin'),
   equipe: tr('equipe'),
   cliente: tr('cliente'),
+  visitante: tr('visitante'),
 };
 
 const ROLE_HINT: Record<KvRole, string> = {
   admin: tr('Tudo, inclusive esta tela de Pessoas.'),
   equipe: tr('Tudo que o acesso remoto libera (terminal, mensagens, aprovar), menos cuidar das pessoas.'),
   cliente: tr('Só vê as salas liberadas abaixo; não aprova, não manda mensagem, não abre terminal.'),
+  visitante: tr('Entrou por um convite: como o cliente, e não chama agentes.'),
 };
 
 interface AuditEntry {

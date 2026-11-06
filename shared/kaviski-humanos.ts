@@ -7,7 +7,9 @@
 import type { FeedItem, Notice, OfficeSnapshot } from './types';
 import { kvPathKey } from './kaviski';
 
-export type KvRole = 'admin' | 'equipe' | 'cliente';
+/** `visitante` = quem entrou por um convite (link), sem conta: as restrições do cliente e mais algumas (KAVISKI-HUMANOS.md). */
+export type KvRole = 'admin' | 'equipe' | 'cliente' | 'visitante';
+/** Papéis de conta (users.json): o visitante nunca é uma conta. */
 export const KV_ROLES: readonly KvRole[] = ['admin', 'equipe', 'cliente'];
 
 /** Uma pessoa como a página e a tela de administração a veem (nunca o hash da senha). */
@@ -23,6 +25,8 @@ export interface KvPerson {
   /** Cliente que pode pedir tarefas (mandar mensagem) aos agentes das salas dele (fase 3; o admin libera). */
   request?: boolean;
   createdAt?: number;
+  /** Visitante: até quando o convite vale (epoch ms); a sessão acaba junto. */
+  until?: number;
 }
 
 /** GET /api/kaviski/humanos/me */
@@ -91,9 +95,9 @@ export function kvRoomAllowed(path: string | undefined, rules: readonly string[]
   return false;
 }
 
-/** Quem é filtrado: só o cliente. */
+/** Quem é filtrado: o cliente e o visitante (convite por link). */
 export function kvRestricted(person: Pick<KvPerson, 'role'> | undefined): boolean {
-  return person?.role === 'cliente';
+  return person?.role === 'cliente' || person?.role === 'visitante';
 }
 
 /** Ids das salas do snapshot liberadas pelas regras. */

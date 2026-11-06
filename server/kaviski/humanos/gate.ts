@@ -22,6 +22,7 @@ import { tr } from '../../../shared/i18n';
 import type { KvPerson } from '../../../shared/kaviski-humanos';
 import { kvSetPerson } from './request';
 import { BUILTIN_ID, publicPerson, type KvUsers } from './users';
+import { INVITE_JOIN_PATH, INVITE_PAGE, kvInvitePage, kvInviteProblemText, type KvInvites } from './invites';
 
 type Gate = (req: IncomingMessage, res: ServerResponse, url: URL) => boolean;
 
@@ -155,6 +156,10 @@ export interface KvGateDeps {
   builtinName?: () => string;
   verify?: (password: string, hash: PasswordHash) => Promise<boolean>;
   limiter?: KvLoginLimiter;
+  /** Convites por link (fase 4): visitantes com o cookie "g1". */
+  invites?: KvInvites;
+  /** Um visitante acabou de entrar (registro). */
+  onJoin?: (person: KvPerson) => void;
 }
 
 /** Endereço de quem fez a requisição: o do socket ou, vindo do proxy local (Caddy), o 1º do X-Forwarded-For. */
@@ -219,8 +224,9 @@ export function builtinPerson(user: string, name?: string): KvPerson {
 }
 
 /** A pessoa por trás do cookie (conta embutida pelo token v1, as de users.json pelo h1). */
-export function kvResolvePerson(deps: Pick<KvGateDeps, 'builtin' | 'people' | 'users' | 'config' | 'builtinName'>, token: string | undefined): KvPerson | undefined {
+export function kvResolvePerson(deps: Pick<KvGateDeps, 'builtin' | 'people' | 'users' | 'config' | 'builtinName' | 'invites'>, token: string | undefined): KvPerson | undefined {
   if (!token) return undefined;
+  if (token.startsWith('g1.')) return deps.invites?.verify(token);
   if (token.startsWith('h1.')) {
     const id = deps.people.verify(token);
     const rec = id ? deps.users.get(id) : undefined;
@@ -242,10 +248,117 @@ export function createPeopleGate(deps: KvGateDeps): Gate {
     }
   };
 
+  const html = (res: ServerResponse, status: number, page: string) => {
+    res.writeHead(status, kvFrameHeaders({
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Length': Buffer.byteLength(page),
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'Referrer-Policy': 'no-referrer',
+    }));
+    res.end(page);
+  };
+
+  /**
+   * Convites (fase 4): a página do link, a entrada do visitante e o fim da visita (cookie de visitante que deixou de
+   * valer vê "a sua visita terminou", não a tela de login). true = já respondeu.
+   */
+  const inviteRoute = (req: IncomingMessage, res: ServerResponse, url: URL, token: string | undefined): boolean => {
+    const invites = deps.invites!;
+    const path = url.pathname;
+    const method = req.method ?? 'GET';
+    const ip = kvClientIp(req);
+    if (path.startsWith(INVITE_PAGE)) {
+      req.resume();
+      if (method !== 'GET' && method !== 'HEAD') {
+        sendJson(res, 405, { error: tr('método não permitido') }, { Allow: 'GET' });
+        return true;
+      }
+      let raw = path.slice(INVITE_PAGE.length);
+      try {
+        raw = decodeURIComponent(raw);
+      } catch {
+        raw = '';
+      }
+      const end = limiter.begin(ip, `convite:${ip}`);
+      if (!end) {
+        html(res, 429, kvBrandLogin(kvInvitePage({ problem: tr('Muitas tentativas. Tente de novo em {0} s.', [Math.max(1, limiter.retryAfter(ip, `convite:${ip}`))]) })));
+        return true;
+      }
+      const { invite, problem } = invites.open(raw);
+      // link certo (mesmo vencido) não conta como tentativa errada
+      end(!!invite);
+      const who = kvResolvePerson(deps, token);
+      if (who?.role === 'visitante' && !problem) {
+        res.writeHead(302, { Location: '/', 'Cache-Control': 'no-store' });
+        res.end();
+        return true;
+      }
+      const page = problem
+        ? kvInvitePage({ problem: kvInviteProblemText(problem) })
+        : kvInvitePage({ token: raw, label: invite!.label, by: invite!.by.name, until: invite!.expiresAt, loggedAs: who && who.role !== 'visitante' ? who.name : undefined });
+      html(res, problem ? (problem === 'invalido' ? 404 : 410) : 200, kvBrandLogin(page));
+      return true;
+    }
+    if (path === INVITE_JOIN_PATH) {
+      if (method !== 'POST') {
+        req.resume();
+        sendJson(res, 405, { error: tr('método não permitido') }, { Allow: 'POST' });
+        return true;
+      }
+      let end: ((ok: boolean) => void) | null = null;
+      let ok = false;
+      readBody(req, 4096)
+        .then((raw) => {
+          let body: { token?: unknown; name?: unknown } = {};
+          try {
+            body = JSON.parse(raw) as typeof body;
+          } catch {
+            // recusa abaixo
+          }
+          end = limiter.begin(ip, `convite:${ip}`);
+          if (!end) {
+            const wait = Math.max(1, limiter.retryAfter(ip, `convite:${ip}`));
+            return sendJson(res, 429, { error: tr('Muitas tentativas. Tente de novo em {0} s.', [wait]) }, { 'Retry-After': String(wait) });
+          }
+          const r = invites.join(body.token, body.name);
+          // nome vazio não é tentativa errada (o link estava certo)
+          ok = r.ok || r.status === 400;
+          if (!r.ok) return sendJson(res, r.status, { error: r.error });
+          deps.onJoin?.(r.person);
+          const go = r.rooms.length === 1 ? `/?sala=${encodeURIComponent(r.rooms[0]!)}` : '/';
+          sendJson(res, 200, { ok: true, go }, { 'Set-Cookie': cookie(r.token, r.maxAgeS, deps.secure) });
+        })
+        .catch(() => {
+          if (!res.headersSent) sendJson(res, 400, { error: tr('requisição inválida') });
+        })
+        .finally(() => {
+          (end as ((ok: boolean) => void) | null)?.(ok);
+        });
+      return true;
+    }
+    // Visita que terminou (convite vencido ou revogado): a página explica, a API responde 401 com o mesmo texto.
+    if (token?.startsWith('g1.') && !invites.verify(token) && path !== '/api/remote/logout' && path !== '/login') {
+      req.resume();
+      const clear = { 'Set-Cookie': cookie('', 0, deps.secure) };
+      if (path === '/api' || path.startsWith('/api/')) sendJson(res, 401, { error: tr('a sua visita terminou: o convite venceu ou foi encerrado'), ended: true }, clear);
+      else {
+        const page = kvBrandLogin(kvInvitePage({ ended: true }));
+        res.setHeader('Set-Cookie', clear['Set-Cookie']);
+        html(res, 401, page);
+      }
+      return true;
+    }
+    return false;
+  };
+
   return (req, res, url) => {
     const path = url.pathname;
     const method = req.method ?? 'GET';
     const token = readCookie(req.headers.cookie, COOKIE);
+
+    if (deps.invites && inviteRoute(req, res, url, token)) return true;
 
     if (path === '/api/remote/login') {
       if (method !== 'POST') {

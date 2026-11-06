@@ -2,8 +2,10 @@
 // As lacunas {0}, {1}... (e as nomeadas, como {sala}) precisam aparecer na tradução, em qualquer ordem.
 // Chave ausente = o texto fica em PT. `npm run i18n:check` lista os textos sem tradução e as chaves que sobraram.
 import { KV_HUMANOS_ES } from './kaviski-humanos'; // fork Kaviski (KAVISKI-HUMANOS.md)
+import { KV_EXTRAS_ES } from './kaviski-extras'; // fork Kaviski (KAVISKI-HUMANOS.md)
 export const ES: Readonly<Record<string, string>> = {
   ...KV_HUMANOS_ES, // fork Kaviski (KAVISKI-HUMANOS.md)
+  ...KV_EXTRAS_ES, // fork Kaviski (KAVISKI-HUMANOS.md)
   // fork Kaviski (KAVISKI.md): client/src/kaviski, server/kaviski
   "Abrir esta sessão no TwiCC": "Abrir esta sesión en TwiCC",
   "Abrir no TwiCC": "Abrir en TwiCC",

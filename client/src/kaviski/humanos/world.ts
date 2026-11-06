@@ -47,7 +47,7 @@ export const STATUS_LABEL: Record<KvStatus, string> = {
   ausente: tr('ausente'),
 };
 
-const ROLE_BADGE: Record<string, string> = { admin: tr('equipe'), equipe: tr('equipe'), cliente: tr('cliente') };
+const ROLE_BADGE: Record<string, string> = { admin: tr('equipe'), equipe: tr('equipe'), cliente: tr('cliente'), visitante: tr('visitante') };
 
 function badgeOf(p: Pick<KvPresencePerson, 'role' | 'status'>): string {
   return (p.status === 'disponivel' ? (ROLE_BADGE[p.role] ?? '') : STATUS_LABEL[p.status]).toLocaleUpperCase();

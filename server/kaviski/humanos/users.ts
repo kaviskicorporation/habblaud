@@ -64,8 +64,16 @@ function validPassword(v: unknown): v is string {
   return typeof v === 'string' && v.length >= KV_PASSWORD_MIN && v.length <= KV_PASSWORD_MAX;
 }
 
+/** Quem tem perfil mas não é conta (visitantes dos convites, invites.ts). */
+export interface KvGuestProfiles {
+  has(id: string): boolean;
+  profile(id: string): Record<string, unknown>;
+  setProfile(id: string, profile: Record<string, unknown>): boolean;
+}
+
 export class KvUsers {
   private users: KvUserRecord[] = [];
+  private guests: KvGuestProfiles | null = null;
   private builtinProfile: Record<string, unknown> = {};
   private readonly parsed = new Map<string, PasswordHash>();
 
@@ -129,11 +137,18 @@ export class KvUsers {
     return h;
   }
 
+  /** Perfis dos visitantes (fase 4): profile/setProfile valem para eles também. */
+  attachGuests(g: KvGuestProfiles): void {
+    this.guests = g;
+  }
+
   profile(id: string): Record<string, unknown> {
+    if (this.guests?.has(id)) return this.guests.profile(id);
     return id === BUILTIN_ID ? { ...this.builtinProfile } : { ...(this.get(id)?.profile ?? {}) };
   }
 
   setProfile(id: string, profile: Record<string, unknown>): boolean {
+    if (this.guests?.has(id)) return this.guests.setProfile(id, profile);
     if (id === BUILTIN_ID) this.builtinProfile = profile;
     else {
       const r = this.get(id);
