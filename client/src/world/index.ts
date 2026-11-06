@@ -12,6 +12,7 @@ import { RECEPTION_ID } from './layout/core';
 import { inRect } from './layout/geometry';
 import { attachInput, type Hit } from './input';
 import { kvAttachWorld } from '../kaviski/humanos/world'; // fork Kaviski (KAVISKI-HUMANOS.md)
+import { kvArt } from '../kaviski/plan/themes-art'; // fork Kaviski (KAVISKI-HUMANOS.md, planta livre)
 import type { AgentInfo } from '../../../shared/types';
 import { rebaseSnapshot } from './playback';
 import { Overlay } from './render/overlay';
@@ -23,7 +24,7 @@ import { SoundCues } from './sound-cues';
 export * from './api';
 export type { WorldDebug } from './debug';
 
-const art: ArtModule = artModule;
+const art: ArtModule = kvArt(artModule); // fork Kaviski: itens em pixel art das salas temáticas (planta livre)
 
 /** O que a cena Visita usa do mundo dela (createWorld com `visit: true`). */
 export interface VisitWorld {

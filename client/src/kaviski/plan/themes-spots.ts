@@ -5,6 +5,7 @@ import { FURNITURE, type Dir } from '../../art/api';
 import { FOOT_DX, FOOT_DY, TILE } from '../../world/constants';
 import type { AreaLayout } from '../../world/layout/types';
 import type { KvActionSpot } from './api';
+import { kvSpriteDims } from './themes-dims';
 
 type Walkable = (tx: number, ty: number) => boolean;
 
@@ -47,7 +48,7 @@ export function kvComputeActionSpots(areas: Iterable<AreaLayout>, tags: Readonly
       const acts = take(f.id);
       if (!acts.length) continue;
       const fp = FURNITURE[f.kind].footprint;
-      const rise = RISE[f.kind] ?? 12;
+      const rise = kvSpriteDims(f.variant)?.rise ?? RISE[f.kind] ?? 12;
       const box = { x: f.tx * TILE + (f.dx ?? 0), y: f.ty * TILE - rise + (f.dy ?? 0), w: fp.w * TILE, h: fp.h * TILE + rise };
       const t = kvApproachTiles(f.tx, f.ty, fp.w, fp.h).find((c) => walkable(c.tx, c.ty));
       if (!t) continue;
@@ -56,7 +57,7 @@ export function kvComputeActionSpots(areas: Iterable<AreaLayout>, tags: Readonly
     for (const w of area.wallItems) {
       const acts = take(w.id);
       if (!acts.length) continue;
-      const fw = Math.max(1, FURNITURE[w.kind].footprint.w) * TILE;
+      const fw = (kvSpriteDims(w.variant)?.w ?? Math.max(1, FURNITURE[w.kind].footprint.w)) * TILE;
       const south = w.on === 'south';
       const box = south ? { x: w.cx - fw / 2, y: w.baseY - TILE, w: fw, h: TILE } : { x: w.cx - fw / 2, y: w.baseY - 2 * TILE + 4, w: fw, h: 2 * TILE - 6 };
       // face: o boneco fica na primeira linha de piso, embaixo do item, virado para cima; sul: em cima da mureta
