@@ -1,0 +1,18 @@
+# Fork Kaviski (KAVISKI-HUMANOS.md): LiveKit (voz e vídeo das pessoas no escritório) no VPS 31.97.27.13.
+# Sinalização só em 127.0.0.1 (o nginx do host publica em wss://<lk.dominio>); mídia direto pela internet:
+# 7881/TCP e 50000-50100/UDP precisam estar liberados no firewall do VPS (rede: só o Vitor).
+# Uso no VPS: copie livekit.yaml.example para livekit.yaml (chave e segredo novos, chmod 600) e `docker compose up -d`.
+services:
+  livekit:
+    image: livekit/livekit-server:v1.13.11
+    container_name: habblaud-livekit
+    command: --config /etc/livekit.yaml
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${LIVEKIT_PORT:-9090}:7880"   # sinalização (o nginx publica)
+      - "7881:7881"                               # mídia por TCP (quando o UDP não passa)
+      - "50000-50100:50000-50100/udp"             # mídia por UDP
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+    environment:
+      - TZ=America/Sao_Paulo

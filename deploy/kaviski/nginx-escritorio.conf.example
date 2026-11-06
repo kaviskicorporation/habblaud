@@ -1,0 +1,66 @@
+# Fork Kaviski (KAVISKI-HUMANOS.md): endereço público do escritório no nginx do VPS 31.97.27.13.
+# Troque escritorio.exemplo.com.br / lk.exemplo.com.br pelos nomes reais (certificados pelo certbot).
+# <TUNEL_HABBLAUD> = como o VPS chega na porta remota do Habblaud na VM (ex.: 100.x.y.z:4748 por um túnel).
+# Rede, DNS e túnel: só o Vitor.
+
+upstream habblaud_escritorio {
+    server <TUNEL_HABBLAUD>;
+    keepalive 16;
+}
+
+upstream habblaud_livekit {
+    server 127.0.0.1:9090;   # LIVEKIT_PORT do livekit-compose.yml
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name escritorio.exemplo.com.br lk.exemplo.com.br;
+    location ^~ /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location / { return 301 https://$host$request_uri; }
+}
+
+# O escritório (página, API, SSE de /api/stream e /api/kaviski/humanos/presence).
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name escritorio.exemplo.com.br;
+    ssl_certificate     /etc/letsencrypt/live/escritorio.exemplo.com.br/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/escritorio.exemplo.com.br/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    client_max_body_size 40m;
+
+    location / {
+        proxy_pass http://habblaud_escritorio;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # SSE (tempo real): sem buffer e sem cortar conexões longas
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 1h;
+    }
+}
+
+# A sinalização do LiveKit (WebSocket).
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name lk.exemplo.com.br;
+    ssl_certificate     /etc/letsencrypt/live/lk.exemplo.com.br/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/lk.exemplo.com.br/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+
+    location / {
+        proxy_pass http://habblaud_livekit;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_read_timeout 1h;
+    }
+}

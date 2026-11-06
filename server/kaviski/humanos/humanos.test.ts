@@ -325,3 +325,36 @@ describe('presença (quem vê quem)', () => {
     pres.stop();
   });
 });
+
+import { createHmac } from 'node:crypto';
+import { kvAreaAllowed, kvCallName, kvLiveKitConfig, kvLiveKitToken } from './livekit';
+
+describe('voz e vídeo (LiveKit)', () => {
+  const secret = 'x'.repeat(40);
+  it('liga só com URL, chave e segredo válidos', () => {
+    expect(kvLiveKitConfig({})).toEqual({});
+    expect(kvLiveKitConfig({ HABBLAUD_LIVEKIT_URL: 'http://x', HABBLAUD_LIVEKIT_KEY: 'abc', HABBLAUD_LIVEKIT_SECRET: secret }).warning).toBe('HABBLAUD_LIVEKIT_URL');
+    expect(kvLiveKitConfig({ HABBLAUD_LIVEKIT_URL: 'wss://lk.exemplo.com', HABBLAUD_LIVEKIT_KEY: 'abc', HABBLAUD_LIVEKIT_SECRET: 'curto' }).warning).toBe('HABBLAUD_LIVEKIT_SECRET');
+    expect(kvLiveKitConfig({ HABBLAUD_LIVEKIT_URL: 'wss://lk.exemplo.com/', HABBLAUD_LIVEKIT_KEY: 'abc', HABBLAUD_LIVEKIT_SECRET: secret }).config?.url).toBe('wss://lk.exemplo.com');
+  });
+  it('cliente só entra nas chamadas das salas dele, das áreas comuns e do corredor', () => {
+    const rarm = { id: 'r', user: 'r', name: 'R', role: 'cliente' as const, rooms: ['/proj/Clientes/12-Rarm'] };
+    const bia = { id: 'b', user: 'b', name: 'B', role: 'equipe' as const, rooms: [] };
+    expect(kvAreaAllowed('r:r1', rarm, snapshot())).toBe('Rarm');
+    expect(kvAreaAllowed('r:r2', rarm, snapshot())).toBeUndefined();
+    expect(kvAreaAllowed('r:r2', bia, snapshot())).toBe('Site');
+    expect(kvAreaAllowed('a:core:copa', rarm, snapshot())).toBe('core:copa');
+    expect(kvAreaAllowed('a:outra', rarm, snapshot())).toBeUndefined();
+    expect(kvAreaAllowed('c', rarm, snapshot())).toBe('corredor');
+    expect(kvCallName('r:r1')).toMatch(/^kv-[0-9a-f]{20}$/);
+    expect(kvCallName('r:r1')).not.toContain('r1');
+  });
+  it('token JWT HS256 com a sala e a pessoa', () => {
+    const t = kvLiveKitToken({ url: 'ws://x', key: 'chave', secret }, { id: 'p1', name: 'Ana' }, 'kv-sala', 1000);
+    const [h, p, s] = t.split('.');
+    expect(createHmac('sha256', secret).update(`${h}.${p}`).digest('base64url')).toBe(s);
+    const payload = JSON.parse(Buffer.from(p, 'base64url').toString());
+    expect(payload).toMatchObject({ iss: 'chave', sub: 'p1', name: 'Ana', video: { room: 'kv-sala', roomJoin: true, canPublish: true, canSubscribe: true } });
+    expect(payload.exp - payload.nbf).toBeGreaterThan(3600);
+  });
+});

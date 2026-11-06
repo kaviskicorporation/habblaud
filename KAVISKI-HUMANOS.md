@@ -117,6 +117,42 @@ Liga com `HABBLAUD_HUMANOS=1` (e a porta remota configurada, como hoje). Sem a v
 - Código: `server/kaviski/humanos/presence.ts`, `shared/kaviski-presence.ts`,
   `client/src/kaviski/humanos/{presence,world,online,pos}.ts` (+ `pos.test.ts`). Depuração: `habblaud.kvPeople` no console.
 
+### 1c — voz e vídeo (LiveKit) (2026-11-06) ✅ (falta só o endereço público)
+- **Uma chamada por área** do escritório: cada sala de projeto, cada área comum do núcleo (recepção, copa, banheiros,
+  lounge) e o corredor. Entrou na área (parado ~0,7 s), entra na chamada dela; saiu, sai. Dentro de sala de projeto,
+  volume cheio; nas áreas comuns e no corredor, **volume pela distância** entre os bonecos (cheio até 3 tiles, some em 11).
+- **Barra de voz** no topo (só com o boneco no escritório): "Na chamada: <área>", microfone, câmera e compartilhar tela.
+  Microfone e câmera começam desligados (escolha lembrada no navegador). Câmera = bolinha com o vídeo em cima do boneco
+  (some quando a pessoa está longe demais para ser ouvida); tela compartilhada = quadro flutuante (clique amplia).
+- **Segurança no servidor**: o token do LiveKit (`POST /api/kaviski/humanos/livekit-token {area}`, JWT HS256 assinado
+  com `node:crypto`, 2 h) só sai para áreas que a pessoa pode ouvir — cliente: as salas dele, as áreas comuns e o
+  corredor. O nome da chamada é um resumo (hash) da área, sem o caminho da pasta. `GET /api/kaviski/humanos/livekit` diz se
+  está ligado.
+- **Variáveis** (no `.env`, nunca no git): `HABBLAUD_LIVEKIT_URL` (endereço que o NAVEGADOR usa: `wss://...`),
+  `HABBLAUD_LIVEKIT_KEY`, `HABBLAUD_LIVEKIT_SECRET` (32+ caracteres). Sem elas: sem barra de voz, o resto funciona.
+- **Navegador**: `livekit-client` (Apache 2.0, `devDependencies`, ~150 kB gzip) carregado sob demanda, só quando a voz
+  está ligada. Microfone/câmera exigem HTTPS (ou localhost).
+- **LiveKit na VM** (teste/rede local): container `habblaud-livekit` (`livekit/livekit-server:v1.13.11`), sinalização em
+  `127.0.0.1:7880`, mídia em `7881/TCP` e `50000-50100/UDP`, `node_ip` 192.168.1.220; config e chaves em
+  `~/.config/habblaud/livekit.yaml` e `livekit.env` (600, fora do git). Testado com dois navegadores (Chromium com
+  microfone/câmera falsos): mesma chamada, áudio e vídeo dos dois lados.
+- Código: `server/kaviski/humanos/livekit.ts`, `client/src/kaviski/humanos/media.ts`.
+
+### Endereço público (decisão do Vitor, 2026-11-06: "já quero o endereço público")
+DNS, túnel e firewall são do Vitor. O que fica pronto no repositório: `deploy/kaviski/` (`livekit-compose.yml`,
+`livekit.yaml.example`, `nginx-escritorio.conf.example`). Passo a passo:
+1. **Nomes** (DNS → VPS 31.97.27.13): um para o escritório (ex.: `escritorio.<dominio>`) e um para o LiveKit
+   (ex.: `lk.<dominio>`); certificados com o `certbot`.
+2. **Túnel** do VPS até a porta remota do Habblaud na VM (`4748`, HTTP; o HTTPS fica no nginx do VPS).
+3. **LiveKit no VPS** (recomendado: o VPS tem IP público, a mídia vai direto): pasta
+   `~/Projetos/KaviskiCorporation/Docker_Projects/habblaud-livekit/` com o `livekit-compose.yml` e um `livekit.yaml`
+   (chave/segredo novos), `docker compose up -d`; **liberar no firewall do VPS 7881/TCP e 50000-50100/UDP**.
+4. **nginx do VPS**: `nginx-escritorio.conf.example` (o SSE precisa de `proxy_buffering off`; o LiveKit de `Upgrade`).
+5. **`.env` do Habblaud na VM**: o nome do escritório em `HABBLAUD_ALLOWED_HOSTS` (senão o guard recusa o Host),
+   `HABBLAUD_LIVEKIT_URL=wss://lk.<dominio>`, `HABBLAUD_LIVEKIT_KEY` e `HABBLAUD_LIVEKIT_SECRET` iguais aos do
+   `livekit.yaml` do VPS; depois `python3 ~/base/scripts/kc-habblaud.py subir`.
+6. Com o LiveKit no VPS, o container `habblaud-livekit` da VM pode sair (`docker rm -f habblaud-livekit`).
+
 ## Como desenvolver sem derrubar o escritório
 - Desenvolver numa **segunda instância** (`HABBLAUD_PORT=4757`, `HABBLAUD_REMOTE_PORT=4758`,
   `HABBLAUD_DATA_DIR=~/.habblaud-dev`), sem mexer no serviço `habblaud` em produção.

@@ -20,6 +20,7 @@ import { builtinPerson, createPeopleGate, KvPersonSessions } from './gate';
 import { kvPersonOf } from './request';
 import { kvFilterStream } from './stream-filter';
 import { KvPresence } from './presence';
+import { kvAreaAllowed, kvCallName, kvLiveKitConfig, kvLiveKitToken } from './livekit';
 import { kvParseLook, type KvLook } from '../../../shared/kaviski-presence';
 import { BUILTIN_ID, KvUsers, publicPerson } from './users';
 
@@ -27,6 +28,8 @@ export const HUMANOS_API = '/api/kaviski/humanos';
 const USERS_PATH = `${HUMANOS_API}/users`;
 const PRESENCE_PATH = `${HUMANOS_API}/presence`;
 const PROFILE_PATH = `${HUMANOS_API}/profile`;
+const LIVEKIT_PATH = `${HUMANOS_API}/livekit`;
+const LIVEKIT_TOKEN_PATH = `${HUMANOS_API}/livekit-token`;
 const AGENT_DETAIL = /^\/api\/agents\/([^/]+)$/;
 
 type Gate = (req: IncomingMessage, res: ServerResponse, url: URL) => boolean;
@@ -60,6 +63,42 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
   const users = new KvUsers(dir ? join(dir, 'users.json') : null, builtinUser);
   if (enabled) users.load();
   const builtinName = () => kvPersonName(users.profile(BUILTIN_ID).name) ?? builtinUser ?? 'admin';
+
+  const lk = enabled ? kvLiveKitConfig(env) : {};
+  if (lk.warning) log.warn(tr('   Pessoas: voz e vídeo desligados ({0} inválida ou faltando).', [lk.warning]));
+  else if (lk.config) log.info(tr('   Pessoas: voz e vídeo pelo LiveKit em {0}.', [lk.config.url]));
+
+  const liveKitRoute = (req: IncomingMessage, res: ServerResponse, path: string): void => {
+    const method = req.method ?? 'GET';
+    const person = whoIs(req);
+    if (path === LIVEKIT_PATH) {
+      req.resume();
+      return sendJson(res, 200, lk.config && person ? { enabled: true, url: lk.config.url } : { enabled: false });
+    }
+    if (method !== 'POST') {
+      req.resume();
+      res.setHeader('Allow', 'POST');
+      return sendJson(res, 405, { error: tr('método não permitido') });
+    }
+    if (!person) {
+      req.resume();
+      return sendJson(res, 403, { error: tr('entre com a sua conta para aparecer no escritório') });
+    }
+    if (!lk.config) {
+      req.resume();
+      return sendJson(res, 404, { error: tr('voz e vídeo desligados (falta HABBLAUD_LIVEKIT_URL, _KEY e _SECRET)') });
+    }
+    const cfg = lk.config;
+    readJson(req, 4096)
+      .then((body) => {
+        const area = (body as { area?: unknown })?.area;
+        const name = kvAreaAllowed(area, person, deps.snapshot());
+        if (!name) throw new HttpError(403, tr('essa chamada não é sua'));
+        const room = kvCallName(String(area));
+        sendJson(res, 200, { url: cfg.url, room, name, token: kvLiveKitToken(cfg, person, room) });
+      })
+      .catch((err) => fail(res, err));
+  };
 
   const lookOf = (id: string): KvLook | undefined => kvParseLook(users.profile(id).look);
   const presence = new KvPresence({ snapshot: deps.snapshot, look: lookOf });
@@ -267,6 +306,10 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
       }
       if (path === PRESENCE_PATH) {
         presenceRoute(req, res);
+        return true;
+      }
+      if (path === LIVEKIT_PATH || path === LIVEKIT_TOKEN_PATH) {
+        liveKitRoute(req, res, path);
         return true;
       }
       if (path === PROFILE_PATH) {

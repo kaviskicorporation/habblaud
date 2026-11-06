@@ -82,7 +82,14 @@ export const kvPeople: {
   follow?: (id: string) => void;
   /** Depuração pelo console (window.habblaud.kvPeople.sim()). */
   sim?: () => Sim;
-} = { client: null, inside: false };
+  /**
+   * Área em que o meu boneco está (a chamada de voz dela, fase 1c): `r:<id da sala>`, `a:<área do núcleo>` ou `c`
+   * (corredor); null = fora do escritório ou no elevador.
+   */
+  area: string | null;
+  /** Onde está o boneco de uma pessoa (null = o meu): px de mundo e px de tela (CSS, relativo à janela). */
+  locate?: (id: string | null) => { x: number; y: number; sx: number; sy: number; zoom: number } | null;
+} = { client: null, inside: false, area: null };
 
 interface Puppet {
   ch: Character;
@@ -121,6 +128,14 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
 
   const active = () => !!kvPeople.client && kvPeople.inside;
   kvPeople.sim = ctx.sim;
+  kvPeople.locate = (id) => {
+    const sim = ctx.sim();
+    const ch = id === null ? sim.visitor : puppets.get(PUPPET_PREFIX + id)?.ch;
+    if (!ch || ch.gone || ch.alpha < 0.3) return null;
+    const p = ctx.camera.worldToScreen(ch.x, ch.y);
+    const r = document.getElementById('world')?.getBoundingClientRect();
+    return { x: ch.x, y: ch.y, sx: p.x + (r?.left ?? 0), sy: p.y + (r?.top ?? 0), zoom: ctx.camera.zoom };
+  };
   kvPeople.follow = (id) => {
     ctx.camera.follow = puppets.has(PUPPET_PREFIX + id) ? PUPPET_PREFIX + id : null;
   };
@@ -283,13 +298,26 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
           kvPeople.client.setPos(kvEncodePos(g, v.x, v.y, v.dir, moving ? (v.pose === 'run' ? 2 : 1) : 0));
         }
         wasMoving = moving;
+        kvPeople.area = sim.visitorBusy ? null : areaOf(sim, g, v.x, v.y);
       } else {
+        kvPeople.area = null;
         // fora do escritório (ou no timelapse): os outros não me veem (setPos ignora o repetido)
         kvPeople.client.setPos(null);
         wasMoving = false;
       }
     },
   };
+}
+
+/** A área do escritório em (x, y): sala de projeto, área do núcleo ou corredor. */
+function areaOf(sim: Sim, g: KvBuildingGeom, x: number, y: number): string {
+  const tx = Math.floor(x / TILE);
+  const ty = Math.floor(y / TILE);
+  const inRect = (r: { x: number; y: number; w: number; h: number }) => tx >= r.x && tx < r.x + r.w && ty >= r.y && ty < r.y + r.h;
+  const room = g.rooms.find((r) => inRect(r.rect));
+  if (room) return `r:${room.id}`;
+  const core = sim.building.core.find((a) => inRect(a.rect));
+  return core ? `a:${core.id}` : 'c';
 }
 
 /** Semente do boneco sorteado (o editor usa). */

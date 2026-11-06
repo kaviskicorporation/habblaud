@@ -11,6 +11,7 @@ import { pixelIcon } from '../../ui/icons';
 import { PeopleDialog } from './people';
 import { KvOnline } from './online';
 import { KvPresenceClient } from './presence';
+import { kvStartMedia } from './media';
 import { kvPeople } from './world';
 import type { OfficeStore } from '../../net/store';
 import './humanos.css';
@@ -49,6 +50,7 @@ export function kvStartHumanos(store: OfficeStore, root: ParentNode = document):
       status.append(online.chip);
       client.on((s) => online.setState(s));
       client.start();
+      void kvStartMedia(); // voz e vídeo (fase 1c), só com o LiveKit configurado no servidor
     }
     if (m.person?.role === 'cliente') {
       // O servidor recusa o timelapse e o Meu dia ao cliente (são da empresa toda): os botões somem.
