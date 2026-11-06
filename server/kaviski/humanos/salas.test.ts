@@ -16,6 +16,7 @@ import { KvPresence } from './presence';
 import { KvObjects } from './objects';
 import { KvRooms, kvOwnRoomArea, kvRoomIdsFor, kvRoomsRoute, kvUseRooms, ROOMS_PATH } from './rooms';
 import { createHumanos } from '.';
+import { closeAll, json, login, start } from './test-harness';
 
 setQuiet(true);
 
@@ -317,5 +318,29 @@ describe('rota /api/kaviski/humanos/rooms', () => {
     who = admin;
     expect((await call('DELETE', `${base}/${id}`)).status).toBe(200);
     expect(changed).toBe(2);
+  });
+});
+
+describe('agenda (W5) aponta para as salas próprias', () => {
+  afterEach(closeAll);
+
+  it('o local do evento acha a sala de reunião; quem não vê a sala não vê a reserva', async () => {
+    const now = Date.now();
+    const stamp = (t: number) => new Date(t).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    const cal = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT', 'UID:x', `DTSTART:${stamp(now - 600_000)}`, `DTEND:${stamp(now + 3_600_000)}`, 'SUMMARY:Daily', 'LOCATION:Sala Azul', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+    const h = await start({ agendaFetcher: async () => cal });
+    const admin = await login(h, 'kavisvi', 'senha-do-admin');
+    const post = (cookie: string, path: string, body: unknown) => fetch(`${h.base}/api/kaviski/humanos/${path}`, { method: 'POST', headers: { ...json, cookie }, body: JSON.stringify(body) }).then(async (r) => ({ status: r.status, body: (await r.json()) as Record<string, any> }));
+    const room = (await post(admin, 'rooms', { kind: 'reuniao', name: 'Sala Azul' })).body.room as { id: string };
+    const st = await post(admin, 'agenda', { url: 'https://calendar.google.com/calendar/ical/x/private-0123456789abcdef0123456789abcdef/basic.ics' });
+    expect(st.status).toBe(200);
+    expect(st.body.events[0].room).toEqual({ id: room.id, name: 'Sala Azul', area: `r:${room.id}` });
+    await post(admin, 'users', { user: 'rarm', role: 'cliente', rooms: ['/proj/Clientes/12-Rarm'], password: 'senha-rarm-1' });
+    const cliente = await login(h, 'rarm', 'senha-rarm-1');
+    const books = async () => ((await (await fetch(`${h.base}/api/kaviski/humanos/agenda/rooms`, { headers: { cookie: cliente } })).json()) as { bookings: { roomId: string }[] }).bookings;
+    expect(await books()).toEqual([]);
+    const rarmId = ((await (await fetch(`${h.base}/api/kaviski/humanos/users`, { headers: { cookie: admin } })).json()) as { people: { id: string; user: string }[] }).people.find((p) => p.user === 'rarm')!.id;
+    expect((await post(admin, `rooms/${room.id}`, { people: [rarmId] })).status).toBe(200);
+    expect((await books()).map((b) => b.roomId)).toEqual([room.id]);
   });
 });

@@ -112,11 +112,15 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
     agenda.load();
     agenda.start();
   }
-  /** Salas que a pessoa vê, para achar a sala da reunião no texto do evento (salas próprias: acrescentar aqui). */
+  /** Salas que a pessoa vê, para achar a sala da reunião no texto do evento (as salas próprias primeiro: reuniões). */
   const agendaRooms = (person: KvPerson): KvAgendaRoom[] => {
     const snap = deps.snapshot();
     const ids = kvRestricted(person) ? kvAllowedRoomIds(snap, person.rooms) : null;
-    return snap.rooms.filter((r) => !ids || ids.has(r.id)).map((r) => ({ id: r.id, name: r.name, ...(r.path ? { path: r.path } : {}), area: `r:${r.id}` }));
+    const own = rooms.visibleTo(person).sort((a, b) => Number(b.kind === 'reuniao') - Number(a.kind === 'reuniao'));
+    return [
+      ...own.map((r) => ({ id: r.id, name: r.name, area: `r:${r.id}` })),
+      ...snap.rooms.filter((r) => !ids || ids.has(r.id)).map((r) => ({ id: r.id, name: r.name, ...(r.path ? { path: r.path } : {}), area: `r:${r.id}` })),
+    ];
   };
 
   const lk = enabled ? kvLiveKitConfig(env) : {};
