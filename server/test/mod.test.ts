@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { hookCommand, hookEntry, STATUS_MESSAGE } from '../../scripts/hooks-install';
 import { MAX_TIMEOUT_MS } from '../permissions/registry';
 import { posixShell } from './fixtures';
+import { kvProduto } from '../../shared/kaviski-marca'; // fork Kaviski: o plugin já mostra "Kubo"
 
 const ROOT = resolve(__dirname, '../..');
 const SH = posixShell();
@@ -106,7 +107,7 @@ describe('plugin habblaud-permissoes', () => {
     expect(hooks[0]).toEqual({
       event: 'PermissionRequest',
       matcher: '*',
-      hook: { type: 'command', command: 'node "${CLAUDE_PLUGIN_ROOT}/hooks/permission-hook.mjs"', timeout: installed.timeout, statusMessage: STATUS_MESSAGE },
+      hook: { type: 'command', command: 'node "${CLAUDE_PLUGIN_ROOT}/hooks/permission-hook.mjs"', timeout: installed.timeout, statusMessage: kvProduto(STATUS_MESSAGE, true) },
     });
   });
 
