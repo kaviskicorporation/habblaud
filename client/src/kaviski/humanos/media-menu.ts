@@ -34,7 +34,8 @@ async function show(anchor: HTMLElement, label: string, build: () => Promise<Nod
   const el = h('div', { class: 'kv-menu', role: 'menu', attrs: { 'aria-label': label, 'data-for': label } });
   const fill = async () => el.replaceChildren(...(await build()));
   await fill();
-  document.body.append(el);
+  // dentro do .ui-root: as cores e fontes do tema valem lá
+  (document.querySelector('.ui-root') ?? document.body).append(el);
   const r = anchor.getBoundingClientRect();
   const w = el.offsetWidth;
   el.style.left = `${Math.round(Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2)))}px`;

@@ -210,7 +210,7 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
   const social = new KvSocial({ presence, snapshot: deps.snapshot, audit });
   if (enabled) kvSetAreaGuard((area, p) => social.areaGuard(area, p));
   // Palco (megafone, stage.ts): a equipe fala para o andar inteiro; todos ouvem.
-  const stage = new KvStage({ emit: (e, d, to) => presence.emit(e, d, to), online: (id) => !!presence.personOf(id), audit: (p, a) => audit.add(p, a, { ok: true }) });
+  const stage = new KvStage({ emit: (e, d, to) => presence.emit(e, d, to), online: (id) => !!presence.personOf(id), scope: deps.dataDir ?? '', audit: (p, a) => audit.add(p, a, { ok: true }) });
   let messages: KvMessageSender | undefined;
   const summoned = new Map<string, number>();
   // Visitante cujo convite venceu (ou foi revogado) sai do escritório mesmo com a página aberta.

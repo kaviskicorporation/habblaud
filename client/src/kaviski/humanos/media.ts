@@ -483,6 +483,8 @@ export class KvMedia {
 
   /** A cada quadro: as bolinhas de câmera em cima do boneco de cada um. */
   private place(): void {
+    // saí da área: mudo no mesmo quadro (o tick de 250 ms troca a chamada depois)
+    if (this.room && !this.hushed && kvCallWanted(kvPeople) !== this.area) this.hush(true);
     for (const [id, el] of this.bubbles) {
       const at = kvPeople.locate?.(id || null);
       const audible = !id || (this.volumes.get(id) ?? 1) > 0;

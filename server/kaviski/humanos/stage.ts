@@ -34,6 +34,8 @@ export interface KvStageDeps {
   online: (id: string) => boolean;
   /** Registro (audit.ts). */
   audit?: (person: KvPerson, action: string) => void;
+  /** Entra no nome da chamada (a pasta de dados): duas instâncias no mesmo LiveKit nunca dividem o palco. */
+  scope?: string;
   now?: () => number;
 }
 
@@ -99,7 +101,7 @@ export class KvStage {
   token(cfg: KvLiveKitConfig, person: KvPerson): KvStageToken | undefined {
     const c = this.cur;
     if (!c) return undefined;
-    const room = kvCallName(`stage:${c.since}`);
+    const room = kvCallName(`${this.deps.scope ?? ''}\u0000stage:${c.since}`);
     const canPublish = c.id === person.id && KvStage.canSpeak(person);
     const token = kvLiveKitToken(cfg, person, room, Math.floor(this.now() / 1000), { canPublish, canSubscribe: true, canPublishData: false });
     return { url: cfg.url, room, token, canPublish, since: c.since };

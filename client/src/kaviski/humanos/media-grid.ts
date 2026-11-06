@@ -51,7 +51,7 @@ export class KvMediaGrid {
       this.strip,
       this.empty,
     );
-    document.body.append(this.root);
+    (document.querySelector('.ui-root') ?? document.body).append(this.root);
     document.addEventListener(
       'keydown',
       (e) => {
@@ -75,6 +75,8 @@ export class KvMediaGrid {
     if (!this.media.call) return this.bar.warn(tr('Entre numa chamada para abrir a grade de vídeo.'));
     this.lastFocus = document.activeElement as HTMLElement | null;
     this.root.hidden = false;
+    // o que flutua sobre o mundo (bolinhas, anéis, pilhas da cabeça) não aparece por cima da grade
+    document.body.classList.add('kv-grid-open');
     this.btn.classList.add('is-on');
     this.render();
     this.timer = window.setInterval(() => this.render(), 300);
@@ -84,6 +86,7 @@ export class KvMediaGrid {
   close(): void {
     if (this.root.hidden) return;
     this.root.hidden = true;
+    document.body.classList.remove('kv-grid-open');
     this.btn.classList.remove('is-on');
     clearInterval(this.timer);
     for (const id of [...this.tiles.keys()]) this.drop(id);

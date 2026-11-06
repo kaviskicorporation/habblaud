@@ -99,6 +99,16 @@ describe('palco (megafone)', () => {
     expect(stage.state().active).toBe(false);
   });
 
+  it('instâncias diferentes no mesmo LiveKit: palcos em chamadas diferentes', () => {
+    const t = 1_000_000;
+    const a = new KvStage({ emit: () => {}, online: () => true, now: () => t, scope: '/dados/prod' });
+    const b = new KvStage({ emit: () => {}, online: () => true, now: () => t, scope: '/dados/teste' });
+    stages.push(a, b);
+    a.set(BIA, true);
+    b.set(BIA, true);
+    expect(a.token(CFG, CAIO)!.room).not.toBe(b.token(CFG, CAIO)!.room);
+  });
+
   it('o token padrão (chamadas de área) continua com tudo liberado', () => {
     expect(grantOf(kvLiveKitToken(CFG, BIA, 'kv-x', 1000))).toMatchObject({ canPublish: true, canSubscribe: true, canPublishData: true });
   });

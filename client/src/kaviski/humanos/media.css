@@ -147,16 +147,13 @@
   animation: kv-speak 0.9s ease-in-out infinite alternate;
 }
 
-.kv-speak-mute {
-  position: absolute;
-  left: 0;
-  top: 0;
+.kv-head-mute {
+  font-size: 14px;
   line-height: 1;
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.7));
 }
 
-.kv-speak-ring[hidden],
-.kv-speak-mute[hidden] {
+.kv-speak-ring[hidden] {
   display: none;
 }
 
@@ -193,6 +190,13 @@
 
 .kv-grid[hidden] {
   display: none;
+}
+
+body.kv-grid-open .kv-cam,
+body.kv-grid-open .kv-speak-layer,
+body.kv-grid-open .kv-heads,
+body.kv-grid-open .kv-screen {
+  visibility: hidden;
 }
 
 .kv-grid__head {

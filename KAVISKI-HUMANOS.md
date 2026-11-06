@@ -157,7 +157,7 @@ Tudo só com `HABBLAUD_HUMANOS=1` e o LiveKit configurado (sem ele, nada disto a
   (`{on}`; um palco por vez; quem abriu ou um admin fecha) e `POST .../stage/token` — **só quem está no palco recebe
   `canPublish`**, os outros só `canSubscribe` (o LiveKit recusa se o ouvinte tentar publicar). Evento `stage` do fluxo
   de presença para todas as páginas (e uma consulta a cada 30 s de garantia). Cada palco aberto é uma chamada nova
-  (token velho não serve); fecha sozinho quando quem abriu sai (fechou a página) ou depois de 2 h; conta rebaixada a
+  (token velho não serve; o nome leva a pasta de dados, como as chamadas de área: teste e produção nunca se misturam); fecha sozinho quando quem abriu sai (fechou a página) ou depois de 2 h; conta rebaixada a
   cliente sai do palco. Registro: "palco aberto"/"palco fechado". Cada um pode **silenciar o palco** no navegador;
   **não perturbe não corta o palco** (é aviso para todos). Enquanto alguém está no palco, a voz dele na chamada da área
   fica muda para quem ouve o palco (não chega em dobro).
@@ -165,8 +165,9 @@ Tudo só com `HABBLAUD_HUMANOS=1` e o LiveKit configurado (sem ele, nada disto a
   quem fala, telas compartilhadas (a primeira vai grande sozinha). 📌 (ou duplo clique) fixa um quadro grande com os
   outros numa faixa. Esc fecha. Nas áreas abertas só aparece quem eu ouço (mesma proximidade das bolinhas).
 - **Quem está falando**: anel verde aceso no chão, embaixo do boneco de quem fala (o meu também, e o de quem está no
-  palco), e 🔇 em cima de quem está na minha chamada com o microfone desligado. A bolinha de vídeo ganha a borda verde.
-  Desenhado num DOM nosso por cima do mundo (`kvPeople.locate`), sem gancho no renderer.
+  palco), desenhado num DOM nosso por cima do mundo (`kvPeople.locate`), sem gancho no renderer; 🔇 na pilha ao lado da
+  cabeça (`kvHeads`, ordem 5) de quem está na minha chamada com o microfone desligado. A bolinha de vídeo ganha a borda
+  verde. Com a grade aberta, bolinhas, anéis e pilhas somem (não ficam por cima dela).
 - **Não perturbe** (status `naoperturbe`, do W2): não entro em chamada de área nem toco o áudio de ninguém (só o palco,
   se não estiver silenciado). **Modo foco** (`kvPeople.resting`, do W1): também fora da chamada (microfone e câmera
   desligados; a preferência fica). **Roda privada** (`kvPeople.callArea`, do W2): `b:<id>` vale no lugar da área, com
