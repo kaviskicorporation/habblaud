@@ -1,7 +1,8 @@
 // Fork Kaviski (KAVISKI-HUMANOS.md): tela de Pessoas (só admin), com o kit de interface (ui/): à esquerda as contas em
 // cartões (boneco, papel, salas), com busca e filtro por papel; à direita o formulário (nome, usuário, papel com o que
 // cada um pode, salas com busca e chips, senha com gerador), com validação em linha e confirmação ao apagar.
-// Abas: Contas, Convites (convites por link, invites.ts) e Registro (quem aprovou, pediu ou mexeu no quê).
+// Abas: Contas, Organograma (org-chart.ts), Áreas e Agentes fixos (org-people.ts), Convites (convites por link,
+// invites.ts) e Registro (quem aprovou, pediu ou mexeu no quê). Cada conta tem a seção Organograma (cargo, área, gestor).
 // Fala com GET|POST /api/kaviski/humanos/users e POST|DELETE /api/kaviski/humanos/users/:id.
 import type { KvPerson, KvRole } from '../../../../shared/kaviski-humanos';
 import { KV_PASSWORD_MIN, KV_PERSON_NAME_MAX, KV_USER_RE } from '../../../../shared/kaviski-humanos';
@@ -13,7 +14,23 @@ import { KvMultiSelect, KvSelect, type KvOption } from './ui/select';
 import { KvModal, kvConfirm } from './ui/modal';
 import { kvToast } from './ui/toast';
 import { kvPeople } from './world';
+import { KvAgentsPane, KvDeptsPane, kvDeptChip, kvOrgFormSection, type KvOrgForm } from './org-people';
+import { KvOrgView } from './org-chart';
+import { kvLoadOrg, kvOnOrg, kvOrgOf } from './org-api';
+import { KV_ORG_ICONS } from './org-icons';
+import type { KvOrgAgent } from '../../../../shared/kaviski-org';
 import './people.css';
+
+/** O que a aba Agentes fixos precisa (org-start.ts preenche: o formulário do agente e o prédio). */
+export const kvPeopleOrgHooks: { edit?: (a: KvOrgAgent | null) => void; goSeat?: (a: KvOrgAgent) => void; roomName?: (id: string) => string | undefined; live?: (a: KvOrgAgent) => { name: string; seed: number; look: 'f' | 'm'; parts?: unknown } | undefined } = {};
+
+let peopleDialog: PeopleDialog | null = null;
+
+/** Abre a tela Pessoas numa aba (e, em Contas, já editando a pessoa). Só admin (o servidor confere). */
+export function kvOpenPeople(tab: Tab = 'contas', personId?: string): void {
+  peopleDialog ??= new PeopleDialog();
+  void peopleDialog.open(tab, personId);
+}
 
 const API = '/api/kaviski/humanos/users';
 
@@ -89,7 +106,7 @@ export function kvValidatePerson(
   return out;
 }
 
-type Tab = 'contas' | 'convites' | 'registro';
+type Tab = 'contas' | 'organograma' | 'areas' | 'agentes' | 'convites' | 'registro';
 
 export class PeopleDialog {
   private readonly modal: KvModal;
@@ -120,6 +137,11 @@ export class PeopleDialog {
   private readonly auditSearch;
   private audit: AuditEntry[] = [];
   private invitesMounted = false;
+  // organograma
+  private readonly org: KvOrgForm;
+  private orgView: KvOrgView | null = null;
+  private readonly depts = new KvDeptsPane();
+  private readonly agents: KvAgentsPane;
 
   private editing: KvPerson | null = null;
   private people: KvPerson[] = [];
@@ -131,6 +153,9 @@ export class PeopleDialog {
     this.tabs = kvTabs(
       [
         { id: 'contas', label: tr('Contas'), icon: KV_ICONS.user },
+        { id: 'organograma', label: tr('Organograma'), icon: KV_ORG_ICONS.org },
+        { id: 'areas', label: tr('Áreas'), icon: KV_ORG_ICONS.tree },
+        { id: 'agentes', label: tr('Agentes fixos'), icon: KV_ORG_ICONS.robot },
         { id: 'convites', label: tr('Convites'), icon: KV_ICONS.mail },
         { id: 'registro', label: tr('Registro'), icon: KV_ICONS.log },
       ],
@@ -188,6 +213,7 @@ export class PeopleDialog {
       password: kvField(tr('Senha'), this.password.el),
     };
     this.f.role.el.append(this.roleCan);
+    this.org = kvOrgFormSection();
     this.clientBox = h('div', { class: 'kv-pp__client' }, this.f.rooms.el, this.request.el);
     this.formError = h('p', { class: 'kv-pp__error', attrs: { role: 'alert' }, hidden: true });
     this.saveBtn = kvBtn(tr('Criar conta'), { variant: 'primary', type: 'submit', icon: KV_ICONS.check });
@@ -199,6 +225,7 @@ export class PeopleDialog {
       h('div', { class: 'kv-pp__row' }, this.f.name.el, this.f.user.el),
       this.f.role.el,
       this.clientBox,
+      this.org.el,
       this.f.password.el,
       this.formError,
       h('div', { class: 'kv-pp__actions' }, this.delBtn, h('span', { class: 'kv-pp__spacer' }), cancel, this.saveBtn),
@@ -209,15 +236,28 @@ export class PeopleDialog {
     this.auditSearch = kvInput({ placeholder: tr('Buscar no registro (pessoa, ação, agente)'), icon: KV_ICONS.search, type: 'search', onInput: () => this.renderAudit() });
     this.auditList = h('ol', { class: 'kv-pp__audit' });
 
+    this.agents = new KvAgentsPane({
+      edit: (a) => kvPeopleOrgHooks.edit?.(a),
+      goSeat: (a) => {
+        this.modal.close();
+        kvPeopleOrgHooks.goSeat?.(a);
+      },
+      roomName: (id) => kvPeopleOrgHooks.roomName?.(id),
+      live: (a) => kvPeopleOrgHooks.live?.(a),
+    });
     this.panes = {
       contas: h('div', { class: 'kv-pp__pane kv-pp__accounts' }, listPane, this.editor),
+      organograma: h('div', { class: 'kv-pp__pane kv-pp__org' }),
+      areas: this.depts.el,
+      agentes: this.agents.el,
       convites: h('div', { class: 'kv-pp__pane kv-pp__invites' }),
       registro: h('div', { class: 'kv-pp__pane kv-pp__log' }, h('div', { class: 'kv-pp__tools' }, this.auditSearch.el, kvBtn(tr('Atualizar'), { size: 'md', onClick: () => void this.loadAudit() })), this.auditList),
     };
     this.modal.body.classList.add('kv-pp__body');
-    this.modal.body.append(this.tabs.el, this.panes.contas, this.panes.convites, this.panes.registro);
+    this.modal.body.append(this.tabs.el, ...Object.values(this.panes));
     this.show('contas');
     this.edit(null);
+    kvOnOrg(() => this.modal.open && this.renderList());
   }
 
   /** Mantido para quem usava `dialog.el`. */
@@ -225,15 +265,29 @@ export class PeopleDialog {
     return this.modal.el;
   }
 
-  async open(): Promise<void> {
+  async open(tab?: Tab, personId?: string): Promise<void> {
     this.modal.show();
-    await this.reload();
+    if (tab) this.show(tab);
+    await Promise.all([this.reload(), kvLoadOrg()]);
+    if (personId) {
+      const p = this.people.find((x) => x.id === personId);
+      if (p) this.edit(p, true);
+    } else if (this.editing) this.org.load(this.editing.id);
   }
 
   private show(tab: Tab): void {
     this.tabs.set(tab);
     for (const [k, el] of Object.entries(this.panes)) el.hidden = k !== tab;
     if (tab === 'registro') void this.loadAudit();
+    if (tab === 'areas') void this.depts.open();
+    if (tab === 'agentes') void this.agents.open();
+    if (tab === 'organograma') {
+      if (!this.orgView) {
+        this.orgView = new KvOrgView({ embedded: true, onClose: () => this.modal.close() });
+        this.panes.organograma.append(this.orgView.el);
+      }
+      void this.orgView.refresh();
+    }
     if (tab === 'convites' && !this.invitesMounted) {
       this.invitesMounted = true;
       void import('./invites').then((m) => m.kvMountInvites(this.panes.convites));
@@ -331,6 +385,7 @@ export class PeopleDialog {
           { class: 'kv-pp__card-main' },
           h('div', { class: 'kv-pp__card-top' }, h('strong', { class: 'kv-pp__name', text: p.name }), kvRoleBadge(p.role), p.builtin ? h('span', { class: 'kv-pp__tag', text: '.env', title: tr('Conta do HABBLAUD_REMOTE_USER: senha e papel vêm do .env') }) : null),
           h('div', { class: 'kv-pp__card-meta' }, h('span', { class: 'kv-pp__user', text: `@${p.user}` }), p.request ? h('span', { class: 'kv-pp__flag', text: tr('pede tarefas') }) : null),
+          kvOrgOf(p.id)?.title || kvOrgOf(p.id)?.dept ? h('div', { class: 'kv-pp__card-org' }, kvOrgOf(p.id)?.title ? h('span', { class: 'kv-pp__title', text: kvOrgOf(p.id)!.title! }) : null, kvDeptChip(kvOrgOf(p.id)?.dept)) : null,
           rooms,
         ),
         h('div', { class: 'kv-pp__card-actions' }, edit, del),
@@ -368,6 +423,7 @@ export class PeopleDialog {
     this.saveBtn.querySelector('.kv-ui-btn__label')!.textContent = p ? tr('Salvar') : tr('Criar conta');
     this.delBtn.hidden = !p || builtin;
     for (const f of Object.values(this.f)) f.setError('');
+    this.org.load(p?.id ?? null);
     this.syncRole();
     this.renderList();
     if (focus) {
@@ -435,6 +491,8 @@ export class PeopleDialog {
         return;
       }
       const saved = r.data.person as KvPerson | undefined;
+      const orgErr = saved ? await this.org.save(saved.id) : null;
+      if (orgErr) kvToast(tr('A conta foi salva, mas o organograma não: {0}', [orgErr]), { kind: 'error' });
       kvToast(p ? tr('Conta de {0} salva.', [saved?.name ?? v.name]) : tr('Conta criada: {0} (@{1}).', [saved?.name ?? v.name, saved?.user ?? v.user]), { kind: 'ok' });
       this.editing = saved ?? null;
       await this.reload();

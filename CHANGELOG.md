@@ -35,6 +35,14 @@ do meio (0.**3**.0).
   Assistente com 4 estilos de prédio (Clássico, Campus, Torre, Galeria) que já sai lindo e certinho. Cliente e
   visitante recebem a planta só com as salas deles.
 
+- **Organograma da empresa**: áreas com cor e ícone, cargo e gestor de cada pessoa (tela Pessoas) e agentes de IA no
+  mesmo quadro. Árvore em pixel art com o boneco de cada um e o status ao vivo, por hierarquia ou por área, busca, zoom,
+  recolher equipes e exportar como imagem; no celular, lista. Cliente vê só a equipe.
+- **Agentes de IA fixos**: clique numa cadeira e "Fixar um agente aqui" — o agente daquela sala senta sempre ali, entra
+  no organograma (com cargo, área e gestor) e, sem ele, a mesa fica com a plaquinha "mesa de Claude · Site".
+- **Atalhos com cores e vida**: grupos coloridos, teclas 3D em pixel, busca e "experimente" (aperte a tecla e o atalho
+  acende).
+
 ### Adicionado (fork Kaviski, `HABBLAUD_HUMANOS=1`): recursos do Gather
 
 - **Boneco, mesa fixa e móveis**: botão **Modo clássico** no topo (o Habblaud como o original; o boneco descansa no

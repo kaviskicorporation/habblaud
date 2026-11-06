@@ -166,6 +166,7 @@ plano só quem entrou com a senha** (de propósito, no TwiCC). Então o auxiliar
 | `client/src/world/render/lighting.ts` (planta livre) | +2 | import; `if (kvWindowSpill(...)) return;` no começo do `paintWindowSpill` (luz das janelas no gramado em volta da planta) | idem |
 | `client/src/world/render/overlay.ts` (planta livre) | +4/−3 | import; `kvPlanAreaOfTile(...) ?? ...` no agrupamento dos balões; `colW` = largura da própria área (16 no original) dentro do laço de `drawRoomTexts`; `kvPlanSignText(vis.id)` no texto da placa e na pílula das áreas | idem |
 | `shared/locales/{en,es,fr}.ts` (planta livre, motor) | +2 cada | import e `...KV_PLANTA_XX` (`shared/locales/kaviski-planta.ts`) | idem; juntar as linhas dos dois lados |
+| `shared/locales/{en,es,fr}.ts` (planta livre: organograma) | +2 cada | import e `...KV_ORG_XX` (`shared/locales/kaviski-organograma.ts`: organograma, agentes fixos, áreas, atalhos) no fim da lista do fork | idem; juntar as linhas dos dois lados |
 | `docker-compose.yml` | +5 | `HABBLAUD_FRAME_ANCESTORS`, `HABBLAUD_TWICC_URL`, `HABBLAUD_TWICC_MESSAGES` e `HABBLAUD_BRAND` no `environment:` | manter os dois lados |
 
 `server/model/office.ts` **não** foi tocado: `kaviski.attach(office)` embrulha `office.commit()` em tempo de execução e

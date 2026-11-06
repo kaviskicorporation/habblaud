@@ -645,6 +645,67 @@ Arquitetura (ação `planta` do "ir e fazer", `kvOpenPlanEditor({focus?, templat
   gravar, mover, redimensionar, porta, paleta, desfazer, Misto com o motor, 409 entre admin e equipe, cliente sem o
   botão e com a planta filtrada, versões.
 
+### Organograma, agentes de IA fixos, Pessoas e atalhos (frente D)
+- **Dados** (vale com a planta ligada ou não):
+  - `<dataDir>/kaviski/org.json` (600): as **áreas** (`KvDept`: nome, cor, ícone em pixel, área-mãe, responsável) e os
+    **agentes fixos** (`KvOrgAgent` = o `KvFixedAgent` do contrato + `seatSide` e a aparência opcional). Decisão: os
+    agentes fixos ficam aqui e **não** em `KvPlan.agents` (a frente B só deixa passar o que vier ali), porque precisam
+    valer com a planta desligada.
+  - Cargo, área e gestor de cada pessoa ficam na **conta** (`profile.org` no `users.json`; somem com ela). Gestor =
+    `u:<pessoa>` ou `a:<agente fixo>`. **Sem ciclos**: o servidor recusa (400) quem acabaria gestor de si mesmo; na
+    página, quem fecharia ciclo nem aparece na lista de gestores (`kvWouldCycle`, testado).
+  - Áreas padrão até alguém gravar as suas: Diretoria, Desenvolvimento, Design, Comercial, Atendimento, Agentes de IA.
+- **Rotas** (`server/kaviski/humanos/org.ts`): `GET /api/kaviski/humanos/org` → `{depts, agents, people, can}`;
+  `POST /org/depts` (admin, troca a lista); `POST /org/people/:id` `{title, dept, reportsTo}` (admin);
+  `POST /org/agents` `{agent}` e `DELETE /org/agents/:id` (admin e equipe). Cadeira de agente fixo é única: nem outro
+  agente fixo nem a mesa fixa de uma pessoa (`kvSameDesk`, com o espelhamento do corredor) → 409. Evento `org` (sem
+  dados) no fluxo de presença; as páginas relêem. Tudo vai ao Registro ("organograma: pessoa", "agente fixo criado"...).
+- **Quem vê o quê (decisão)**: admin e equipe veem tudo. **Cliente e visitante** veem só a equipe (admin + equipe, sem
+  usuário e sem papel), a si mesmos, as áreas e os agentes fixos **das salas que eles veem** (sem a regra de quem senta);
+  gestor escondido não aparece (a pessoa vira topo). Nunca veem outros clientes. Os agentes ao vivo que aparecem são os
+  do snapshot que já chega filtrado.
+- **Organograma** (`client/src/kaviski/humanos/org-chart.ts` + `.css`; `kvOpenOrgChart({focus?})`, também na aba
+  Organograma da tela Pessoas e no botão do topo "Organograma"): árvore com cartões 3D em pixel (boneco de verdade, nome,
+  cargo, área na cor dela, status ao vivo), linhas em degrau (`kvOrgLayout`, puro e testado: pai no meio dos filhos,
+  muitas folhas viram coluna), agrupado por **Hierarquia** ou **Por área** (áreas como grupos coloridos, a hierarquia
+  dentro delas), filtros Todos / Pessoas / Agentes, busca (acende quem bate e leva até ele), zoom (roda, pinça, botões,
+  Encaixar), arrastar, recolher equipes, exportar **PNG**. Clique num cartão: detalhe ao lado (Abrir o cartão,
+  Mensagem, Editar; agente: Ver no escritório, Editar). **Agentes ao vivo que não são fixos** viram a "Equipe de IA" do
+  projeto (pendurada no agente fixo principal da sala, se houver); subagentes debaixo de quem os chamou. Celular (ou o
+  botão de lista): lista recolhível. Agente fixo sem agente agora: cartão apagado.
+- **Agentes fixos na mesa** (`fixed-agents.ts`): a cada quadro (gancho `kvPeople.onTick`, sem reescrever o `sim.ts`),
+  o agente ao vivo que bate com a regra (`main` / `provider:claude|codex` / `sub` / `name:<texto>`; a mais específica
+  escolhe primeiro, `kvMatchFixedAgents`, testado) ganha a cadeira como `homeSpot` (o Sim leva o agente até ela). Sem
+  agente: a cadeira fica reservada (`kvfixed:<id>`, nenhum outro agente senta) com a plaquinha roxa "mesa de <nome>".
+  Pessoa (mesa fixa, boneco sentado) vence o agente. Aparência opcional pelo `sim.agentPatches`. A posição é a mesma da
+  mesa fixa das pessoas (KvPos relativa à sala): vale no prédio original e na planta (a frente A mantém a KvPos).
+  Cadastrar: clique numa cadeira com o boneco → **"🤖 Fixar um agente aqui"** (ou "Mesa de X: editar o agente"), ou
+  Pessoas → **Agentes fixos** → Novo (com **Escolher no escritório**: o próximo clique numa cadeira, com ou sem
+  boneco). Formulário (`fixed-agents-form.ts`): nome (sugerido "Claude · Sala"), sala, qual agente, cadeira, cargo, área,
+  gestor e aparência (as peças do editor de personagem).
+- **Tela Pessoas**: seção **Organograma** no formulário da conta (cargo, área no select do kit com a cor e o ícone,
+  gestor no select com o boneco), cargo e área nos cartões; abas novas **Organograma**, **Áreas** (nome, 10 cores ou
+  qualquer uma, 14 ícones em pixel, área-mãe, responsável, ordem; grava de uma vez) e **Agentes fixos**.
+  `kvOpenPeople(tab?, personId?)` exportada (a frente C usa no RH).
+- **Cargo à mostra**: no cartão da pessoa (cargo, chip da área, "Responde a"), na lista de online ("Meu cargo: ..." e o
+  cargo de cada um).
+- **Ação "ir e fazer"** `organograma` (`kvRegisterAction`, ícone `org`): o quadro do organograma do RH e da diretoria
+  (frente C marca os itens) abre `kvOpenOrgChart()`.
+- **Atalhos com cores e vida** (`shortcuts.ts`, `shortcuts-list.ts`, `shortcuts.css`): grupos com cor e ícone em pixel
+  (Andar, Conversar, Usar coisas, Câmera, Janelas, Editor da empresa — este só para a equipe), teclas desenhadas como
+  teclas 3D em pixel (setas em cruz, mouse como pílula), cartões entrando em cascata, busca, filtro por grupo e
+  **"Experimente"**: com a janela aberta, apertar uma tecla (ou Ctrl+Z...) acende os atalhos dela. Para acrescentar:
+  `kvAddShortcuts('grupo', [{ keys: ['E'], text: tr('...') }], {title, color, icon})` (tecla = `'Ctrl+Z'`, `'←'` ou
+  `{ m: tr('clique') }`; `range: true` = faixa). A mesma lista, compacta e colorida, na Ajuda (tecla ?).
+- Código: `shared/kaviski-org.ts` (+ teste), `server/kaviski/humanos/org.ts` (+ `org.test.ts`), `client/src/kaviski/humanos/
+  {org-api,org-chart,org-people,org-icons,org-start,fixed-agents,fixed-agents-form}.ts` + `org-chart.css`, `org.css`,
+  `shortcuts{,-list}.ts` (+ `shortcuts-list.test.ts`), `shortcuts.css`; traduções em `shared/locales/kaviski-organograma.ts`.
+  Mudanças pequenas em arquivos do fork: `humanos/index.ts` (servidor: rotas; página: `kvStartOrg`, `kvOpenPeople`),
+  `world.ts` (`kvPeople.decode` e `kvPeople.onTick`), `furniture.ts` (`kvSeatMenuExtras`), `people.ts`,
+  `person-card.ts`, `online.ts`. Depuração: `habblaud.kvOrg.doc()` / `habblaud.kvOrg.open()` no console.
+- **Habblaud World**: nada disto entra no snapshot do `Office` (áreas, cargos e agentes fixos moram em `org.json` e
+  nos perfis; o agente fixo só muda a cadeira de um agente real na página).
+
 ## Como desenvolver sem derrubar o escritório
 - Desenvolver numa **segunda instância** (`HABBLAUD_PORT=4757`, `HABBLAUD_REMOTE_PORT=4758`,
   `HABBLAUD_DATA_DIR=~/.habblaud-dev`), sem mexer no serviço `habblaud` em produção.

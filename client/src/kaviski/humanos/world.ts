@@ -156,7 +156,11 @@ export const kvPeople: {
   onItemClick?: (x: number, y: number) => boolean;
   /** W2: a área de voz e chat que vale para mim — `b:<id>` numa roda privada; undefined = a de `area` (bubble.ts). */
   callArea?: string | null;
-} = { client: null, inside: false, area: null, resting: false, myDesk: null, following: null, onFrame: new Set() };
+  /** KvPos -> px de mundo neste prédio (null = a sala não está aqui). Planta livre: agentes fixos (fixed-agents.ts). */
+  decode?: (p: KvPos) => { x: number; y: number } | null;
+  /** Chamado a cada quadro com pessoas no escritório (com ou sem o meu boneco; fora do timelapse), depois das mesas. */
+  onTick: Set<(sim: Sim, now: number) => void>;
+} = { client: null, inside: false, area: null, resting: false, myDesk: null, following: null, onFrame: new Set(), onTick: new Set() };
 
 interface Puppet {
   ch: Character;
@@ -261,6 +265,7 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
     }
   };
   kvPeople.sim = ctx.sim;
+  kvPeople.decode = (p) => kvDecodePos(geomCache, p);
   kvPeople.camera = ctx.camera;
   kvPeople.locate = (id) => {
     const sim = ctx.sim();
@@ -638,6 +643,7 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
       geomCache = g;
       // as mesas antes do meu boneco: quem tem mesa já nasce sentado nela
       if (!timelapse) syncDesks(sim, state);
+      if (!timelapse) for (const cb of kvPeople.onTick) cb(sim, now); // agentes fixos (fixed-agents.ts)
       syncMe(sim, state, now, timelapse);
       syncPuppets(sim, state, g, dt, now, timelapse);
       const v = sim.visitor;

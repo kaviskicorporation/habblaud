@@ -23,6 +23,7 @@ import { KV_ICONS, kvAvatar, kvBtn, kvCap, kvEmpty, kvIconBtn, kvInput, kvRoleBa
 import { KvSelect } from './ui/select';
 import { KvModal } from './ui/modal';
 import { kvToast } from './ui/toast';
+import { kvDept, kvOnOrg, kvOrgOf } from './org-api';
 import './online.css';
 
 /** Onde a pessoa está, em palavras (a sala pelo nome do snapshot desta página). */
@@ -99,6 +100,7 @@ export class KvOnline {
       if (e.key === 'Escape' && !this.pop.hidden && !(e.target as HTMLElement)?.closest?.('.kv-ui-pop')) this.toggle(false);
     });
     store.on('snapshot', () => this.render());
+    kvOnOrg(() => this.render(true));
     kvOnClassic(() => this.render(true));
     this.render(true);
   }
@@ -138,14 +140,14 @@ export class KvOnline {
     const snap = this.store.liveSnapshot ?? null;
     const myArea = kvPeople.inside ? kvPeople.area : null;
     // a lista chega ~10 vezes por segundo: só redesenha se algo visível mudou
-    const sig = [inside, resting, this.search.input.value, myArea, ...people.map((p) => `${p.id}|${p.name}|${kvStatusLine(p)}|${whereText(p, snap)}|${p.look.seed}|${p.look.color ?? ''}`)].join('§');
+    const sig = [inside, resting, this.search.input.value, myArea, ...people.map((p) => `${p.id}|${p.name}|${kvStatusLine(p)}|${whereText(p, snap)}|${p.look.seed}|${p.look.color ?? ''}|${kvOrgOf(p.id)?.title ?? ''}|${kvOrgOf(p.id)?.dept ?? ''}`)].join('§');
     if (!force && sig === this.sig) return;
     this.sig = sig;
     if (mine && this.status.value !== mine.status) this.status.value = mine.status;
     const meP = this.me.person;
     this.meBox.replaceChildren(
       kvAvatar({ id: meP?.id, name: meP?.name ?? tr('Este computador'), look: mine?.look }, 'md', mine?.status ?? null),
-      h('div', { class: 'kv-ol__me-text' }, h('strong', { text: meP?.name ?? tr('Este computador') }), meP ? kvRoleBadge(meP.role) : null),
+      h('div', { class: 'kv-ol__me-text' }, h('strong', { text: meP?.name ?? tr('Este computador') }), meP ? kvRoleBadge(meP.role) : null, meP ? orgLine(meP.id, true) : null),
     );
     const q = this.search.input.value.trim().toLocaleLowerCase();
     const others = people.filter((p) => p.id !== s?.me && (!q || p.name.toLocaleLowerCase().includes(q)));
@@ -194,10 +196,21 @@ export class KvOnline {
       'div',
       { class: 'kv-ol__row', role: 'button', tabIndex: 0, title: tr('Abrir o cartão de {0}', [p.name]), on: { click: open, keydown: (e: KeyboardEvent) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), open(e)) } },
       kvAvatar({ id: p.id, name: p.name, look: p.look }, 'sm', p.status),
-      h('span', { class: 'kv-ol__who' }, h('span', { class: 'kv-ol__name' }, h('strong', { text: p.name }), kvRoleBadge(p.role)), h('span', { class: 'kv-ol__where', text: `${kvCap(kvStatusLine(p))} · ${whereText(p, snap)}` })),
+      h('span', { class: 'kv-ol__who' }, h('span', { class: 'kv-ol__name' }, h('strong', { text: p.name }), kvRoleBadge(p.role)), orgLine(p.id), h('span', { class: 'kv-ol__where', text: `${kvCap(kvStatusLine(p))} · ${whereText(p, snap)}` })),
       h('span', { class: 'kv-ol__row-actions' }, msg, go),
     );
   }
+}
+
+/** "Dev sênior · Desenvolvimento" (cargo e área do organograma, na cor da área). */
+function orgLine(id: string, mine = false): HTMLElement | null {
+  const o = kvOrgOf(id);
+  const dept = kvDept(o?.dept);
+  if (!o?.title && !dept) return null;
+  const text = [o?.title, dept?.name].filter(Boolean).join(' · ');
+  const el = h('span', { class: 'kv-ol__org', text: mine ? tr('Meu cargo: {0}', [text]) : text });
+  if (dept) el.style.setProperty('--c', dept.color);
+  return el;
 }
 
 let profileDialog: ProfileDialog | null = null;

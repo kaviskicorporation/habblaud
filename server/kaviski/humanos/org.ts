@@ -24,7 +24,7 @@ import { kvRestricted, type KvPerson } from '../../../shared/kaviski-humanos';
 import { tr } from '../../../shared/i18n';
 import { kvSameDesk } from '../../../shared/kaviski-desk';
 import { kvPathKey } from '../../../shared/kaviski';
-import type { KvPos } from '../../../shared/kaviski-presence';
+import { kvDefaultLook, kvParseLook, type KvPos } from '../../../shared/kaviski-presence';
 import {
   kvDefaultDepts,
   kvNewOrgId,
@@ -162,8 +162,8 @@ export function kvOrgDocFor(org: KvOrg, viewer: KvPerson, deps: Pick<KvOrgDeps, 
     const prof = deps.profile(p.id);
     const info = kvOrgInfoOf(prof, p.id, deptIds);
     if (info.reportsTo && !keys.has(info.reportsTo)) delete info.reportsTo;
-    const look = prof.look && typeof prof.look === 'object' ? (prof.look as KvOrgPerson['look']) : undefined;
-    return { id: p.id, name: p.name, ...info, ...(restricted ? {} : { role: p.role }), ...(look ? { look } : {}) };
+    const look = kvParseLook(prof.look) ?? kvDefaultLook(p.id);
+    return { id: p.id, name: p.name, ...info, ...(restricted ? {} : { role: p.role }), look };
   });
   const outAgents = agents.map((a) => {
     const c: KvOrgAgent = { ...a };

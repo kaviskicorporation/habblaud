@@ -58,6 +58,9 @@ function freeForMe(s: SpotDef): boolean {
   return !!ag && ag.atSpot !== s.id && ![ag.step, ...ag.queue].some((st) => st?.t === 'enter' && st.spot === s.id);
 }
 
+/** Itens a mais no menu da cadeira (planta livre: "Fixar um agente aqui", fixed-agents.ts). */
+export const kvSeatMenuExtras: ((s: SpotDef) => { label: string; run: () => void } | null)[] = [];
+
 export function kvStartFurniture(warn: Warn): void {
   const setDesk = async (s: SpotDef) => {
     const pos = kvPeople.encode?.(s.x, s.y, s.dir);
@@ -97,6 +100,7 @@ export function kvStartFurniture(warn: Warn): void {
     const item = (text: string, fn: () => void) => h('button', { class: 'ui-btn ui-btn--sm', type: 'button', text, attrs: { role: 'menuitem' }, on: { click: () => (closeMenu(), fn()) } });
     const items = [item(tr('Sentar aqui'), () => sit(s))];
     if (deskable(s) && kvPeople.client?.state?.me) items.push(item(tr('Definir como minha mesa'), () => void setDesk(s)));
+    for (const x of kvSeatMenuExtras) for (const it of [x(s)]) if (it) items.push(item(it.label, it.run));
     menu.replaceChildren(...items);
     menu.style.left = `${Math.round((r?.left ?? 0) + at.x)}px`;
     menu.style.top = `${Math.round((r?.top ?? 0) + at.y + 8)}px`;

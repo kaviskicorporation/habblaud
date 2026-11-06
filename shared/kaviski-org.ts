@@ -41,6 +41,7 @@ export interface KvOrgInfo {
 /** Aparência opcional de um agente fixo (a mesma do editor de personagem: semente + peças). */
 export interface KvOrgLook {
   seed: number;
+  look?: 'f' | 'm';
   parts?: Record<string, unknown>;
 }
 
@@ -167,7 +168,7 @@ export function kvNormOrgAgents(v: unknown, problems: KvPlanProblem[] = [], dept
     if (raw.seatSide === 's' || raw.seatSide === 'n') out.seatSide = raw.seatSide;
     const look = raw.look as KvOrgLook | undefined;
     if (look && typeof look === 'object' && typeof look.seed === 'number' && Number.isFinite(look.seed)) {
-      out.look = { seed: look.seed >>> 0 };
+      out.look = { seed: look.seed >>> 0, ...(look.look === 'f' || look.look === 'm' ? { look: look.look } : {}) };
       if (look.parts && typeof look.parts === 'object' && JSON.stringify(look.parts).length <= 2000) out.look.parts = look.parts;
     }
     return out;

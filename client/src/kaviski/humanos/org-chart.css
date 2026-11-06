@@ -1,0 +1,604 @@
+/* Fork Kaviski (KAVISKI-HUMANOS.md → "Organograma e agentes fixos"): o organograma — cartões 3D em pixel na cor da área,
+   linhas em degrau, fundo quadriculado como a planta do escritório, detalhe ao lado, lista no celular. */
+
+.kv-orgm.kv-ui-modal {
+  height: min(860px, calc(100vh - 24px));
+}
+.kv-orgm .kv-ui-modal__body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  padding-bottom: 12px;
+}
+
+.kv-org {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+.kv-org.is-embedded {
+  min-height: 520px;
+  height: min(640px, calc(100vh - 220px));
+}
+.kv-org__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.kv-org__bar .kv-ui-seg__btn {
+  height: 30px;
+  padding: 0 11px;
+  font-size: 12px;
+}
+.kv-org__search {
+  flex: 0 1 260px;
+  min-width: 170px;
+}
+.kv-org__spacer {
+  flex: 1;
+}
+.kv-org__count {
+  font: 600 12px/1 var(--font-ui);
+  color: var(--ui-muted);
+  white-space: nowrap;
+}
+.kv-org__zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 9px;
+  border: 1px solid var(--ui-line);
+  background: var(--kv-ui-in);
+}
+.kv-org__zoom-n {
+  min-width: 42px;
+  text-align: center;
+  font: 600 11.5px/1 var(--font-ui);
+  color: var(--ui-muted);
+}
+.kv-org__listbtn[aria-pressed='true'] {
+  color: var(--ui-accent);
+  background: var(--ui-accent-soft);
+}
+
+.kv-org__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.kv-org__chip {
+  --c: #7a8499;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 9px 0 6px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
+  background: color-mix(in srgb, var(--c) 13%, transparent);
+  color: color-mix(in srgb, var(--c) 55%, #fff);
+  font: 600 11.5px/1 var(--font-ui);
+  cursor: pointer;
+}
+.kv-org__chip:hover {
+  background: color-mix(in srgb, var(--c) 25%, transparent);
+}
+.kv-org__chip-ico {
+  color: var(--c);
+  line-height: 0;
+}
+.kv-org__key {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 6px;
+  font: 11.5px/1 var(--font-ui);
+  color: var(--ui-muted);
+}
+.kv-org__key-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--st-working);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.4);
+}
+.kv-org__key-dot.is-off {
+  background: var(--st-offline);
+}
+
+/* ---------------------------------------------------------------- área de desenho */
+.kv-org__main {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.kv-org__vp {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--ui-line);
+  background-color: #11151d;
+  /* a planta: quadradinhos de 16 px e linhas de 64 px */
+  background-image:
+    linear-gradient(rgba(124, 200, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124, 200, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(rgba(124, 200, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124, 200, 255, 0.025) 1px, transparent 1px);
+  background-size:
+    64px 64px,
+    64px 64px,
+    16px 16px,
+    16px 16px;
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.45);
+  cursor: grab;
+  touch-action: none;
+  outline: none;
+}
+.kv-org__vp:focus-visible {
+  box-shadow:
+    inset 0 2px 10px rgba(0, 0, 0, 0.45),
+    0 0 0 2px var(--ui-accent);
+}
+.kv-org__vp.is-grab {
+  cursor: grabbing;
+}
+.kv-org__loading {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--ui-muted);
+}
+.kv-org__vp > .kv-ui-empty {
+  margin: auto;
+  height: 100%;
+  display: grid;
+  place-content: center;
+}
+.kv-org__stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.kv-org__stage.is-moving {
+  transition: transform 0.35s var(--ease);
+}
+.kv-org__lines {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+.kv-org__lines path {
+  --c: #5b6478;
+  fill: none;
+  stroke: color-mix(in srgb, var(--c) 75%, #11151d);
+  stroke-width: 2.5;
+  stroke-linejoin: miter;
+  shape-rendering: crispEdges;
+  transition: opacity 0.2s;
+}
+.kv-org__lines path.is-ai {
+  stroke-dasharray: 6 4;
+}
+.kv-org__lines.is-dim path {
+  opacity: 0.35;
+}
+
+/* ---------------------------------------------------------------- cartões */
+.kv-org__card {
+  --c: #7a8499;
+  position: absolute;
+  left: 0;
+  top: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px 8px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--c) 40%, rgba(160, 176, 210, 0.2));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--c) 14%, transparent), transparent 46px),
+    linear-gradient(180deg, #283042, #1c212d);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.3),
+    0 3px 0 rgba(0, 0, 0, 0.4);
+  color: var(--ui-text);
+  cursor: pointer;
+  user-select: none;
+  transition:
+    opacity 0.2s,
+    box-shadow 0.15s,
+    transform 0.35s var(--ease),
+    filter 0.2s;
+}
+/* faixa em pixel no topo do cartão, na cor da área */
+.kv-org__card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  border-radius: 10px 10px 0 0;
+  background: repeating-linear-gradient(90deg, var(--c) 0 6px, color-mix(in srgb, var(--c) 60%, #000) 6px 8px);
+}
+.kv-org__card:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.3),
+    0 3px 0 rgba(0, 0, 0, 0.4),
+    0 0 0 2px color-mix(in srgb, var(--c) 55%, transparent);
+}
+.kv-org__card:focus-visible,
+.kv-org__card.is-sel {
+  outline: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 3px 0 rgba(0, 0, 0, 0.4),
+    0 0 0 3px var(--c),
+    0 0 18px color-mix(in srgb, var(--c) 45%, transparent);
+}
+.kv-org__card.is-off {
+  filter: saturate(0.35) brightness(0.82);
+}
+.kv-org__card.is-off .kv-ui-avatar {
+  opacity: 0.75;
+}
+.kv-org__card.is-dim {
+  opacity: 0.28;
+}
+.kv-org__card.is-hit {
+  filter: none;
+  box-shadow:
+    0 3px 0 rgba(0, 0, 0, 0.4),
+    0 0 0 3px #ffe27a,
+    0 0 22px rgba(255, 226, 122, 0.45);
+}
+.kv-org__who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.kv-org__name {
+  font: 700 13.5px/1.2 var(--font-ui);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kv-org__title {
+  font: 12px/1.25 var(--font-ui);
+  color: var(--ui-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kv-org__meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  margin-top: 2px;
+}
+.kv-org__dept {
+  flex: none;
+  max-width: 96px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--c) 22%, transparent);
+  color: color-mix(in srgb, var(--c) 55%, #fff);
+  font: 700 10px/1.2 var(--font-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kv-org__tag {
+  flex: none;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(155, 123, 255, 0.2);
+  color: #c9b8ff;
+  font: 700 9.5px/1.2 var(--font-ui);
+  text-transform: uppercase;
+}
+.kv-org__tag.is-live {
+  background: rgba(79, 209, 139, 0.16);
+  color: #8ce6b5;
+}
+.kv-org__sub {
+  min-width: 0;
+  font: 11px/1.2 var(--font-ui);
+  color: var(--ui-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* agentes: moldura roxa e o status ao vivo num quadradinho */
+.kv-ui-avatar.is-ai > .ui-avatar {
+  background: linear-gradient(180deg, #34295a, #211a3a);
+}
+.kv-org__ai-st {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #1c212d;
+  background: var(--st-offline);
+}
+.kv-org__st--working {
+  background: var(--st-working);
+}
+.kv-org__st--waiting {
+  background: var(--st-waiting);
+  animation: kv-org-blink 1s steps(2) infinite;
+}
+.kv-org__st--shell {
+  background: var(--st-shell);
+}
+.kv-org__st--idle {
+  background: var(--st-idle);
+}
+.kv-org__st--done {
+  background: var(--st-done);
+}
+
+/* grupos (área, equipe de IA de um projeto) */
+.kv-org__card.is-group {
+  border-color: color-mix(in srgb, var(--c) 70%, #000);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 92%, #fff), var(--c) 40%, color-mix(in srgb, var(--c) 78%, #000));
+  color: #11141b;
+}
+.kv-org__card.is-group::before {
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.45) 0 6px, transparent 6px 8px);
+}
+.kv-org__card.is-group .kv-org__name {
+  font: 500 14px/1.15 var(--font-px);
+}
+.kv-org__card.is-group .kv-org__name:not(.kv-ui-px) {
+  font: 800 13.5px/1.15 var(--font-ui);
+}
+.kv-org__card.is-group .kv-org__title {
+  color: rgba(17, 20, 27, 0.72);
+}
+.kv-org__card.is-project {
+  --c: #9b7bff;
+}
+.kv-org__group-ico {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(17, 20, 27, 0.82);
+  color: var(--c);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.4);
+  line-height: 0;
+}
+
+.kv-org__kids {
+  position: absolute;
+  left: 50%;
+  bottom: -11px;
+  transform: translateX(-50%);
+  min-width: 26px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--c) 60%, #000);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 85%, #fff), var(--c));
+  box-shadow:
+    inset 0 -2px 0 rgba(0, 0, 0, 0.25),
+    0 2px 0 rgba(0, 0, 0, 0.4);
+  color: #11141b;
+  font: 800 10.5px/1 var(--font-ui);
+  cursor: pointer;
+  z-index: 1;
+}
+.kv-org__kids::after {
+  content: '▾';
+  margin-left: 3px;
+}
+.kv-org__kids.is-closed::after {
+  content: '▸';
+}
+.kv-org__kids:active {
+  transform: translateX(-50%) translateY(1px);
+}
+
+/* ---------------------------------------------------------------- detalhe */
+.kv-org__detail {
+  --c: var(--ui-accent);
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  width: 270px;
+  max-height: calc(100% - 20px);
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 16px 14px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--c) 45%, var(--ui-line));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--c) 20%, transparent), transparent 90px),
+    var(--kv-ui-panel);
+  box-shadow:
+    var(--kv-ui-raise),
+    0 12px 30px rgba(0, 0, 0, 0.45);
+  animation: kv-org-pop 0.22s var(--ease);
+}
+.kv-org__dhead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 24px;
+}
+.kv-org__dname {
+  display: block;
+  font: 700 15px/1.2 var(--font-ui);
+}
+.kv-org__dtitle {
+  font: 12.5px/1.3 var(--font-ui);
+  color: var(--ui-muted);
+}
+.kv-org__dclose {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+}
+.kv-org__facts {
+  margin: 14px 0 12px;
+  display: grid;
+  gap: 6px;
+}
+.kv-org__facts > div {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 8px;
+  font: 12.5px/1.3 var(--font-ui);
+}
+.kv-org__facts dt {
+  color: var(--ui-faint);
+}
+.kv-org__facts dd {
+  margin: 0;
+  color: var(--ui-text);
+}
+.kv-org__dacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ---------------------------------------------------------------- lista (celular) */
+.kv-org__listview {
+  flex: 1;
+  overflow: auto;
+  border-radius: 12px;
+  border: 1px solid var(--ui-line);
+  background: var(--kv-ui-in);
+  padding: 6px;
+}
+.kv-org__list,
+.kv-org__list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.kv-org__list ul {
+  margin-left: 16px;
+  padding-left: 10px;
+  border-left: 2px solid rgba(160, 176, 210, 0.15);
+}
+.kv-org__ldet > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  cursor: pointer;
+}
+.kv-org__ldet > summary::-webkit-details-marker {
+  display: none;
+}
+.kv-org__ldet > summary::before {
+  content: '▸';
+  width: 12px;
+  color: var(--ui-faint);
+}
+.kv-org__ldet[open] > summary::before {
+  content: '▾';
+}
+.kv-org__lrow {
+  --c: #7a8499;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 7px 8px;
+  margin: 2px 0;
+  border-radius: 8px;
+  border-left: 4px solid var(--c);
+  background: rgba(255, 255, 255, 0.03);
+}
+.kv-org__lrow:hover {
+  background: color-mix(in srgb, var(--c) 12%, transparent);
+}
+.kv-org__lrow.is-dept,
+.kv-org__lrow.is-project {
+  background: color-mix(in srgb, var(--c) 22%, transparent);
+}
+.kv-org__lgroup {
+  width: 10px;
+  height: 10px;
+  background: var(--c);
+}
+.kv-org__lwho {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.kv-org__lwho strong {
+  font: 700 13px/1.2 var(--font-ui);
+}
+.kv-org__lwho span {
+  font: 11.5px/1.2 var(--font-ui);
+  color: var(--ui-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kv-org__lcount {
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  font: 700 11px/1.2 var(--font-ui);
+  color: var(--ui-muted);
+}
+
+@keyframes kv-org-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+@keyframes kv-org-blink {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (max-width: 720px) {
+  .kv-org__detail {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    top: auto;
+    bottom: 8px;
+    width: auto;
+    max-height: 55vh;
+    z-index: 3;
+  }
+  .kv-org__search {
+    flex: 1 1 100%;
+  }
+  .kv-org__spacer,
+  .kv-org__zoom {
+    display: none;
+  }
+}

@@ -8,7 +8,7 @@ import { kvRestricted, type KvMe } from '../../../../shared/kaviski-humanos';
 import { tr } from '../../../../shared/i18n';
 import { iconButton } from '../../ui/dom';
 import { pixelIcon } from '../../ui/icons';
-import { PeopleDialog } from './people';
+import { kvOpenPeople } from './people';
 import { KvOnline } from './online';
 import { KvPresenceClient } from './presence';
 import { kvStartMedia } from './media';
@@ -21,6 +21,7 @@ import { kvStartSocial } from './social';
 import { kvPeople } from './world';
 import { kvStartW1 } from './w1';
 import { kvStartSalas } from './salas';
+import { kvStartOrg } from './org-start';
 import { kvStartPlan } from '../plan';
 import type { OfficeStore } from '../../net/store';
 import { kvStartExtras } from './extras';
@@ -86,6 +87,7 @@ export function kvStartHumanos(store: OfficeStore, root: ParentNode = document):
       // W2: status com nota, avisos fora da aba, Chamar, reações, trancar sala e roda privada (social.ts)
       kvStartSocial(client, bar, store, m);
       kvStartSalas(m, client); // salas próprias, quadro branco, mural e links
+      kvStartOrg(m, store, root); // planta livre: organograma, áreas e agentes de IA fixos
       kvStartPlan(m, client, store); // planta livre: a planta gravada e o editor da empresa
     }
     if (kvRestricted(m.person)) {
@@ -108,8 +110,7 @@ export function kvStartHumanos(store: OfficeStore, root: ParentNode = document):
     const admin = m.local || m.person?.role === 'admin';
     const group = root.querySelector('.ui-btn-feed')?.parentElement;
     if (admin && group) {
-      let dialog: PeopleDialog | null = null;
-      const btn = iconButton(PEOPLE_ICON, tr('Pessoas: contas, papéis e salas'), () => void (dialog ??= new PeopleDialog()).open(), 'kv-btn-people');
+      const btn = iconButton(PEOPLE_ICON, tr('Pessoas: contas, papéis e salas'), () => kvOpenPeople(), 'kv-btn-people');
       btn.setAttribute('aria-haspopup', 'dialog');
       group.prepend(btn);
     }

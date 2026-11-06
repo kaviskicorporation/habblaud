@@ -15,6 +15,8 @@ import type { KvPresenceClient } from './presence';
 import { whereText } from './online';
 import { kvOpenDirect, type KvChatPanel } from './chat';
 import { KV_ICONS, kvAvatar, kvCap, kvHashColor, kvIconBtn, kvRoleBadge } from './ui/kit';
+import { kvOnOrg, kvOrgName, kvOrgOf } from './org-api';
+import { kvDeptChip } from './org-people';
 import './person-card.css';
 
 let card: KvPersonCard | null = null;
@@ -61,6 +63,7 @@ export class KvPersonCard {
     });
     client.on(() => this.render());
     kvOnPersonActions(() => this.render(true));
+    kvOnOrg(() => this.render(true));
     kvPeople.onPersonClick = (id, at) => {
       const r = document.getElementById('world')?.getBoundingClientRect();
       this.open(id, { x: at.x + (r?.left ?? 0), y: at.y + (r?.top ?? 0) });
@@ -120,7 +123,8 @@ export class KvPersonCard {
     }
     const actions = kvPersonActions(p);
     const where = whereText(p, this.store.liveSnapshot ?? null);
-    const sig = [p.name, p.role, kvStatusLine(p), where, JSON.stringify(p.look), actions.map((a) => a.id).join(',')].join('|');
+    const org = kvOrgOf(p.id);
+    const sig = [p.name, p.role, kvStatusLine(p), where, JSON.stringify(p.look), actions.map((a) => a.id).join(','), JSON.stringify(org)].join('|');
     if (!force && sig === this.sig) return;
     this.sig = sig;
     const color = p.look.color ?? kvHashColor(p.id);
@@ -137,7 +141,8 @@ export class KvPersonCard {
           'div',
           { class: 'kv-pc__who' },
           h('strong', { class: 'kv-pc__name', text: p.name }),
-          h('div', { class: 'kv-pc__tags' }, kvRoleBadge(p.role)),
+          org?.title ? h('span', { class: 'kv-pc__title', text: org.title }) : null,
+          h('div', { class: 'kv-pc__tags' }, kvRoleBadge(p.role), kvDeptChip(org?.dept)),
         ),
       ),
       h(
@@ -145,6 +150,7 @@ export class KvPersonCard {
         { class: 'kv-pc__facts' },
         h('div', { class: 'kv-pc__fact' }, h('dt', { class: `kv-pc__dot kv-ui-st--${p.status}`, attrs: { 'aria-label': tr('Status') } }), h('dd', { text: kvCap(kvStatusLine(p)) })),
         h('div', { class: 'kv-pc__fact' }, this.factIcon(KV_ICONS.pin), h('dd', { text: where })),
+        org?.reportsTo && kvOrgName(org.reportsTo) ? h('div', { class: 'kv-pc__fact' }, this.factIcon(KV_ICONS.users), h('dd', { text: tr('Responde a {0}', [kvOrgName(org.reportsTo)!]) })) : null,
       ),
       ...(actions.length ? [h('div', { class: 'kv-pc__actions', role: 'group', attrs: { 'aria-label': tr('Ações') } }, ...actions.map((a, i) => this.actionBtn(a, p, i === 0)))] : []),
       h('div', { class: 'kv-pc__quick' }, this.quick, h('span', { class: 'kv-pc__quick-hint', text: 'Enter' })),

@@ -230,7 +230,8 @@
     inset 0 -3px 0 rgba(0, 0, 0, 0.35),
     0 2px 0 rgba(0, 0, 0, 0.5);
   color: #f1f4fb;
-  font: 500 12px/1 var(--font-px);
+  /* a Pixelify confunde E/C e os dígitos: as teclas usam a fonte da interface, em negrito */
+  font: 800 11.5px/1 var(--font-ui);
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
   image-rendering: pixelated;
   transition:
