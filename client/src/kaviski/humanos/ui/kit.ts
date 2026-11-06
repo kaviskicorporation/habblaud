@@ -24,6 +24,11 @@ export interface KvBtnOpts {
   onClick?: (e: MouseEvent) => void;
 }
 
+/** Primeira letra maiúscula ("disponível" → "Disponível"). */
+export function kvCap(s: string): string {
+  return s.charAt(0).toLocaleUpperCase() + s.slice(1);
+}
+
 /** O texto pode usar a fonte em pixel? A Pixelify confunde "C" com "O" e os dígitos (regra do styles.css original). */
 export function kvPxSafe(text: string): boolean {
   return !/[C0-9]/.test(text);

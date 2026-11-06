@@ -1,0 +1,266 @@
+/* Fork Kaviski (KAVISKI-HUMANOS.md): cartão da pessoa (person-card.ts), no tema do Habblaud com o kit (ui/kit.css). */
+
+.kv-pc {
+  --kv-badge: var(--ui-accent);
+  position: fixed;
+  z-index: 47;
+  width: 316px;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid var(--ui-line-strong);
+  background: var(--kv-ui-panel);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 4px 0 rgba(0, 0, 0, 0.35),
+    0 22px 56px rgba(5, 7, 12, 0.6);
+  color: var(--ui-text);
+  font: 13px/1.4 var(--font-ui);
+  animation: kv-pc-in 0.18s var(--ease);
+}
+
+.kv-pc[hidden] {
+  display: none;
+}
+
+@keyframes kv-pc-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+
+/* faixa na cor do crachá com xadrez em pixel */
+.kv-pc__banner {
+  position: relative;
+  height: 58px;
+  background:
+    linear-gradient(180deg, transparent 40%, rgba(20, 24, 33, 0.9)),
+    repeating-conic-gradient(rgba(255, 255, 255, 0.07) 0 25%, transparent 0 50%) 0 0 / 8px 8px,
+    linear-gradient(135deg, color-mix(in srgb, var(--kv-badge) 85%, #fff 0%), color-mix(in srgb, var(--kv-badge) 45%, #141822));
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--kv-badge) 60%, transparent);
+}
+
+.kv-pc__close {
+  position: absolute !important;
+  top: 6px;
+  right: 6px;
+  background: rgba(10, 12, 18, 0.45) !important;
+  color: #fff !important;
+}
+
+.kv-pc__top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: -40px;
+  padding: 0 14px;
+}
+
+.kv-pc__top .kv-ui-avatar > .ui-avatar {
+  box-shadow:
+    0 0 0 3px #1b2030,
+    inset 0 0 0 2px color-mix(in srgb, var(--kv-badge) 80%, transparent),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.22);
+}
+
+.kv-pc__who {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  padding-top: 46px;
+}
+
+.kv-pc__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 700 17px/1.2 var(--font-ui);
+}
+
+.kv-pc__tags {
+  display: flex;
+  gap: 6px;
+}
+
+.kv-pc__facts {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 12px 14px 0;
+  padding: 9px 11px;
+  border-radius: 9px;
+  border: 1px solid var(--ui-line);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.kv-pc__fact {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.kv-pc__fact dd {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #c9d1e2;
+}
+
+.kv-pc__dot {
+  width: 9px;
+  height: 9px;
+  margin: 0 2px;
+  flex: none;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.kv-pc__note {
+  color: var(--ui-muted);
+}
+
+.kv-pc__fact-ico {
+  display: grid;
+  place-items: center;
+  width: 13px;
+  flex: none;
+  color: var(--ui-faint);
+}
+
+.kv-pc__fact-ico svg {
+  width: auto;
+  height: 12px;
+}
+
+/* ações em botões grandes de ícone */
+.kv-pc__actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 8px;
+  margin: 12px 14px 0;
+}
+
+.kv-pc__action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 62px;
+  padding: 8px 6px 7px;
+  border-radius: 10px;
+  border: 1px solid var(--ui-line-strong);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03));
+  box-shadow: var(--kv-ui-raise);
+  color: var(--ui-text);
+  text-align: center;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    transform 0.06s;
+}
+
+.kv-pc__action:hover {
+  border-color: rgba(124, 200, 255, 0.5);
+  background: linear-gradient(180deg, rgba(124, 200, 255, 0.16), rgba(124, 200, 255, 0.06));
+}
+
+.kv-pc__action:active {
+  transform: translateY(1px);
+  box-shadow: var(--kv-ui-press);
+}
+
+.kv-pc__action.is-primary {
+  border-color: #5eaaf5;
+  background: linear-gradient(180deg, #3d93ea, #2f7fd1);
+  color: #fff;
+}
+
+.kv-pc__action.is-primary:hover {
+  background: linear-gradient(180deg, #4b9df0, #3889dc);
+}
+
+.kv-pc__action-ico {
+  display: grid;
+  place-items: center;
+  height: 22px;
+  font-size: 19px;
+  line-height: 1;
+  color: var(--ui-accent);
+}
+
+.kv-pc__action.is-primary .kv-pc__action-ico {
+  color: #fff;
+}
+
+.kv-pc__action-ico svg {
+  width: auto;
+  height: 20px;
+}
+
+.kv-pc__action-label {
+  font: 600 11.5px/1.15 var(--font-ui);
+}
+
+/* mensagem rápida */
+.kv-pc__quick {
+  position: relative;
+  margin: 12px 14px 14px;
+}
+
+.kv-pc__quick-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 52px 0 11px;
+  border-radius: 9px;
+  border: 1px solid var(--ui-line-strong);
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.22);
+  color: var(--ui-text);
+  font: 13px/1 var(--font-ui);
+  outline: none;
+}
+
+.kv-pc__quick-input:focus {
+  border-color: rgba(124, 200, 255, 0.7);
+  box-shadow:
+    inset 0 2px 0 rgba(0, 0, 0, 0.22),
+    0 0 0 3px rgba(124, 200, 255, 0.15);
+}
+
+.kv-pc__quick-input::placeholder {
+  color: var(--ui-faint);
+}
+
+.kv-pc__quick-hint {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--ui-line-strong);
+  border-bottom-width: 2px;
+  font: 600 10px/1.4 var(--font-ui);
+  color: var(--ui-faint);
+  pointer-events: none;
+}
+
+.kv-pc__quick-note {
+  margin: -8px 14px 12px;
+  font-size: 12px;
+  color: #ff8a8a;
+}
+
+.kv-pc__quick-note:empty {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kv-pc {
+    animation: none;
+  }
+}

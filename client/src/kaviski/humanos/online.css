@@ -1,0 +1,383 @@
+/* Fork Kaviski (KAVISKI-HUMANOS.md): o chip "Nome · papel" do topo, a lista de quem está online e o editor do meu
+   boneco (online.ts), com o kit de interface (ui/kit.css). */
+
+/* ---- chip do topo */
+.kv-me {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 200px;
+  height: 22px;
+  margin-left: 6px;
+  padding: 0 8px 0 7px;
+  border-radius: 7px;
+  border: 1px solid var(--ui-line-strong);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.25);
+  font: 600 11.5px/1 var(--font-ui);
+  color: var(--ui-text);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+
+.kv-me:hover,
+.kv-me.is-open {
+  border-color: rgba(124, 200, 255, 0.5);
+  background: linear-gradient(180deg, rgba(124, 200, 255, 0.16), rgba(124, 200, 255, 0.06));
+}
+
+.kv-me__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kv-me__role {
+  font: 700 9px/1 var(--font-ui);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ui-muted);
+}
+
+.kv-me.kv-role--admin .kv-me__role {
+  color: var(--st-waiting);
+}
+
+.kv-me.kv-role--equipe .kv-me__role {
+  color: var(--ui-accent);
+}
+
+.kv-me.kv-role--cliente .kv-me__role {
+  color: var(--st-working);
+}
+
+.kv-me__dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  background: var(--kv-ui-st-on);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--kv-ui-st-on) 60%, transparent);
+}
+
+.kv-me[data-status='ocupado'] .kv-me__dot {
+  background: var(--kv-ui-st-busy);
+  box-shadow: none;
+}
+
+.kv-me[data-status='ausente'] .kv-me__dot {
+  background: var(--kv-ui-st-away);
+  box-shadow: none;
+}
+
+.kv-me[data-status='naoperturbe'] .kv-me__dot {
+  background: var(--kv-ui-st-dnd);
+  box-shadow: none;
+}
+
+.kv-me__count {
+  color: var(--ui-muted);
+  font-weight: 500;
+}
+
+/* ---- lista de quem está online */
+.kv-ol {
+  position: fixed;
+  z-index: 60;
+  width: 350px;
+  max-height: min(76vh, 620px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid var(--ui-line-strong);
+  background: var(--kv-ui-panel);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 4px 0 rgba(0, 0, 0, 0.35),
+    0 22px 56px rgba(5, 7, 12, 0.6);
+  color: var(--ui-text);
+  font: 13px/1.4 var(--font-ui);
+  animation: kv-ui-pop-in 0.16s var(--ease);
+}
+
+.kv-ol[hidden] {
+  display: none;
+}
+
+.kv-ol__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 8px 6px 14px;
+}
+
+.kv-ol__title {
+  font: 700 14px/1.2 var(--font-ui);
+}
+
+.kv-ol__title.kv-ui-px {
+  font-size: 15px !important;
+}
+
+.kv-ol__me {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 12px;
+  padding: 10px;
+  border-radius: 11px;
+  border: 1px solid var(--ui-line);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.kv-ol__me-who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.kv-ol__me-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.kv-ol__me-text strong {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kv-ol__me-status {
+  width: 138px;
+  flex: none;
+}
+
+.kv-ol__me-status .kv-ui-select {
+  height: 32px;
+}
+
+.kv-ol__st {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.kv-ol__actions {
+  display: flex;
+  gap: 8px;
+  margin: 10px 12px 0;
+}
+
+.kv-ol__actions .kv-ui-btn {
+  flex: 1;
+}
+
+.kv-ol__hint {
+  margin: 8px 14px 0;
+  font-size: 11.5px;
+  color: var(--ui-faint);
+}
+
+.kv-ol__search {
+  margin: 10px 12px 2px;
+}
+
+.kv-ol__search .kv-ui-input {
+  height: 32px;
+}
+
+.kv-ol__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 6px 10px;
+}
+
+.kv-ol__section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px 4px;
+  font: 700 10.5px/1 var(--font-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-faint);
+}
+
+.kv-ol__section-n {
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  letter-spacing: 0;
+}
+
+.kv-ol__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background-color 0.12s;
+}
+
+.kv-ol__row:hover,
+.kv-ol__row:focus-visible {
+  background: var(--ui-bg-hover);
+}
+
+.kv-ol__who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.kv-ol__name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.kv-ol__name strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kv-ol__name .kv-ui-role {
+  height: 15px;
+  padding: 0 4px;
+  font-size: 8.5px;
+}
+
+.kv-ol__where {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--ui-muted);
+}
+
+.kv-ol__row-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.kv-ol__row:hover .kv-ol__row-actions,
+.kv-ol__row:focus-within .kv-ol__row-actions {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .kv-ol__row-actions {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 520px) {
+  .kv-ol {
+    left: 6px !important;
+    right: 6px;
+    width: auto;
+  }
+}
+
+/* ---- meu boneco */
+.kv-pf__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.kv-pf__side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.kv-pf__color {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kv-pf__swatches {
+  display: grid;
+  grid-template-columns: repeat(7, 28px);
+  gap: 6px;
+}
+
+.kv-pf__swatch {
+  --sw: #7cc8ff;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  background: var(--sw);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+
+.kv-pf__swatch:hover {
+  transform: translateY(-1px);
+}
+
+.kv-pf__swatch.is-on {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.kv-pf__custom {
+  border: 1px dashed var(--ui-line-strong);
+  color: var(--ui-muted);
+  box-shadow: none;
+}
+
+.kv-pf__custom-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.kv-pf__body.ui-char {
+  margin: 0;
+  padding: 16px 18px 18px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  animation: none;
+}
+
+.kv-pf__top {
+  align-items: start !important;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--ui-line);
+  background: rgba(0, 0, 0, 0.2);
+}

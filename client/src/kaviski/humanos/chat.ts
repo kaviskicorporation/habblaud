@@ -29,7 +29,7 @@ import { ROLE_LABEL } from './people';
 import { kvPeople, STATUS_LABEL } from './world';
 import { kvGoArea } from './walk';
 import { KV_EMOJIS, kvDayLabel, kvLinkify, kvParseRooms, kvRememberRoom, kvSameGroup, kvTime, kvWhen } from './chat-format';
-import { KV_ICONS, kvAvatar, kvBtn, kvEmpty, kvIconBtn, kvInput, kvRoleBadge } from './ui/kit';
+import { KV_ICONS, kvAvatar, kvBtn, kvCap, kvEmpty, kvIconBtn, kvInput, kvRoleBadge } from './ui/kit';
 import { KvModal } from './ui/modal';
 import { kvToast } from './ui/toast';
 import './chat.css';
@@ -207,7 +207,7 @@ export class KvChatPanel {
         !this.el.contains(t) &&
         !this.bar.el.contains(t) &&
         !this.topBtn?.contains(t) &&
-        !t.closest?.('.kv-person-card, .ui-city-wheel, .kv-ui-toasts, dialog, .kv-ui-pop, .kv-online')
+        !t.closest?.('.kv-pc, .ui-city-wheel, .kv-ui-toasts, dialog, .kv-ui-pop, .kv-online')
       )
         this.toggle(false);
     });
@@ -556,7 +556,7 @@ export class KvChatPanel {
 
   private statusText(id: string): string {
     const s = this.statusOf(id);
-    return s === 'off' ? tr('offline') : STATUS_LABEL[s];
+    return kvCap(s === 'off' ? tr('offline') : STATUS_LABEL[s]);
   }
 
   // ------------------------------------------------------------------ abas

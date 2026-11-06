@@ -8,7 +8,7 @@ import { KV_PASSWORD_MIN, KV_PERSON_NAME_MAX, KV_USER_RE } from '../../../../sha
 import type { KvContact, KvLook } from '../../../../shared/kaviski-presence';
 import { tr } from '../../../../shared/i18n';
 import { h } from '../../ui/dom';
-import { KV_ICONS, kvAvatar, kvBtn, kvChip, kvEmpty, kvField, kvIconBtn, kvInput, kvPassword, kvRoleBadge, kvTabs, kvTitle, kvToggle, type KvField } from './ui/kit';
+import { KV_ICONS, kvAvatar, kvBtn, kvCap, kvChip, kvEmpty, kvField, kvIconBtn, kvInput, kvPassword, kvRoleBadge, kvTabs, kvTitle, kvToggle, type KvField } from './ui/kit';
 import { KvMultiSelect, KvSelect, type KvOption } from './ui/select';
 import { KvModal, kvConfirm } from './ui/modal';
 import { kvToast } from './ui/toast';
@@ -63,8 +63,6 @@ async function call(method: string, url: string, body?: unknown): Promise<{ ok: 
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   return { ok: res.ok, data };
 }
-
-const kvCap = (s: string) => s.charAt(0).toLocaleUpperCase() + s.slice(1);
 
 /** Nome curto de uma pasta de sala ("Clientes/12-Rarm"). */
 export function kvRoomShort(path: string): string {

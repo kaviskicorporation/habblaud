@@ -1,29 +1,5 @@
 /* Fork Kaviski (KAVISKI-HUMANOS.md): pessoas no escritório. Usa as variáveis dos temas da interface (styles.css). */
 
-.kv-me {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  margin-left: 6px;
-  padding: 1px 7px;
-  border-radius: 999px;
-  border: 1px solid var(--ui-line-strong);
-  background: var(--ui-bg-soft);
-  font: 500 11px/1.4 var(--font-px);
-  color: var(--ui-text);
-  max-width: 180px;
-  white-space: nowrap;
-}
-
-.kv-me__name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.kv-me__role {
-  color: var(--ui-muted);
-}
-
 .kv-role {
   padding: 0 6px;
   border-radius: 999px;
@@ -32,18 +8,15 @@
   color: var(--ui-muted);
 }
 
-.kv-role--admin.kv-role,
-.kv-me.kv-role--admin .kv-me__role {
+.kv-role--admin.kv-role {
   color: var(--st-waiting);
 }
 
-.kv-role--equipe.kv-role,
-.kv-me.kv-role--equipe .kv-me__role {
+.kv-role--equipe.kv-role {
   color: var(--ui-accent);
 }
 
-.kv-role--cliente.kv-role,
-.kv-me.kv-role--cliente .kv-me__role {
+.kv-role--cliente.kv-role {
   color: var(--st-working);
 }
 
@@ -190,173 +163,7 @@ select.kv-people__input option {
   height: 34px;
 }
 
-/* ---- fase 1b: quem está online, status e o meu boneco ---- */
-
-button.kv-me {
-  cursor: pointer;
-}
-
-button.kv-me:hover {
-  border-color: rgba(160, 176, 210, 0.42);
-  background: var(--ui-bg-hover);
-}
-
-.kv-me__dot {
-  width: 6px;
-  height: 6px;
-  flex: none;
-  background: var(--st-working);
-}
-
-.kv-me[data-status='ocupado'] .kv-me__dot {
-  background: var(--lv-crit);
-}
-
-.kv-me[data-status='ausente'] .kv-me__dot {
-  background: var(--st-waiting);
-}
-
-.kv-me__count {
-  color: var(--ui-muted);
-}
-
-.kv-online {
-  position: fixed;
-  z-index: 60;
-  width: 320px;
-  max-height: min(70vh, 560px);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  border-radius: var(--radius);
-  border: 1px solid var(--ui-line-strong);
-  background: var(--ui-bg-solid);
-  box-shadow: 0 18px 50px rgba(5, 7, 12, 0.55);
-  color: var(--ui-text);
-  font: 13px/1.4 var(--font-ui);
-}
-
-.kv-online[hidden] {
-  display: none;
-}
-
-.kv-online__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font: 700 14px/1.2 var(--font-ui);
-}
-
-.kv-online__status,
-.kv-online__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.kv-st::before,
-.kv-online__dot {
-  content: '';
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  flex: none;
-  background: var(--st-working);
-}
-
-.kv-st--ocupado::before,
-.kv-online__dot.kv-st--ocupado {
-  background: var(--lv-crit);
-}
-
-.kv-st--ausente::before,
-.kv-online__dot.kv-st--ausente {
-  background: var(--st-waiting);
-}
-
-.kv-online__hint {
-  margin: 0;
-  font-size: 12px;
-  color: var(--ui-faint);
-}
-
-.kv-online__list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  overflow-y: auto;
-}
-
-.kv-online__item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 6px 8px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--ui-line);
-  background: var(--ui-bg-soft);
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.kv-online__item:hover:not([disabled]) {
-  background: var(--ui-bg-hover);
-}
-
-.kv-online__item[disabled] {
-  cursor: default;
-}
-
-.kv-online__who {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.kv-online__name {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.kv-online__where {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12px;
-  color: var(--ui-muted);
-}
-
-.kv-profile__body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 18px 22px 22px;
-  overflow-y: auto;
-}
-
-.kv-profile__side {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.kv-profile__color {
-  display: block;
-  width: 56px;
-  height: 30px;
-  padding: 0;
-  border: 1px solid var(--ui-line-strong);
-  border-radius: 6px;
-  background: none;
-}
+/* ---- fase 1b: o chip "Nome · papel", quem está online e o meu boneco ficam em online.css ---- */
 
 /* ---- fase 1c: voz e vídeo ---- */
 
@@ -531,86 +338,7 @@ button.kv-me:hover {
 
 /* a janela das conversas e os avisos de mensagem nova ficam em chat.css e ui/kit.css */
 
-/* cartão da pessoa */
-.kv-person-card {
-  position: fixed;
-  z-index: 47;
-  width: 300px;
-  padding: 14px;
-  border-radius: var(--radius);
-  border: 1px solid var(--ui-line-strong);
-  background: var(--ui-bg-solid);
-  box-shadow: 0 18px 50px rgba(5, 7, 12, 0.6);
-  color: var(--ui-text);
-  font: 13px/1.4 var(--font-ui);
-  animation: ui-dialog-in 0.2s var(--ease);
-}
-
-.kv-person-card[hidden] {
-  display: none;
-}
-
-.kv-person-card__top {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.kv-person-card__avatar {
-  display: flex;
-  flex: none;
-}
-
-.kv-person-card__who {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
-  min-width: 0;
-}
-
-.kv-person-card__name {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font: 700 16px/1.2 var(--font-ui);
-}
-
-.kv-person-card__status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-}
-
-.kv-person-card__where {
-  font-size: 12px;
-  color: var(--ui-muted);
-}
-
-.kv-person-card__actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  margin-top: 12px;
-}
-
-.kv-person-card__action {
-  justify-content: center;
-  height: 32px;
-}
-
-.kv-person-card__action:first-child {
-  grid-column: 1 / -1;
-  background: #2f7fd1;
-  border-color: #58a6f2;
-  color: #fff;
-}
-
-.kv-person-card__icon {
-  font-size: 14px;
-}
+/* o cartão da pessoa fica em person-card.css */
 
 /* ---- fase 3: pessoa + agente ---- */
 
