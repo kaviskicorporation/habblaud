@@ -30,6 +30,7 @@ import { BUILTIN_ID, KvUsers, publicPerson } from './users';
 import { KvInvites } from './invites';
 import { kvInvitesRoute, INVITES_PATH } from './invites-route';
 import { AGENDA_PATH, AGENDA_ROOMS_PATH, KvAgenda, kvAgendaAllowPrivate, kvAgendaRoute, type KvAgendaRoom } from './agenda';
+import { kvDeskOf, kvDeskRoute } from './desk';
 
 export const HUMANOS_API = '/api/kaviski/humanos';
 const USERS_PATH = `${HUMANOS_API}/users`;
@@ -43,6 +44,7 @@ const DM_PATH = `${HUMANOS_API}/dm`;
 const DM_READ_PATH = `${HUMANOS_API}/dm/read`;
 const SUMMON_PATH = `${HUMANOS_API}/summon`;
 const AUDIT_PATH = `${HUMANOS_API}/audit`;
+const DESK_PATH = `${HUMANOS_API}/desk`;
 const MESSAGE_ITEM = /^\/api\/messages\/([^/]+)$/;
 const PERMISSION_DECISION = /^\/api\/permissions\/([^/]+)\/decision$/;
 const AGENT_ACTION = /^\/api\/agents\/([^/]+)\/(stop|takeover|character)$/;
@@ -147,7 +149,7 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
   };
 
   const lookOf = (id: string): KvLook | undefined => kvParseLook(users.profile(id).look);
-  const presence = new KvPresence({ snapshot: deps.snapshot, look: lookOf });
+  const presence = new KvPresence({ snapshot: deps.snapshot, look: lookOf, desk: (id) => kvDeskOf(users.profile(id)) });
   const chat = new KvChat(presence, deps.snapshot, dir ? join(dir, 'chat.json') : null);
   const audit = new KvAudit(dir ? join(dir, 'audit.jsonl') : null);
   const direct = new KvDirect({
@@ -630,6 +632,16 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
       }
       if (path === INVITES_PATH || path.startsWith(`${INVITES_PATH}/`)) {
         kvInvitesRoute(req, res, path, { who: whoIs(req), invites, presence, audit, snapshot: deps.snapshot });
+        return true;
+      }
+      if (path === DESK_PATH) {
+        kvDeskRoute(req, res, whoIs(req), {
+          snapshot: deps.snapshot,
+          profile: (id) => users.profile(id),
+          setProfile: (id, p) => users.setProfile(id, p),
+          ids: () => [...(builtinUser ? [BUILTIN_ID] : []), ...users.list().map((u) => u.id)],
+          touch: () => presence.touch(),
+        });
         return true;
       }
       if (path === USERS_PATH || path.startsWith(`${USERS_PATH}/`)) {

@@ -226,6 +226,7 @@ export function createWorld(canvas: HTMLCanvasElement, store: OfficeStore, o: Cr
     pick,
     click: (hit, at) => (visitMode ? visitClick(hit, at) : kv.click(hit, at) ? undefined : setSelection(hit)), // fork Kaviski: kv.click
     doubleClick: (hit) => {
+      if (!visitMode && kv.doubleClick(hit)) return; // fork Kaviski: duplo clique no chão = o meu boneco corre
       if (hit?.type === 'agent') {
         setSelection(hit);
         focusAgent(hit.id, { follow: true });

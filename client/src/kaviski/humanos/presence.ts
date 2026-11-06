@@ -136,7 +136,7 @@ export class KvPresenceClient {
 
   /** Minha posição e a área em que estou (null = saí do escritório). Repetida e igual não sai. */
   setPos(pos: KvPos | null, area: string | null = null): void {
-    const key = pos ? `${pos.k}|${pos.r ?? ''}|${pos.x}|${pos.y}|${pos.d}|${pos.m}|${area ?? ''}` : 'null';
+    const key = pos ? `${pos.k}|${pos.r ?? ''}|${pos.x}|${pos.y}|${pos.d}|${pos.m}|${pos.p ?? ''}|${pos.h ?? ''}|${pos.z ?? ''}|${area ?? ''}` : 'null';
     if (key === this.lastPosKey) return;
     this.lastPosKey = key;
     this.lastPos = pos;

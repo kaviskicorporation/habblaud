@@ -46,6 +46,8 @@ export interface KvPresenceDeps {
   snapshot: () => OfficeSnapshot;
   /** Boneco salvo na conta da pessoa. */
   look: (id: string) => KvLook | undefined;
+  /** Mesa fixa da pessoa (desk.ts). */
+  desk?: (id: string) => KvPos | undefined;
   now?: () => number;
 }
 
@@ -239,6 +241,7 @@ export class KvPresence {
       }
       let pos = e.pos;
       if (pos?.r && mine && !mine.has(pos.r)) pos = undefined;
+      const desk = this.deps.desk?.(p.id);
       out.push({
         id: p.id,
         name: p.name,
@@ -246,6 +249,7 @@ export class KvPresence {
         status: e.status,
         look: this.deps.look(p.id) ?? kvDefaultLook(p.id),
         ...(pos ? { pos } : {}),
+        ...(desk?.r && (!mine || mine.has(desk.r)) ? { desk } : {}),
         since: e.since,
       });
     }

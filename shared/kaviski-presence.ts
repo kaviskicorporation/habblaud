@@ -9,6 +9,7 @@
 import { kvColor } from './kaviski';
 import { parseAppearanceParts, parseSeed, type AppearanceParts } from './appearance';
 import type { KvRole } from './kaviski-humanos';
+import { kvIsHeld, kvIsPose, type KvHeld, type KvPose } from './kaviski-desk'; // fork Kaviski W1: pose e mesa
 
 export type KvStatus = 'disponivel' | 'ocupado' | 'ausente';
 export const KV_STATUSES: readonly KvStatus[] = ['disponivel', 'ocupado', 'ausente'];
@@ -25,6 +26,12 @@ export interface KvPos {
   d: KvDir;
   /** Andando (1) ou correndo (2); 0 = parado. */
   m: 0 | 1 | 2;
+  /** Pose parada (sentado, bebendo...; shared/kaviski-desk.ts). Ausente = em pé. */
+  p?: KvPose;
+  /** Item na mão (café, água...). */
+  h?: KvHeld;
+  /** Descansando (modo foco: o boneco fica no lounge e a pessoa não está andando). */
+  z?: 1;
 }
 
 /** O boneco salvo na conta. */
@@ -47,6 +54,8 @@ export interface KvPresencePerson {
   pos?: KvPos;
   /** Desde quando está online (epoch ms). */
   since: number;
+  /** Mesa fixa (k='r'; só vem se quem recebe vê a sala). */
+  desk?: KvPos;
 }
 
 /** Evento `people` do GET /api/kaviski/humanos/presence. */
@@ -81,6 +90,9 @@ export function kvParsePos(v: unknown): KvPos | null | undefined {
     out.r = p.r;
   }
   if (p.k === 'r') out.s = p.s === 's' ? 's' : 'n';
+  if (kvIsPose(p.p)) out.p = p.p;
+  if (kvIsHeld(p.h)) out.h = p.h;
+  if (p.z === 1) out.z = 1;
   return out;
 }
 

@@ -8,7 +8,8 @@
 // - Ganchos no original: client/src/world/index.ts (kvAttachWorld, clique, teclas e o kv.frame no laço) e
 //   render/overlay.ts (etiqueta sempre visível com o selo da pessoa). Sem HABBLAUD_HUMANOS nada disso age.
 import type { AgentInfo } from '../../../../shared/types';
-import type { KvLook, KvPresencePerson, KvPresenceState, KvStatus } from '../../../../shared/kaviski-presence';
+import type { KvLook, KvPos, KvPresencePerson, KvPresenceState, KvStatus } from '../../../../shared/kaviski-presence';
+import { kvSeatedPose } from '../../../../shared/kaviski-desk';
 import { hash32 } from '../../../../shared/hash';
 import { tr } from '../../../../shared/i18n';
 import { appearanceFromSeed } from '../../art';
@@ -19,9 +20,14 @@ import { intentFrom, moveKeyOf } from '../../world/city/input';
 import { Character, dirOf } from '../../world/sim/character';
 import type { Sim } from '../../world/sim/sim';
 import { VISITOR_ID } from '../../world/sim/visitor';
-import { FREE } from '../../world/path/grid';
+import type { SpotDef } from '../../world/layout/types';
+import { NO_INTENT } from '../../world/sim/visitor';
 import { kvDecodePos, kvEncodePos, type KvBuildingGeom } from './pos';
 import type { KvPresenceClient } from './presence';
+import { DESK_OWNER, KvMeCtl } from './me';
+import { freeTileAt, freeTileNear, KV_DESK_KINDS, KV_SIT_KINDS, seatAt } from './seats';
+import { kvStick } from './stick';
+import { kvDeskLabels } from './desk-labels';
 
 const PUPPET_PREFIX = 'pessoa:';
 /** Fase 3: parado a até NEAR_TILES de um agente por NEAR_MS abre a gaveta dele; afastar além de LEAVE_TILES fecha. */
@@ -110,14 +116,52 @@ export const kvPeople: {
   goTo?: (id: string) => boolean;
   /** Um agente foi chamado por uma pessoa (fase 3): ele anda até ela e fica um pouco (null = a pessoa sou eu). */
   summon?: (agentId: string, personId: string | null, name: string) => void;
-} = { client: null, inside: false, area: null };
+  // ---- W1 (boneco, mesa, móveis): me.ts, furniture.ts, goto.ts, focus.ts, touch.ts
+  /** Modo foco: o boneco descansa no lounge e o Habblaud volta ao original (`inside` fica false). */
+  resting: boolean;
+  /** Minha mesa fixa (perfil `desk`), ou null. */
+  myDesk: { roomId: string; pos: KvPos } | null;
+  /** Quem o meu boneco está seguindo. */
+  following: { id: string; name: string } | null;
+  /** Chamado a cada quadro com o meu boneco no escritório (andando, não descansando). */
+  onFrame: Set<(dt: number, now: number) => void>;
+  /** Anda até o tile (A*); levanta antes, se preciso. */
+  walkTo?: (tx: number, ty: number, run?: boolean) => boolean;
+  /** Anda até ao lado de uma pessoa. */
+  goNear?: (personId: string) => boolean;
+  /** Anda até uma área: `r:<sala>` (perto da porta), `a:core:xxx` (o meio dela) ou `c` (corredor). */
+  goTo?: (area: string) => boolean;
+  /** Para de seguir / ir até / andar pelo clique. */
+  stopMe?: () => void;
+  /** Segue uma pessoa até eu andar ou parar (Esc). */
+  followPerson?: (personId: string, name: string) => boolean;
+  /** Aparece ao lado da pessoa. */
+  teleportTo?: (personId: string) => boolean;
+  /** Vai até a mesa fixa de alguém (null = a minha, e senta). */
+  goDesk?: (personId: string | null) => boolean;
+  /** px de mundo -> px de tela (CSS, relativo à janela). */
+  toScreen?: (x: number, y: number) => { sx: number; sy: number; zoom: number };
+  /** Posição de mundo -> KvPos deste prédio (para guardar a mesa). */
+  encode?: (x: number, y: number, d: KvPos['d']) => KvPos;
+  /** O controle do meu boneco e o Sim (furniture.ts). */
+  ctl?: () => { sim: Sim; me: KvMeCtl } | null;
+  /** Clicaram num assento (com o meu boneco ativo): furniture.ts abre o menu dele. */
+  onSeatClick?: (spot: SpotDef, at: { x: number; y: number }) => void;
+} = { client: null, inside: false, area: null, resting: false, myDesk: null, following: null, onFrame: new Set() };
 
 interface Puppet {
   ch: Character;
   key: string;
   target: { x: number; y: number } | null;
   m: 0 | 1 | 2;
+  /** Pose parada que veio pela rede (W1) e o assento em que ela senta aqui. */
+  pose?: KvPos['p'];
+  held?: KvPos['h'];
+  seat?: SpotDef | null;
+  seatKey?: string;
 }
+
+const RESTING_BADGE = () => tr('descansando').toLocaleUpperCase();
 
 export interface KvWorldCtx {
   sim(): Sim;
@@ -137,9 +181,11 @@ export interface KvWorldHooks {
   walking(): boolean;
   /** A cada quadro, depois do sim.update. */
   frame(dt: number, now: number, timelapse: boolean): void;
+  /** Duplo clique (W1): true = o boneco correu até o clique (não foca nada). */
+  doubleClick(hit: Hit): boolean;
 }
 
-const NOOP: KvWorldHooks = { click: () => false, walking: () => false, frame: () => {} };
+const NOOP: KvWorldHooks = { click: () => false, walking: () => false, frame: () => {}, doubleClick: () => false };
 
 export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
   if (!ctx.office || typeof window === 'undefined') return NOOP;
@@ -149,9 +195,27 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
   let patched: Sim | null = null;
   let myKey = '';
   let lastSend = 0;
-  let wasMoving = false;
 
   const active = () => !!kvPeople.client && kvPeople.inside;
+  /** O boneco existe (andando ou descansando no modo foco). */
+  const present = () => !!kvPeople.client && (kvPeople.inside || kvPeople.resting);
+  let geomCache: KvBuildingGeom = { rooms: [], coreEndTx: 0 };
+  /** A cadeira de uma mesa fixa neste prédio. */
+  const deskSpot = (sim: Sim, desk: KvPos | undefined | null): SpotDef | null => {
+    if (!desk?.r) return null;
+    const at = kvDecodePos(geomCache, desk);
+    if (!at) return null;
+    const s = seatAt(sim.spots.all(), at.x, at.y);
+    return s && s.areaId === desk.r && KV_DESK_KINDS.includes(s.kind) ? s : null;
+  };
+  const me = new KvMeCtl(
+    (sim) => deskSpot(sim, kvPeople.myDesk?.pos),
+    () => kvPeople.client?.state?.me ?? null,
+  );
+  const wherePuppet = (id: string) => {
+    const pp = puppets.get(PUPPET_PREFIX + id);
+    return pp && !pp.ch.gone ? { x: pp.ch.x, y: pp.ch.y } : null;
+  };
   /** Fase 3: o agente de quem cheguei perto (a gaveta abriu sozinha) e desde quando estou parado perto de quem. */
   let nearOpened: string | null = null;
   let nearCandidate: { id: string; since: number } | null = null;
@@ -205,9 +269,12 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
   kvPeople.summon = (agentId, personId, name) => {
     const sim = ctx.sim();
     const ag = sim.chars.get(agentId);
-    const to = personId === null ? sim.visitor : puppets.get(PUPPET_PREFIX + personId)?.ch;
+    const who = kvPeople.client?.state?.people.find((p) => p.id === (personId ?? kvPeople.client?.state?.me));
+    // com mesa fixa, o agente vai até a mesa (W1); sem, até o boneco
+    const desk = deskSpot(sim, who?.desk);
+    const to = desk ?? (personId === null ? sim.visitor : puppets.get(PUPPET_PREFIX + personId)?.ch);
     if (!ag || !to || ag.leaving || ag.gone) return;
-    const tile = freeTileNear(sim, Math.floor(to.x / TILE), Math.floor(to.y / TILE));
+    const tile = desk ? freeTileNear(sim.building.grid, desk.tx, desk.ty, 3) : freeTileNear(sim.building.grid, Math.floor(to.x / TILE), Math.floor(to.y / TILE), 2);
     if (!tile) return;
     sim.interrupt(ag);
     const now = Date.now();
@@ -233,6 +300,92 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
   kvPeople.follow = (id) => {
     ctx.camera.follow = puppets.has(PUPPET_PREFIX + id) ? PUPPET_PREFIX + id : null;
   };
+  // ---- W1: andar, seguir, teleportar, mesa
+  const mine = () => (active() && ctx.sim().visitor ? ctx.sim() : null);
+  const followMe = () => {
+    ctx.camera.follow = VISITOR_ID;
+  };
+  kvPeople.ctl = () => (present() && ctx.sim().visitor ? { sim: ctx.sim(), me } : null);
+  kvPeople.walkTo = (tx, ty, run = false) => {
+    const sim = mine();
+    if (!sim || !me.walkTo(sim, tx, ty, run)) return false;
+    followMe();
+    return true;
+  };
+  kvPeople.goNear = (id) => {
+    const sim = mine();
+    const t = wherePuppet(id);
+    if (!sim || !t) return false;
+    const tile = freeTileNear(sim.building.grid, Math.floor(t.x / TILE), Math.floor(t.y / TILE), 3);
+    return !!tile && kvPeople.walkTo!(tile.x, tile.y, Math.hypot(t.x - (sim.visitor?.x ?? 0), t.y - (sim.visitor?.y ?? 0)) > 10 * TILE);
+  };
+  kvPeople.goTo = (area) => {
+    const sim = mine();
+    if (!sim) return false;
+    const grid = sim.building.grid;
+    let tile: { x: number; y: number } | null = null;
+    if (area === 'c') {
+      const v = sim.visitor!;
+      const c = sim.building.corridor.rect;
+      tile = freeTileAt(grid, Math.max(c.x, Math.min(c.x + c.w - 1, v.tx)), c.y + Math.floor(c.h / 2), 4);
+    } else if (area.startsWith('r:')) {
+      const room = sim.rooms.get(area.slice(2));
+      const d = room?.present ? room.layout.door : undefined;
+      const r = room?.layout.rect;
+      if (d && r) tile = freeTileAt(grid, d.x + Math.floor(d.w / 2), d.y < r.y + r.h / 2 ? d.y + d.h + 1 : d.y - 2, 3);
+      else if (r) tile = freeTileAt(grid, r.x + Math.floor(r.w / 2), r.y + Math.floor(r.h / 2), 5);
+    } else if (area.startsWith('a:')) {
+      const r = sim.building.core.find((a) => a.id === area.slice(2))?.rect;
+      if (r) tile = freeTileAt(grid, r.x + Math.floor(r.w / 2), r.y + Math.floor(r.h / 2), 5);
+    }
+    return !!tile && kvPeople.walkTo!(tile.x, tile.y, true);
+  };
+  kvPeople.stopMe = () => {
+    me.follow = null;
+    const v = ctx.sim().visitor;
+    if (v && !me.seat && !ctx.sim().visitorBusy && v.step?.t === 'go') {
+      v.queue.length = 0;
+      v.step = null;
+    }
+  };
+  kvPeople.followPerson = (id, name) => {
+    const sim = mine();
+    if (!sim || !wherePuppet(id)) return false;
+    me.follow = { id, name, goal: null, at: 0 };
+    followMe();
+    return true;
+  };
+  kvPeople.teleportTo = (id) => {
+    const sim = mine();
+    const t = wherePuppet(id);
+    if (!sim || !t || !me.teleport(sim, t.x, t.y, Date.now())) return false;
+    followMe();
+    return true;
+  };
+  kvPeople.goDesk = (id) => {
+    const sim = mine();
+    if (!sim) return false;
+    if (id === null) {
+      if (!me.goDesk(sim)) return false;
+      followMe();
+      return true;
+    }
+    const s = deskSpot(sim, kvPeople.client?.state?.people.find((p) => p.id === id)?.desk);
+    const tile = s ? freeTileNear(sim.building.grid, s.tx, s.ty, 3) : null;
+    return !!tile && kvPeople.walkTo!(tile.x, tile.y, true);
+  };
+  kvPeople.toScreen = (x, y) => {
+    const p = ctx.camera.worldToScreen(x, y);
+    const r = document.getElementById('world')?.getBoundingClientRect();
+    return { sx: p.x + (r?.left ?? 0), sy: p.y + (r?.top ?? 0), zoom: ctx.camera.zoom };
+  };
+  kvPeople.encode = (x, y, d) => kvEncodePos(geomCache, x, y, d, 0);
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !me.follow) return;
+    const t = e.target as HTMLElement | null;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) || modalOpen(t)) return;
+    kvPeople.stopMe?.();
+  });
 
   const onKey = (down: boolean) => (e: KeyboardEvent) => {
     shift = e.shiftKey;
@@ -275,31 +428,36 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
 
   /** Meu boneco: entra (visitante do Sim), troca de aparência, ou sai. */
   const syncMe = (sim: Sim, state: KvPresenceState | null, now: number, timelapse: boolean) => {
-    const me = state?.people.find((p) => p.id === state.me);
-    if (!active() || !me || timelapse) {
+    const mePerson = state?.people.find((p) => p.id === state.me);
+    if (!present() || !mePerson || timelapse) {
       if (sim.visitor && myKey) {
+        for (const id of sim.spots.reservedBy(VISITOR_ID)) sim.spots.release(id, VISITOR_ID);
         sim.setVisitor(null, now);
         myKey = '';
       }
       return;
     }
-    const key = lookKey(me.look) + me.name;
+    const key = lookKey(mePerson.look) + mePerson.name;
     if (!sim.visitor || myKey !== key) {
       if (sim.visitor && myKey) {
         // só trocou a roupa: troca no lugar, sem voltar ao elevador
-        sim.visitor.appearance = appearance(me.look);
-        sim.visitor.info = { ...sim.visitor.info, name: me.name, seed: me.look.seed, look: me.look.look, parts: me.look.parts };
+        sim.visitor.appearance = appearance(mePerson.look);
+        sim.visitor.info = { ...sim.visitor.info, name: mePerson.name, seed: mePerson.look.seed, look: mePerson.look.look, parts: mePerson.look.parts };
       } else {
-        const ch = sim.setVisitor(infoOf(VISITOR_ID, me, now), now);
-        if (ch) ch.appearance = appearance(me.look);
+        const ch = sim.setVisitor(infoOf(VISITOR_ID, mePerson, now), now);
+        if (ch) {
+          ch.appearance = appearance(mePerson.look);
+          me.rest = kvPeople.resting;
+          me.spawned(sim, Date.now());
+        }
       }
       myKey = key;
     }
-    if (sim.visitor) badges.set(sim.visitor, badgeOf(me));
+    if (sim.visitor) badges.set(sim.visitor, kvPeople.resting ? RESTING_BADGE() : badgeOf(mePerson));
   };
 
   /** Bonecos de corda: um por pessoa com posição neste prédio. */
-  const syncPuppets = (state: KvPresenceState | null, g: KvBuildingGeom, dt: number, now: number, timelapse: boolean) => {
+  const syncPuppets = (sim: Sim, state: KvPresenceState | null, g: KvBuildingGeom, dt: number, now: number, timelapse: boolean) => {
     const seen = new Set<string>();
     if (state && !timelapse) {
       for (const p of state.people) {
@@ -326,18 +484,55 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
         pp.target = target;
         pp.m = p.pos.m;
         if (!pp.m) pp.ch.dir = p.pos.d;
+        pp.pose = p.pos.m ? undefined : p.pos.p;
+        pp.held = p.pos.h;
+        // sentado: o assento daqui mais perto da posição (o prédio de quem manda pode ser diferente)
+        const sk = kvSeatedPose(pp.pose) ? `${Math.round(target.x)}|${Math.round(target.y)}|${sim.building.grid.version}` : '';
+        if (sk !== pp.seatKey) {
+          pp.seatKey = sk;
+          const seat = sk ? seatAt(sim.spots.all(), target.x, target.y) : null;
+          if (pp.seat && pp.seat.id !== seat?.id) sim.spots.release(pp.seat.id, id);
+          pp.seat = seat;
+        }
+        if (pp.seat) {
+          const owner = sim.spots.ownerOf(pp.seat.id);
+          if (owner === undefined || owner.startsWith(DESK_OWNER)) {
+            if (owner) sim.spots.release(pp.seat.id, owner);
+            sim.spots.reserve(pp.seat.id, id);
+          }
+          pp.target = { x: pp.seat.x, y: pp.seat.y };
+        }
         pp.ch.alpha = p.status === 'ausente' ? 0.55 : 1;
-        badges.set(pp.ch, badgeOf(p));
+        badges.set(pp.ch, p.pos.z ? RESTING_BADGE() : badgeOf(p));
       }
     }
     for (const [id, pp] of puppets) {
       if (!seen.has(id)) {
+        sim.spots.releaseAll(id);
         puppets.delete(id);
         continue;
       }
       const ch = pp.ch;
       ch.animT += dt * 1000;
       const t = pp.target!;
+      const seat = pp.seat;
+      if (seat && Math.hypot(t.x - ch.x, t.y - ch.y) < 1.5 * TILE) {
+        // chegou ao assento: encaixa sentado (como o Sim faz com os agentes)
+        ch.x = seat.x;
+        ch.y = seat.y;
+        ch.dir = seat.dir;
+        ch.seated = true;
+        ch.sortY = seat.sortY ?? null;
+        ch.setPose(pp.pose ?? 'sit', pp.held ?? 'none');
+        ch.tx = seat.tx;
+        ch.ty = seat.ty;
+        ch.updateLane(dt);
+        continue;
+      }
+      if (ch.seated) {
+        ch.seated = false;
+        ch.sortY = null;
+      }
       const dx = t.x - ch.x;
       const dy = t.y - ch.y;
       const dist = Math.hypot(dx, dy);
@@ -350,12 +545,47 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
         ch.x += (dx / dist) * step;
         ch.y += (dy / dist) * step;
         ch.dir = dirOf(dx, dy, ch.dir);
-        ch.setPose(pp.m === 2 ? 'run' : 'walk');
-      } else ch.setPose('stand');
+        ch.setPose(pp.m === 2 ? 'run' : 'walk', pp.held === 'coffee' || pp.held === 'water' ? pp.held : 'none');
+      } else ch.setPose(pp.pose && !kvSeatedPose(pp.pose) ? pp.pose : 'stand', pp.held ?? 'none');
       ch.tx = Math.floor(ch.x / TILE);
       ch.ty = Math.floor(ch.y / TILE);
       ch.updateLane(dt);
     }
+  };
+
+  /** Manda a minha posição (no máximo a cada 100 ms; a repetida o setPos ignora). */
+  const sendMe = (sim: Sim, v: Character, g: KvBuildingGeom, t: number, resting: boolean) => {
+    if (sim.visitorBusy || (t - lastSend < 100 && !me.dirty)) return;
+    lastSend = t;
+    me.dirty = false;
+    const moving = v.pose === 'walk' || v.pose === 'run';
+    const pos = kvEncodePos(g, v.x, v.y, v.dir, moving ? (v.pose === 'run' ? 2 : 1) : 0);
+    Object.assign(pos, me.netPose(v), resting ? { z: 1 } : {});
+    kvPeople.client!.setPos(pos, resting ? null : kvPeople.area);
+  };
+
+  /** Reserva a mesa fixa de cada pessoa online (agente nenhum a escolhe como lugar) e atualiza a minha. */
+  const syncDesks = (sim: Sim, state: KvPresenceState | null) => {
+    const mineP = state?.people.find((p) => p.id === state.me);
+    const d = mineP?.desk;
+    if ((d?.r ?? '') !== (kvPeople.myDesk?.roomId ?? '') || (d && JSON.stringify(d) !== JSON.stringify(kvPeople.myDesk?.pos))) kvPeople.myDesk = d?.r ? { roomId: d.r, pos: d } : null;
+    const wanted = new Set<string>();
+    const labels: { id: string; name: string; spot: SpotDef; mine: boolean }[] = [];
+    for (const p of state?.people ?? []) {
+      const s = deskSpot(sim, p.desk);
+      if (!s) continue;
+      const owner = DESK_OWNER + p.id;
+      wanted.add(`${s.id}|${owner}`);
+      if (sim.spots.isFree(s.id)) sim.spots.reserve(s.id, owner);
+      const by = sim.spots.ownerOf(s.id);
+      if (by === owner || by === undefined) labels.push({ id: p.id, name: p.name, spot: s, mine: p.id === state?.me });
+    }
+    // mesas que deixaram de existir (pessoa saiu, trocou de mesa): solta a reserva
+    for (const s of sim.spots.all()) {
+      const by = sim.spots.ownerOf(s.id);
+      if (by?.startsWith(DESK_OWNER) && !wanted.has(`${s.id}|${by}`)) sim.spots.release(s.id, by);
+    }
+    kvDeskLabels(labels, ctx.camera.zoom, (x, y) => kvPeople.toScreen!(x, y));
   };
 
   return {
@@ -370,11 +600,23 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
       if (hit?.type === 'agent' && hit.id === VISITOR_ID) return true;
       if (hit?.type === 'agent') return false;
       const w = ctx.camera.screenToWorld(at.x, at.y);
-      if (sim.visitorWalkTo(Math.floor(w.x / TILE), Math.floor(w.y / TILE))) {
+      const tx = Math.floor(w.x / TILE);
+      const ty = Math.floor(w.y / TILE);
+      // clique num assento: o menu dele (sentar, minha mesa) — W1
+      const seat = kvPeople.onSeatClick ? [...sim.spots.all()].find((s) => s.seated && s.tx === tx && s.ty === ty && KV_SIT_KINDS.includes(s.kind)) : undefined;
+      if (seat) {
+        kvPeople.onSeatClick!(seat, at);
+        return true;
+      }
+      if (me.walkTo(sim, tx, ty)) {
         ctx.camera.follow = VISITOR_ID;
         return true;
       }
       return false;
+    },
+    doubleClick(hit) {
+      if (!active() || (hit?.type === 'agent' && hit.id !== VISITOR_ID)) return false;
+      return me.runLast();
     },
     walking: () => active(),
     frame(dt, now, timelapse) {
@@ -382,40 +624,49 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
       if (!kvPeople.client) return;
       patch(sim);
       const state = kvPeople.client.state;
+      if (me.rest !== kvPeople.resting && sim.visitor) {
+        me.setRest(sim, kvPeople.resting);
+        if (kvPeople.resting && ctx.camera.follow === VISITOR_ID) ctx.camera.follow = null;
+      }
       syncMe(sim, state, now, timelapse);
       const g = geom(sim);
-      syncPuppets(state, g, dt, now, timelapse);
+      geomCache = g;
+      syncPuppets(sim, state, g, dt, now, timelapse);
+      if (!timelapse) syncDesks(sim, state);
       const v = sim.visitor;
+      const t = Date.now();
       if (active() && v && !timelapse) {
-        const intent = intentFrom(keys, shift);
+        let intent = intentFrom(keys, shift);
+        if (!intent.dx && !intent.dy && (kvStick.dx || kvStick.dy)) intent = { dx: kvStick.dx, dy: kvStick.dy, run: kvStick.run };
+        intent = me.frame(sim, intent, t, wherePuppet);
         sim.visitorIntent = intent;
         if ((intent.dx || intent.dy) && ctx.camera.follow !== VISITOR_ID) ctx.camera.follow = VISITOR_ID;
         const moving = v.pose === 'walk' || v.pose === 'run';
-        const t = Date.now();
+        kvPeople.following = me.follow ? { id: me.follow.id, name: me.follow.name } : null;
         kvPeople.area = sim.visitorBusy ? null : areaOf(sim, g, v.x, v.y);
         nearAgent(sim, v, moving, t);
-        if (!sim.visitorBusy && (moving ? t - lastSend >= 100 : wasMoving || t - lastSend > 5000)) {
-          lastSend = t;
-          kvPeople.client.setPos(kvEncodePos(g, v.x, v.y, v.dir, moving ? (v.pose === 'run' ? 2 : 1) : 0), kvPeople.area);
+        sendMe(sim, v, g, t, false);
+        for (const cb of kvPeople.onFrame) {
+          try {
+            cb(dt, now);
+          } catch (err) {
+            console.error('[kv] onFrame', err);
+          }
         }
-        wasMoving = moving;
+      } else if (kvPeople.resting && v && !timelapse) {
+        // modo foco: o boneco vai sozinho descansar; os outros o veem sentado no lounge
+        sim.visitorIntent = me.frame(sim, { ...NO_INTENT }, t, wherePuppet);
+        kvPeople.following = null;
+        kvPeople.area = null;
+        sendMe(sim, v, g, t, true);
       } else {
         kvPeople.area = null;
+        kvPeople.following = null;
         // fora do escritório (ou no timelapse): os outros não me veem (setPos ignora o repetido)
         kvPeople.client.setPos(null);
-        wasMoving = false;
       }
     },
   };
-}
-
-/** Um tile livre (chão, sem móvel nem assento) ao lado de (tx, ty), para o agente chamado parar. */
-function freeTileNear(sim: Sim, tx: number, ty: number): { x: number; y: number } | null {
-  const grid = sim.building.grid;
-  for (const [dx, dy] of [[0, 1], [1, 0], [-1, 0], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1], [0, 2], [2, 0], [-2, 0], [0, -2]] as const) {
-    if (grid.get(tx + dx, ty + dy) === FREE) return { x: tx + dx, y: ty + dy };
-  }
-  return null;
 }
 
 /** A área do escritório em (x, y): sala de projeto, área do núcleo ou corredor. */
