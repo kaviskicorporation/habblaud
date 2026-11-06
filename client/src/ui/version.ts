@@ -8,6 +8,7 @@ import { formatDateTime, relativeTime } from './format';
 import { pixelIcon } from './icons';
 import { safeLocalStorage } from './prefs';
 import { tr } from '../../../shared/i18n';
+import { KV_PRODUTO } from '../../../shared/kaviski-marca'; // fork Kaviski
 
 /** Última versão nova já avisada neste navegador (o aviso sai uma vez por versão). */
 export const UPDATE_SEEN_KEY = 'habblaud:update-seen';
@@ -156,7 +157,7 @@ export class AboutGroup {
       'div',
       { class: 'ui-set-group ui-about', attrs: { id: 'ui-about' } },
       h('h3', { text: tr('Sobre'), tabIndex: -1 }),
-      h('div', { class: 'ui-about__head' }, h('span', { class: 'ui-about__name' }, 'Habblaud ', this.name), this.checkBtn),
+      h('div', { class: 'ui-about__head' }, h('span', { class: 'ui-about__name' }, `${KV_PRODUTO} `, this.name), this.checkBtn),
       this.status,
       this.fresh,
       this.repo,

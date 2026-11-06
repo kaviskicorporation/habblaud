@@ -301,7 +301,7 @@ export function attachTwiccApprovals(registry: KvPermissionRegistry, office: KvA
       activity(e, { kind: 'other', icon: '✅', text: rule ? tr('Aprovado no Habblaud (sempre permitir)') : tr('Aprovado no Habblaud'), detail: e.info.title }, 'perm-ok');
     } else {
       const message = d.message?.trim().slice(0, MAX_MESSAGE);
-      e.payload = { request_type: 'tool_approval', decision: 'deny', message: message ? `Recusado pelo usuário no Habblaud: ${message}` : 'Recusado pelo usuário no Habblaud.' };
+      e.payload = { request_type: 'tool_approval', decision: 'deny', message: message ? `Recusado pelo usuário no Kubo: ${message}` : 'Recusado pelo usuário no Kubo.' };
       activity(e, { kind: 'wait', icon: '🚫', text: tr('Recusado no Habblaud'), detail: message ? `${e.info.title} — ${message}` : e.info.title }, 'perm-no');
     }
     office.markDirty();

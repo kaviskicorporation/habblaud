@@ -17,6 +17,7 @@ import { statSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
 import { tr } from '../../shared/i18n';
 import { attachmentsRoot, promptWithAttachments, writeAttachments, type Attachment, type AttachmentStore } from './attachments';
+import { kvProduto } from '../../shared/kaviski-marca'; // fork Kaviski
 
 /** Tamanho máximo do pedido (o link inteiro vai pela linha de comando do `open`). */
 export const PROMPT_MAX = 8_000;
@@ -92,7 +93,7 @@ export function spawnUrl(req: SpawnRequest): string {
 export function sessionName(prompt: string): string {
   const line = prompt.split('\n').map((l) => l.trim()).find(Boolean) ?? '';
   const cut = line.length > NAME_MAX ? `${line.slice(0, NAME_MAX - 1)}…` : line;
-  return cut ? `Habblaud: ${cut}` : 'Habblaud';
+  return kvProduto(cut ? `Habblaud: ${cut}` : 'Habblaud'); // fork Kaviski: kvProduto
 }
 
 /** Argumentos do `claude`: o pedido depois de `--` (um pedido "doctor" ou "-x" continua sendo pedido). */

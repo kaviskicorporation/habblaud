@@ -7,8 +7,9 @@ import type { UiComponent, UiContext } from './context';
 import { computeCounters } from './model';
 import { tr } from '../../../shared/i18n';
 import { kvTitle } from '../kaviski/brand'; // fork Kaviski (KAVISKI.md)
+import { KV_PRODUTO } from '../../../shared/kaviski-marca'; // fork Kaviski
 
-const BASE_TITLE = 'Habblaud';
+const BASE_TITLE = KV_PRODUTO; // fork Kaviski: nome do produto
 
 export type NotificationState = 'unsupported' | 'default' | 'granted' | 'denied';
 

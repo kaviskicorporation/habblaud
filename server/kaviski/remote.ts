@@ -3,6 +3,7 @@
 // login volta para `/` com ele. Sem `sala`/`room` na URL, o destino é exatamente o original.
 import { kvBrand, KV_PATH_MAX } from '../../shared/kaviski';
 import { tr } from '../../shared/i18n';
+import { kvProduto } from '../../shared/kaviski-marca';
 import { frameAncestorsDirective } from './frame';
 
 /** `target` ("/login" ou "/") com o `?sala=` (ou `?room=`) de `reqUrl`, se houver. */
@@ -43,7 +44,12 @@ function esc(text: string): string {
  */
 export function kvBrandLogin(html: string, env: NodeJS.ProcessEnv = process.env): string {
   const brand = kvBrand(env.HABBLAUD_BRAND);
-  if (!brand) return html;
+  // Nome do produto (shared/kaviski-marca.ts) nos pedaços fixos da página que não passam por tr().
+  if (!brand) {
+    return html
+      .replace('<meta name="apple-mobile-web-app-title" content="Habblaud">', `<meta name="apple-mobile-web-app-title" content="${esc(kvProduto('Habblaud'))}">`)
+      .replace('<h1>Habblaud</h1>', `<h1>${esc(kvProduto('Habblaud'))}</h1>`);
+  }
   const b = esc(brand);
   return html
     .replace(/<title>[^<]*<\/title>/, `<title>${esc(tr('{0} · entrar', [brand]))}</title>`)

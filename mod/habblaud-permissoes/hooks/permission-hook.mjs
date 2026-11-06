@@ -147,7 +147,7 @@ export function decisionOutput(result, input) {
   }
   if (result.behavior === 'deny') {
     const reason = typeof result.message === 'string' && result.message.trim() ? result.message.trim().slice(0, 1_000) : '';
-    const decision = { behavior: 'deny', message: reason ? `Recusado pelo usuário no Habblaud: ${reason}` : 'Recusado pelo usuário no Habblaud.' };
+    const decision = { behavior: 'deny', message: reason ? `Recusado pelo usuário no Kubo: ${reason}` : 'Recusado pelo usuário no Kubo.' };
     if (result.interrupt === true) decision.interrupt = true;
     return { hookSpecificOutput: { hookEventName: 'PermissionRequest', decision } };
   }

@@ -8,6 +8,7 @@
 //   serverLocale).
 // Os textos de atividade são montados pelo servidor, então seguem o idioma do servidor.
 import { DICTIONARIES } from './locales/all';
+import { kvProduto } from './kaviski-marca'; // fork Kaviski: nome do produto (Kubo)
 
 export type Locale = 'pt-BR' | 'en' | 'es' | 'fr';
 
@@ -106,7 +107,7 @@ export function setLocale(l: Locale): void {
  */
 export function tr(src: string, args?: readonly unknown[]): string {
   const dict = DICTS[current];
-  const s = (dict && dict[src]) || src;
+  const s = kvProduto((dict && dict[src]) || src); // fork Kaviski: kvProduto
   if (!args || args.length === 0) return s;
   return s.replace(/\{(\d+)\}/g, (m, i: string) => (Number(i) < args.length ? String(args[Number(i)]) : m));
 }

@@ -12,6 +12,10 @@ do meio (0.**3**.0).
 
 ### Adicionado (fork Kaviski)
 
+- **Novo nome e nova logo: Kubo.** O escritório passa a se chamar Kubo em toda a interface (topo, título da aba,
+  abertura, Sobre, avisos, tela de login, convites e os quatro idiomas), com uma logo circular nova feita por IA: um
+  cubo isométrico em pixel art com as janelas acesas dos agentes. Favicon, ícones do app, placa da recepção e prévia do
+  link foram refeitos (`scripts/kaviski/marca.py`). O "Habblaud World" mantém o nome (serviço de terceiros).
 - **Responder pelo escritório às sessões do TwiCC**: perguntas, aprovação de ferramenta e de plano das sessões que rodam
   no TwiCC aparecem no cartão "pede permissão" do agente e são respondidas no Habblaud (aprovar, recusar com motivo,
   "sempre permitir", responder), sem abrir o TwiCC. Precisa da senha do TwiCC em `~/.habblaud/twicc-senha`.
