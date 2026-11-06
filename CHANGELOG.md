@@ -16,6 +16,17 @@ do meio (0.**3**.0).
   no TwiCC aparecem no cartão "pede permissão" do agente e são respondidas no Habblaud (aprovar, recusar com motivo,
   "sempre permitir", responder), sem abrir o TwiCC. Precisa da senha do TwiCC em `~/.habblaud/twicc-senha`.
 
+### Adicionado (fork Kaviski, `HABBLAUD_HUMANOS=1`): planta livre
+
+- **Motor do prédio**: com uma planta ligada, o prédio do mundo é a planta da empresa — salas de qualquer tamanho
+  (10x9 a 48x32) em qualquer lugar, com portas nos 4 lados, corredores e jardins de qualquer forma, o núcleo (recepção,
+  copa, banheiros, lounge) onde você quiser, salas temáticas e vagas para as salas que chegarem; o resto entra numa
+  faixa automática como o prédio de sempre. Mobília que cresce com a sala (ilhas de mesas, canto de reunião, sofá),
+  fachada de vidro e paredes onde o corredor encosta na grama, pátio com deck nas vagas vazias, entrada com totem e
+  caminho até a rua. Se alguma parte ficar sem caminho até a recepção, um caminho de pedra pela grama liga tudo (o
+  boneco nunca teleporta). O rascunho do editor aparece no mundo na hora, sem derrubar quem está sentado. Planta
+  "Clássico" igual ao prédio de hoje.
+
 ### Adicionado (fork Kaviski, `HABBLAUD_HUMANOS=1`): recursos do Gather
 
 - **Boneco, mesa fixa e móveis**: botão **Modo clássico** no topo (o Habblaud como o original; o boneco descansa no

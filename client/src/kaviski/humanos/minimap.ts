@@ -10,6 +10,7 @@ import { modalOpen } from '../../world/input';
 import { kvRoomMeeting } from './agenda';
 import { kvAreaLabel } from './bar';
 import { kvWalkTile } from './walk';
+import { kvPlanAreaColor } from '../plan/hooks';
 import { kvPeople } from './world';
 import type { OfficeStore } from '../../net/store';
 
@@ -136,7 +137,7 @@ export class KvMinimap {
       ctx.fillRect((r.x - b.x) * scale, (r.y - b.y) * scale, r.w * scale, r.h * scale);
     };
     rect(sim.building.corridor.rect, '#3a3f58');
-    for (const a of sim.building.core) rect(a.rect, CORE_COLOR[a.kind] ?? '#555a72');
+    for (const a of sim.building.core) rect(a.rect, kvPlanAreaColor(a.id) ?? CORE_COLOR[a.kind] ?? '#555a72'); // planta livre: jardim, sala temática
     const now = Date.now();
     for (const room of sim.rooms.values()) {
       if (!room.present || room.ghost) continue;

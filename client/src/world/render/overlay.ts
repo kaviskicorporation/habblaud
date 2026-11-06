@@ -17,6 +17,7 @@ import type { HeadInfo, Renderer } from './renderer';
 import { tr } from '../../../../shared/i18n';
 import { kvAccent, kvDrawPillBadge, kvDrawSignStyle } from '../../kaviski/room-style'; // fork Kaviski (KAVISKI.md)
 import { kvPersonBadge } from '../../kaviski/humanos/world'; // fork Kaviski (KAVISKI-HUMANOS.md)
+import { kvPlanAreaOfTile, kvPlanSignText } from '../../kaviski/plan/hooks'; // fork Kaviski: planta livre
 
 // A Pixelify Sans tem o "C" maiúsculo quase fechado (lê-se "Oopa" em vez de "Copa") em qualquer
 // peso/tamanho usado no canvas; os textos do mundo usam a fonte do sistema, sempre legível.
@@ -399,7 +400,7 @@ export class Overlay {
       if (it.type !== 'bubble' || (it.tone !== 'info' && it.tone !== 'shell' && it.tone !== 'say') || it.prio >= 75) continue;
       // por área FÍSICA (onde o personagem está agora), que é o que polui a tela
       const ch = it.ch;
-      rin.push({ room: `${Math.floor(ch.tx / COL_W)}:${ch.ty < CORRIDOR_Y ? 'n' : ch.ty < SOUTH_Y ? 'c' : 's'}`, prio: it.prio, changedAt: it.changedAt });
+      rin.push({ room: kvPlanAreaOfTile(this.sim, ch.tx, ch.ty) ?? `${Math.floor(ch.tx / COL_W)}:${ch.ty < CORRIDOR_Y ? 'n' : ch.ty < SOUTH_Y ? 'c' : 's'}`, prio: it.prio, changedAt: it.changedAt });
       idx.push(it);
     }
     if (!idx.length) return;
@@ -414,14 +415,14 @@ export class Overlay {
     const vw = camera.viewW;
     const vh = camera.viewH;
     // largura de uma coluna na tela: as pílulas não podem invadir a vizinha
-    const colW = COL_W * TILE * zoom;
     for (const vis of this.renderer.areas.values()) {
       const room = vis.room;
       const r = vis.layout.rect;
+      const colW = r.w * TILE * zoom; // fork Kaviski: largura da própria área (16 no original), salas da planta variam
       const anim = room ? buildAnim(room.phase, room.progress(now)) : null;
       // texto da placa quando ela fica grande o bastante para ler; senão, o nome flutuante
       const rect = this.renderer.signRect(vis);
-      const text = room ? room.info.name : vis.id === 'core:recepcao' ? 'Habblaud' : null;
+      const text = room ? room.info.name : vis.id === 'core:recepcao' ? 'Habblaud' : kvPlanSignText(vis.id); // fork Kaviski
       const readable = !!rect && rect.h * zoom >= SIGN_MIN_PX;
       if (readable && rect && text && (!anim || anim.sign >= 1)) {
         const ax = this.sx(rect.x);
@@ -443,8 +444,8 @@ export class Overlay {
         if (!room.present || room.ghost || (anim && anim.walls < 0.6)) continue;
         this.drawRoomPill(room.info.name, cx, cy, colW - 8, room.accounts, this.countIn(room.id), kvAccent(room.info, room.theme.accent), room.lightOn);
         kvDrawPillBadge(this.ctx, room.info, cx, cy, colW - 8); // fork Kaviski
-      } else if (CORE_NAMES[vis.id]) {
-        this.drawCorePill(CORE_NAMES[vis.id], cx, cy, colW - 8);
+      } else if (CORE_NAMES[vis.id] ?? kvPlanSignText(vis.id)) {
+        this.drawCorePill(CORE_NAMES[vis.id] ?? kvPlanSignText(vis.id)!, cx, cy, colW - 8); // fork Kaviski
       }
     }
   }

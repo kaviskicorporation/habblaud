@@ -13,6 +13,7 @@ import { inRect } from './layout/geometry';
 import { attachInput, type Hit } from './input';
 import { kvAttachWorld } from '../kaviski/humanos/world'; // fork Kaviski (KAVISKI-HUMANOS.md)
 import { kvArt } from '../kaviski/plan/themes-art'; // fork Kaviski (KAVISKI-HUMANOS.md, planta livre)
+import { kvBaseKey, kvBuildingRectPx } from '../kaviski/plan/hooks'; // fork Kaviski: planta livre
 import type { AgentInfo } from '../../../shared/types';
 import { rebaseSnapshot } from './playback';
 import { Overlay } from './render/overlay';
@@ -100,7 +101,7 @@ export function createWorld(canvas: HTMLCanvasElement, store: OfficeStore, o: Cr
     updateBounds();
   };
 
-  const buildingRect = () => ({ x: 0, y: 0, w: sim.building.cols * COL_W * TILE, h: BUILDING_H * TILE });
+  const buildingRect = () => kvBuildingRectPx(sim) ?? { x: 0, y: 0, w: sim.building.cols * COL_W * TILE, h: BUILDING_H * TILE }; // fork Kaviski
 
   const updateBounds = () => {
     const b = buildingRect();
@@ -297,8 +298,8 @@ export function createWorld(canvas: HTMLCanvasElement, store: OfficeStore, o: Cr
         events.length = 0;
       }
       renderer.sync(seasonalThemeFor(options.theme, new Date()));
-      if (sim.building.cols !== lastCols) {
-        lastCols = sim.building.cols;
+      if (kvBaseKey(sim) !== lastCols) {
+        lastCols = kvBaseKey(sim); // fork Kaviski: a planta muda o prédio sem mudar as colunas
         updateBounds();
         if (!framed && sim.initialized) {
           overview(false);

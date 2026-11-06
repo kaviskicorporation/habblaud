@@ -16,6 +16,8 @@ import { kvOwnRoomArea } from './rooms';
 /** Áreas fixas do núcleo (client/src/world/layout/core.ts). */
 export const KV_CORE_AREAS = ['core:recepcao', 'core:banheiros', 'core:copa', 'core:lounge'] as const;
 export const KV_CORRIDOR = 'corredor';
+/** Áreas abertas e salas temáticas da planta livre (`a:kv:<item>`; client/src/kaviski/plan/engine-build.ts): de todos. */
+const KV_PLAN_AREA = /^kv:(el-[a-z0-9]{1,16}|auto)$/;
 /** Validade do token (a página pede outro a cada troca de área, e de novo antes de vencer). */
 export const TOKEN_TTL_S = 2 * 60 * 60;
 
@@ -52,7 +54,7 @@ export function kvAreaAllowed(area: unknown, person: KvPerson, snap: OfficeSnaps
   const guarded = areaGuard?.(area, person, snap); // W2: sala trancada e roda privada (social.ts)
   if (guarded !== undefined) return guarded ?? undefined;
   if (area === 'c') return KV_CORRIDOR;
-  if (area.startsWith('a:')) return (KV_CORE_AREAS as readonly string[]).includes(area.slice(2)) ? area.slice(2) : undefined;
+  if (area.startsWith('a:')) return (KV_CORE_AREAS as readonly string[]).includes(area.slice(2)) || KV_PLAN_AREA.test(area.slice(2)) ? area.slice(2) : undefined;
   if (!area.startsWith('r:')) return undefined;
   const id = area.slice(2);
   const own = kvOwnRoomArea(id, person); // sala própria (rooms.json): quem a vê entra

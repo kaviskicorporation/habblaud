@@ -8,6 +8,7 @@ import type { Dir, FurnitureKind, RoomTheme } from '../../art/api';
 import type { AreaBuilder, SpotOpts } from '../../world/layout/builder';
 import type { SpotDef, SpotKind, TileRect } from '../../world/layout/types';
 import type { KvPlan, KvPlanItem } from '../../../../shared/kaviski-plan';
+import type { RoomInfo } from '../../../../shared/types';
 
 /**
  * O que o motor entrega a quem mobilia uma sala. A casca (piso, paredes, portas, placa, interruptor, caminhabilidade)
@@ -28,6 +29,10 @@ export interface KvFurnishCtx {
   seed: number;
   rng: () => number;
   b: AreaBuilder;
+  /** A sala do snapshot (projeto e sala própria; sala própria traz `kvOwn` com o tipo e a decoração). */
+  info?: RoomInfo | null;
+  /** Lados da sala que dão para fora (grama): bom lugar para janelas. */
+  outside?: Partial<Record<'n' | 's' | 'e' | 'w', boolean>>;
   /** Atalhos que respeitam `keepFree` e o que já foi posto (false = não coube). */
   furn(kind: FurnitureKind, lx: number, ly: number, variant?: string, o?: { dx?: number; dy?: number; order?: number; seat?: string }): string | null;
   seat(kind: SpotKind, fk: FurnitureKind, lx: number, ly: number, dir: Dir, variant?: string, o?: SpotOpts & { order?: number }): SpotDef | null;
@@ -92,7 +97,11 @@ export const kvPlanWorld: {
   itemAt?: (tx: number, ty: number) => KvPlanItem | null;
   /** O prédio mudou (planta nova, sala nova): chamados depois do relayout. */
   onChange: Set<() => void>;
-} = { plan: null, actionSpots: () => [], onChange: new Set() };
+  /** px de mundo do canto do tile (0,0) da planta (o motor põe a planta na origem do mundo: sempre {0,0}). */
+  origin?: { x: number; y: number };
+  /** Retângulo (tiles) de cada item no prédio atual, inclusive as salas da faixa automática (id da área -> rect). */
+  areaRect?: (areaId: string) => TileRect | null;
+} = { plan: null, actionSpots: () => [], onChange: new Set(), origin: { x: 0, y: 0 } };
 
 /**
  * Ações "ir e fazer" (frente das salas temáticas): cada função do sistema com o seu item físico. `kvGoAndDo(key)` faz o

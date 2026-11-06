@@ -19,6 +19,7 @@ import type { KvPresenceClient } from './presence';
 import { KvWhiteboard } from './whiteboard';
 import { kvAreaKey, kvLinkRect, kvMuralItem, kvNewNotes, kvWall, kvWallBoardEvent, kvWallRect, kvWallResetThumbs, PAPER } from './wall-draw';
 import { kvPeople } from './world';
+import { kvPlanAreaLabel } from '../plan/hooks'; // planta livre
 
 const OBJECTS_API = '/api/kaviski/humanos/objects';
 const NOTES_API = '/api/kaviski/humanos/notes';
@@ -78,6 +79,8 @@ interface Anchor {
 
 function areaName(sim: Sim, layout: AreaLayout): string {
   if (layout.kind === 'room') return sim.rooms.get(layout.id)?.info.name ?? layout.id;
+  const planned = kvPlanAreaLabel(layout.id); // planta livre: sala temática, corredor com nome
+  if (planned) return planned;
   return (
     {
       reception: tr('Recepção'),

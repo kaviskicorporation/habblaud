@@ -32,6 +32,8 @@ export interface KvPos {
   h?: KvHeld;
   /** Descansando (modo foco: o boneco fica no lounge e a pessoa não está andando). */
   z?: 1;
+  /** k='c' numa faixa automática vertical da planta livre: y relativo à sala `r`, x absoluto. */
+  v?: 1;
 }
 
 /** O boneco salvo na conta. */
@@ -103,6 +105,7 @@ export function kvParsePos(v: unknown): KvPos | null | undefined {
   if (kvIsPose(p.p)) out.p = p.p;
   if (kvIsHeld(p.h)) out.h = p.h;
   if (p.z === 1) out.z = 1;
+  if (p.k === 'c' && p.v === 1) out.v = 1;
   return out;
 }
 

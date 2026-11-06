@@ -29,6 +29,7 @@ import { freeTileAt, freeTileNear, KV_DESK_KINDS, KV_SIT_KINDS, seatAt } from '.
 import { kvStick } from './stick';
 import { kvDeskLabels } from './desk-labels';
 import { kvShortNote } from './status-text';
+import { kvPlanGeomOf } from '../plan/hooks'; // planta livre
 
 const PUPPET_PREFIX = 'pessoa:';
 /** Fase 3: parado a até NEAR_TILES de um agente por NEAR_MS abre a gaveta dele; afastar além de LEAVE_TILES fecha. */
@@ -330,7 +331,9 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
       const room = sim.rooms.get(area.slice(2));
       const d = room?.present ? room.layout.door : undefined;
       const r = room?.layout.rect;
-      if (d && r) tile = freeTileAt(grid, d.x + Math.floor(d.w / 2), d.y < r.y + r.h / 2 ? d.y + d.h + 1 : d.y - 2, 3);
+      // um passo para dentro da porta (planta livre: porta em qualquer lado)
+      if (d && r && (d.x === r.x || d.x + d.w === r.x + r.w) && d.h > d.w) tile = freeTileAt(grid, d.x === r.x ? d.x + 2 : d.x - 2, d.y + Math.floor(d.h / 2), 3);
+      else if (d && r) tile = freeTileAt(grid, d.x + Math.floor(d.w / 2), d.y < r.y + r.h / 2 ? d.y + d.h + 1 : d.y - 2, 3);
       else if (r) tile = freeTileAt(grid, r.x + Math.floor(r.w / 2), r.y + Math.floor(r.h / 2), 5);
     } else if (area.startsWith('a:')) {
       const r = sim.building.core.find((a) => a.id === area.slice(2))?.rect;
@@ -405,7 +408,8 @@ export function kvAttachWorld(ctx: KvWorldCtx): KvWorldHooks {
   const geom = (sim: Sim): KvBuildingGeom => {
     const rooms = [...sim.rooms.values()].filter((r) => r.present && !r.ghost).map((r) => ({ id: r.info.id, rect: r.layout.rect, side: r.layout.side }));
     const coreEndTx = Math.max(0, ...sim.building.core.map((a) => a.rect.x + a.rect.w));
-    return { rooms, coreEndTx };
+    const plan = kvPlanGeomOf(sim); // planta livre: fora das salas a posição vai absoluta
+    return plan ? { rooms, coreEndTx, plan } : { rooms, coreEndTx };
   };
 
   /** Embrulha (uma vez por Sim: o timelapse recria o Sim) o `people()` e o `person()` para incluir os bonecos de corda. */

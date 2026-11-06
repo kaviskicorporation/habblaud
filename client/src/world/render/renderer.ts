@@ -23,6 +23,7 @@ import { carSprite, propSprite, shadowSprite } from './props';
 import { countBadge, fallbackIcon } from './shell-sprites';
 import { decorateElevator, drawSeasonalLights, drawSeasonalWindow, seasonalCostume, seasonalFurniture } from './seasonal';
 import { kvDrawWallExtras } from '../../kaviski/humanos/wall-draw'; // fork Kaviski (KAVISKI-HUMANOS.md)
+import { kvBaseKey, kvFinishBase, kvPlanExteriorOf, kvPlanShells } from '../../kaviski/plan/hooks'; // fork Kaviski: planta livre
 import { buildAreaVis, furnitureSprites, opaqueBounds, paintShell, toWallVis, WALL_MARGIN, wallItemOrigin, wallSprites, type AreaVis, type FurnVis, type WallVis } from './scene';
 
 const enum K {
@@ -142,7 +143,7 @@ export class Renderer {
     const themeChanged = theme !== this.theme;
     this.theme = theme;
     const assetsChanged = this.builtAssetsVersion !== this.assetsVersion || themeChanged;
-    if (this.baseCols !== sim.building.cols || assetsChanged) this.buildBase();
+    if (this.baseCols !== kvBaseKey(sim) || assetsChanged) this.buildBase(); // fork Kaviski: kvBaseKey
     if (this.layoutVersion !== sim.layoutVersion || assetsChanged) {
       this.layoutVersion = sim.layoutVersion;
       const want = new Set<string>();
@@ -175,8 +176,8 @@ export class Renderer {
   /** Camada base: área externa, pátios dos slots e fechamentos do corredor. */
   private buildBase(): void {
     const cols = this.sim.building.cols;
-    this.baseCols = cols;
-    this.exterior = layoutExterior(cols);
+    this.baseCols = kvBaseKey(this.sim); // fork Kaviski: planta livre
+    this.exterior = kvPlanExteriorOf(this.sim) ?? layoutExterior(cols); // fork Kaviski
     const b = this.exterior.bounds;
     this.baseX = b.x * TILE;
     this.baseY = b.y * TILE;
@@ -193,7 +194,13 @@ export class Renderer {
     for (let x = this.baseX + 4; x < this.baseX + c.width; x += 24) ctx.fillRect(x, ly, 12, 2);
     this.shells = [];
     this.shellWindows = [];
-    for (let col = CORE_COLS; col < cols; col++) {
+    const kvShells = kvPlanShells(this.sim); // fork Kaviski: cascas da planta (vagas, fechamentos, jardins)
+    for (const sh of kvShells ?? []) {
+      this.shells.push(sh);
+      paintShell(this.art, ctx, sh.floors, sh.walls);
+      for (const w of sh.windows) this.shellWindows.push(toWallVis(w, `shell:${sh.slot}`));
+    }
+    for (let col = CORE_COLS; col < (kvShells ? 0 : cols); col++) {
       for (const side of ['north', 'south'] as const) {
         const sh = slotShell(slotAt(col, side), col === cols - 1);
         this.shells.push(sh);
@@ -247,7 +254,7 @@ export class Renderer {
       this.grass = null;
       this.clearColor = '#6f9a5a';
     }
-    this.finishBase(ctx, cols);
+    if (!kvFinishBase(this.sim, ctx, this.exterior)) this.finishBase(ctx, cols); // fork Kaviski
     this.base = c;
   }
 

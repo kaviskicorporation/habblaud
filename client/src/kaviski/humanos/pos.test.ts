@@ -33,4 +33,23 @@ describe('posição das pessoas', () => {
     expect(p).toMatchObject({ k: 'c', r: 'a', x: 5 * TILE, y: 14 * TILE });
     expect(kvDecodePos(client, p)).toBeNull();
   });
+  it('planta livre: fora das salas vai absoluta; no corredor da faixa, pela sala da coluna', () => {
+    const plan: KvBuildingGeom = {
+      coreEndTx: 0,
+      rooms: [{ id: 'a', rect: { x: 50, y: 0, w: 16, h: 12 }, side: 'north' }, { id: 't', rect: { x: 10, y: 30, w: 20, h: 14 } }],
+      plan: { strip: { x: 50, y: 12, w: 16, h: 5 }, vertical: false },
+    };
+    expect(kvEncodePos(plan, 5 * TILE, 40 * TILE, 'up', 0)).toMatchObject({ k: 'a', x: 5 * TILE, y: 40 * TILE });
+    const c = kvEncodePos(plan, 53 * TILE, 14 * TILE, 'up', 0);
+    expect(c).toMatchObject({ k: 'c', r: 'a', x: 3 * TILE, y: 14 * TILE });
+    // sala de lugar fixo: sem espelho (o lado é o mesmo para todos)
+    const r = kvEncodePos(plan, 12 * TILE, 33 * TILE, 'up', 0);
+    expect(r).toMatchObject({ k: 'r', r: 't', s: 'n' });
+    expect(kvDecodePos(plan, r)).toEqual({ x: 12 * TILE, y: 33 * TILE });
+    // faixa vertical: y relativo à sala da fileira
+    const v: KvBuildingGeom = { coreEndTx: 0, rooms: [{ id: 'w', rect: { x: 0, y: 40, w: 16, h: 12 } }], plan: { strip: { x: 16, y: 40, w: 5, h: 12 }, vertical: true } };
+    const pv = kvEncodePos(v, 18 * TILE, 45 * TILE, 'down', 1);
+    expect(pv).toMatchObject({ k: 'c', r: 'w', x: 18 * TILE, y: 5 * TILE, v: 1 });
+    expect(kvDecodePos({ ...v, rooms: [{ id: 'w', rect: { x: 0, y: 64, w: 16, h: 12 } }] }, pv)).toEqual({ x: 18 * TILE, y: 69 * TILE });
+  });
 });

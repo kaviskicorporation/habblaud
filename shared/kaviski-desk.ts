@@ -35,7 +35,8 @@ const SAME_DESK_PX = 8;
 export function kvParseDesk(v: unknown, parsePos: (v: unknown) => KvPos | null | undefined): KvPos | undefined {
   const p = parsePos(v);
   if (!p || p.k !== 'r' || !p.r) return undefined;
-  if (p.x < 0 || p.y < 0 || p.x > 64 * 16 || p.y > KV_ROOM_H_PX) return undefined;
+  // salas da planta livre vão até 48x32 tiles (shared/kaviski-plan.ts)
+  if (p.x < 0 || p.y < 0 || p.x > 64 * 16 || p.y > 32 * 16) return undefined;
   return { k: 'r', r: p.r, x: p.x, y: p.y, s: p.s === 's' ? 's' : 'n', d: p.d, m: 0 };
 }
 

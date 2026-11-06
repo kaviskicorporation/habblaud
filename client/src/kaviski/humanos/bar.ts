@@ -6,6 +6,7 @@ import { tr } from '../../../../shared/i18n';
 import { h } from '../../ui/dom';
 import { pixelIcon } from '../../ui/icons';
 import { kvPeople } from './world';
+import { kvPlanAreaLabel } from '../plan/hooks';
 
 const CHAT_ICON = pixelIcon(['.########.', '#........#', '#.##.##..#', '#........#', '#.#####..#', '#........#', '.###.####.', '...##.....', '...#......']);
 
@@ -16,7 +17,7 @@ export function kvAreaLabel(area: string | null, store: OfficeStore): string {
   if (area.startsWith('b:')) return tr('conversa privada'); // W2: roda privada
   if (area.startsWith('a:')) {
     const names: Record<string, string> = { 'core:recepcao': tr('Recepção'), 'core:copa': tr('Copa'), 'core:banheiros': tr('Banheiros'), 'core:lounge': tr('Lounge') };
-    return names[area.slice(2)] ?? area.slice(2);
+    return names[area.slice(2)] ?? kvPlanAreaLabel(area.slice(2)) ?? area.slice(2);
   }
   const id = area.slice(2);
   return store.liveSnapshot?.rooms.find((r) => r.id === id)?.name ?? tr('sala');

@@ -548,6 +548,49 @@ não perturbe, reações, mão, @menção, 1:1; roda privada (voz e chat só do 
 bater, deixar entrar); voz: RNNoise, fundos, grade, palco (cliente só ouve), não perturbe e modo clássico fora da
 chamada, troca de área sem vazar áudio, reconexão, nada de CDN; Sala Azul trancada; mesa na sala pessoal.
 
+## Planta livre (2026-11-06)
+
+### Motor do prédio (frente A)
+Com uma planta ligada (`KvPlan.on`, gravada pelo editor ou o rascunho dele), o prédio do mundo É a planta. Sem planta,
+com ela desligada ou numa visita a outro prédio (Habblaud World), tudo é o original. Código em `client/src/kaviski/plan/`:
+- `hooks.ts`: o único arquivo que os originais importam (sim, render, luz, overlay, câmera); sem o motor ligado cada
+  gancho devolve null e o original segue. `engine.ts` liga os ganchos (`kvStartPlanEngine`, chamado pelo
+  `plan/index.ts`), lê a planta gravada (`store.ts` da frente B) e preenche o `kvPlanWorld` do contrato (`plan`,
+  `preview(rascunho)`, `actionSpots()`, `itemAt`, `areaRect`, `onChange`, `origin` = {0,0}: o tile 0,0 da planta é o do
+  mundo).
+- `engine-geom.ts` (puro): o número de vaga da sala (`RoomState.slot`) com a planta: `slot < 0` = lugar marcado (item
+  `-1 - slot`, projeto/sala própria pelo `ref`), `0..V-1` = as vagas (`vaga`, por `order`), `>= V` = faixa automática
+  (pares norte/sul de 16x12 dos lados de um corredor, para leste; ou fileiras oeste/leste de um corredor vertical, para
+  o sul). A compactação do Sim só mexe nas salas da faixa.
+- `engine-build.ts` (puro): áreas fixas (núcleo transladado com os mesmos ids — elevadores incluídos —, corredores,
+  jardins, salas temáticas, corredor da faixa), as cascas da camada base (pátio com deck nas vagas vazias e nas salas que
+  quem vê não tem, fachada/mureta/parede onde o corredor encosta na grama, enfeites dos jardins), a grade e o **caminho de
+  pedra**: o que ficou sem caminho até a recepção ganha um caminho pela grama (abrindo um vão no fechamento/vidro do
+  corredor). Sem recepção na planta, ela entra num lugar livre (sempre há elevador). Áreas fixas em cache por planta.
+- `engine-room.ts`: a casca paramétrica de qualquer tamanho (face norte, parede sul externa quando dá para a grama,
+  laterais cortadas nas portas `e`/`w`, batente nas portas `n`, placa que deixa lugar para o quadro, interruptor junto
+  da porta principal, sombra da luz apagada) e o `KvFurnishCtx` (furn/seat/spot/wall que respeitam a passagem das
+  portas; `ctx.wall` mede os itens largos das salas temáticas por `kvSpriteDims`). `tag` guarda várias ações por item; o
+  `actionSpots()` usa `kvComputeActionSpots` (frente C) com cache até o próximo relayout.
+- Furnishers padrão: `furnish-projeto.ts` (ilhas face a face que se repetem com a sala, mesas com `deskId`/`seat`/`rank`,
+  quadro kanban, canto de reunião, estante, coluna de apoio, sofá nas salas altas; estilos `ilhas`, `aberto`, `baias`),
+  `furnish-propria.ts` (reunião, descanso, pessoal, outra + a decoração do dono onde couber), `furnish-tema.ts` (a
+  chave `tema`, para sala temática sem mobília registrada). Sala 16x12 com a porta no lugar do original (faixa para
+  leste, vaga igual) usa o layout do original transladado: o **Clássico** (`examples.ts`, `kvPlanClassic({vagas})`) é
+  igual ao prédio de sempre. `kvPlanExample()` é uma empresa maior para testes.
+- Posição das pessoas (`humanos/pos.ts`): com a planta, fora das salas a posição vai absoluta (a planta é igual para
+  todos); dentro de sala, relativa a ela (espelho só na faixa automática, como antes); no corredor da faixa, relativa à
+  sala da coluna (`KvPos.v = 1` na faixa vertical). Mesa fixa aceita salas de até 32 tiles de altura.
+- Áreas de voz/conversa: sala `r:<id>`, núcleo `a:core:<...>`, sala temática/corredor/jardim da planta `a:kv:<item>`
+  (o `livekit.ts` aceita), o corredor principal (o da faixa, ou o maior) continua `c`. Nomes pelo `kvPlanAreaLabel`.
+- Ao trocar a planta (ou a cada rascunho), as salas ganham vaga e layout novos, quem estava sentado num lugar que mudou
+  de posição vai junto, e quem ficaria fora do chão vai para o chão livre mais perto (nunca para a grama). Rápido: 10
+  rascunhos com relayout em ~70 ms na planta de exemplo.
+- Console (testes): `habblaud.kvPlan.classic(vagas?)`, `.example()`, `.preview(planta)`, `.off()`; planta de teste
+  guardada no navegador: `.keep(planta | 'classic' | 'example')` / `.forget()` (localStorage `kv-plan-dev`).
+- Testes: `plan/engine.test.ts` (translado, faixa, vagas, caminho para tudo no Clássico e no exemplo, caminho de pedra,
+  recepção que falta, salas de 10x9 a 40x20 com portas nos 4 lados).
+
 ## Como desenvolver sem derrubar o escritório
 - Desenvolver numa **segunda instância** (`HABBLAUD_PORT=4757`, `HABBLAUD_REMOTE_PORT=4758`,
   `HABBLAUD_DATA_DIR=~/.habblaud-dev`), sem mexer no serviço `habblaud` em produção.

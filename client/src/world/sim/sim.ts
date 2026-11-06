@@ -38,6 +38,7 @@ import { EXIT_RADIUS, NO_INTENT, stepFree, tileAt, VISITOR_LANYARD, type Visitor
 import { tr } from '../../../../shared/i18n';
 import { kvDarkIfEmpty } from '../../kaviski/empty-rooms'; // fork Kaviski (KAVISKI.md)
 import { kvLayoutRoom } from '../../kaviski/humanos/rooms-layout'; // fork Kaviski: salas próprias (KAVISKI-HUMANOS.md)
+import { kvAssembleBuilding, kvCanCompact, kvPlanSlot } from '../../kaviski/plan/hooks'; // fork Kaviski: planta livre
 
 /**
  * Efeito visual pontual pedido pela simulação ao render (drenado a cada frame): confete (shell
@@ -259,8 +260,8 @@ export class Sim {
       theme = FALLBACK_THEME;
     }
     // a primeira vaga livre do prédio (o slot do servidor só dá a ordem de chegada)
-    const slot = this.freeSlot();
-    const layout = kvLayoutRoom({ id: r.id, slot, seed: r.seed }, theme, r); // fork Kaviski: sala própria tem layout por tipo
+    const slot = kvPlanSlot(this, r) ?? this.freeSlot(); // fork Kaviski: lugar marcado na planta
+    const layout = kvLayoutRoom({ id: r.id, slot, seed: r.seed }, theme, r, this); // fork Kaviski: sala própria tem layout por tipo
     const rs = new RoomState(r, theme, layout, first ? 'ready' : 'building', now, first, slot);
     this.rooms.set(r.id, rs);
     return rs;
@@ -520,9 +521,10 @@ export class Sim {
   /** Recalcula o prédio (largura, grade, spots) a partir das salas presentes. */
   relayout(force = false): void {
     const present = [...this.rooms.values()].filter((r) => r.present);
-    let cols = columnsFor(present.map((r) => r.slot));
+    const kvB = kvAssembleBuilding(this, present.map((r) => r.layout), this.layoutVersion + 1); // fork Kaviski: planta livre
+    let cols = kvB ? kvB.cols : columnsFor(present.map((r) => r.slot));
     const cur = this.building.cols;
-    if (cols < cur && !force) {
+    if (!kvB && cols < cur && !force) {
       // só encolhe quando ninguém está na faixa que vai sumir
       const limit = cols * COL_W * TILE;
       if ([...this.chars.values()].some((c) => !c.gone && c.x >= limit - TILE)) {
@@ -530,7 +532,7 @@ export class Sim {
         this.shrinkPending = true;
       } else this.shrinkPending = false;
     } else this.shrinkPending = false;
-    const building = assembleBuilding(
+    const building = kvB ?? assembleBuilding(
       cols,
       present.map((r) => r.layout),
       this.layoutVersion + 1,
@@ -652,7 +654,7 @@ export class Sim {
     const free = this.freeSlot();
     let far: RoomState | null = null;
     for (const r of this.rooms.values()) {
-      if (r.slot > free && !r.ghost && r.listed && r.phase === 'ready' && (!far || r.slot > far.slot)) far = r;
+      if (r.slot > free && kvCanCompact(this, r.slot) && !r.ghost && r.listed && r.phase === 'ready' && (!far || r.slot > far.slot)) far = r;
     }
     if (!far) {
       this.gapSince = 0;
@@ -673,7 +675,7 @@ export class Sim {
   moveRoom(room: RoomState, slot: number, now: number): void {
     const before = room.layout;
     const ghostId = `${room.id}#mudança${++this.moveSeq}`;
-    const ghostLayout = kvLayoutRoom({ id: ghostId, slot: room.slot, seed: room.seed }, room.theme, room.info); // fork Kaviski
+    const ghostLayout = kvLayoutRoom({ id: ghostId, slot: room.slot, seed: room.seed }, room.theme, room.info, this); // fork Kaviski
     const ghost = new RoomState({ ...room.info, id: ghostId, seed: room.seed }, room.theme, ghostLayout, 'ready', now, false, room.slot);
     ghost.ghost = true;
     ghost.listed = false;
@@ -689,7 +691,7 @@ export class Sim {
     });
 
     room.slot = slot;
-    room.layout = kvLayoutRoom({ id: room.id, slot, seed: room.seed }, room.theme, room.info); // fork Kaviski
+    room.layout = kvLayoutRoom({ id: room.id, slot, seed: room.seed }, room.theme, room.info, this); // fork Kaviski
     room.setPhase('building', now);
     room.lightOn = false;
     room.lightAt = -1e9;
@@ -1298,8 +1300,8 @@ export class Sim {
     const busy = this.busyTiles(ch.id);
     let best: { x: number; y: number } | null = null;
     let bestScore = -Infinity;
-    for (let y = r.y + 2; y <= r.y + 10; y++) {
-      for (let x = r.x + 1; x <= r.x + 14; x++) {
+    for (let y = r.y + 2; y <= r.y + r.h - 2; y++) {
+      for (let x = r.x + 1; x <= r.x + r.w - 2; x++) {
         if (!this.overflowFree(x, y, ch, busy)) continue;
         if (door && Math.abs(x - (door.x + door.w / 2 - 0.5)) <= 1.5 && Math.abs(y - (door.y + door.h / 2 - 0.5)) <= 2) continue;
         // de costas para uma parede/móvel parece natural; espremido entre dois móveis ou colado em

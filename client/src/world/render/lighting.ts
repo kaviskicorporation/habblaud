@@ -8,6 +8,7 @@
 import { TILE, type ArtModule, type ScreenMode } from '../../art/api';
 import { mulberry32 } from '../../../../shared/hash';
 import { BUILDING_H, COL_W, CORRIDOR_H, CORRIDOR_Y } from '../constants';
+import { kvWindowSpill } from '../../kaviski/plan/hooks'; // fork Kaviski: planta livre
 import type { ExteriorLayout, SlotShell } from '../layout/exterior';
 import type { RoomState } from '../sim/room-state';
 import type { Sim } from '../sim/sim';
@@ -425,6 +426,7 @@ export class Lighting {
     halo: (img: HTMLCanvasElement, cx: number, cy: number, w: number, h: number, a: number) => void,
     warm: HTMLCanvasElement,
   ): void {
+    if (kvWindowSpill(this.sim, lit, k, halo, warm)) return; // fork Kaviski: planta livre
     const bw = this.sim.building.cols * COL_W * TILE;
     const bh = BUILDING_H * TILE;
     for (const [vis, l] of lit) {

@@ -17,6 +17,8 @@ import { AreaBuilder } from '../../world/layout/builder';
 import { slotRect, slotSide } from '../../world/layout/geometry';
 import { layoutProjectRoom, type RoomInput } from '../../world/layout/room';
 import type { AreaLayout } from '../../world/layout/types';
+import type { Sim } from '../../world/sim/sim';
+import { kvPlanLayoutRoom } from '../plan/hooks';
 
 /** O que a página põe no RoomInfo de uma sala própria (só no navegador; nunca vem do servidor no snapshot). */
 export interface KvOwnRoomMark {
@@ -30,8 +32,13 @@ export function kvOwnMark(info: RoomInfo | undefined | null): KvOwnRoomMark | un
   return (info as KvOwnRoomInfo | undefined | null)?.kvOwn;
 }
 
-/** Gancho do sim.ts: sala própria = layout por tipo; sala de projeto = o original. */
-export function kvLayoutRoom(room: RoomInput, theme: RoomTheme, info?: RoomInfo | null): AreaLayout {
+/** Gancho do sim.ts: com a planta ligada, a sala na planta; sala própria = layout por tipo; sala de projeto = o original. */
+export function kvLayoutRoom(room: RoomInput, theme: RoomTheme, info?: RoomInfo | null, sim?: Sim): AreaLayout {
+  return kvPlanLayoutRoom(room, theme, info, sim) ?? kvLayoutRoomOriginal(room, theme, info); // planta livre (KAVISKI-HUMANOS.md)
+}
+
+/** O layout de sempre (vagas do prédio original), sem a planta. */
+export function kvLayoutRoomOriginal(room: RoomInput, theme: RoomTheme, info?: RoomInfo | null): AreaLayout {
   const mark = kvOwnMark(info);
   return mark ? layoutOwnRoom(room, theme, mark) : layoutProjectRoom(room, theme);
 }
