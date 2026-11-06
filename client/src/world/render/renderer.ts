@@ -22,7 +22,7 @@ import { Particles } from './particles';
 import { carSprite, propSprite, shadowSprite } from './props';
 import { countBadge, fallbackIcon } from './shell-sprites';
 import { decorateElevator, drawSeasonalLights, drawSeasonalWindow, seasonalCostume, seasonalFurniture } from './seasonal';
-import { kvDrawWallExtras } from '../../kaviski/humanos/objects'; // fork Kaviski (KAVISKI-HUMANOS.md)
+import { kvDrawWallExtras } from '../../kaviski/humanos/wall-draw'; // fork Kaviski (KAVISKI-HUMANOS.md)
 import { buildAreaVis, furnitureSprites, opaqueBounds, paintShell, toWallVis, WALL_MARGIN, wallItemOrigin, wallSprites, type AreaVis, type FurnVis, type WallVis } from './scene';
 
 const enum K {

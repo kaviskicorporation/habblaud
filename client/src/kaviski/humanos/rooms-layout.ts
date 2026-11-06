@@ -51,9 +51,11 @@ const DECOR_FURN: Record<string, FurnitureKind> = {
   relogio: 'clock',
 };
 
-/** Tiles (locais) que a decoração não pode ocupar: a passagem da porta e a frente do quadro/mural. */
+/** Tiles (locais) que a decoração não pode ocupar: a passagem da porta e a frente do quadro, da placa e do mural. */
 function reserved(north: boolean): (lx: number, ly: number) => boolean {
   return (lx, ly) => {
+    // encostado na parede, um móvel alto cobriria o quadro (x 1–4), a placa e o mural (x 9–13)
+    if (ly === 2 && ((lx >= 1 && lx <= 4) || (lx >= 9 && lx <= 13))) return true;
     if (lx >= DOOR_X - 1 && lx < DOOR_X + DOOR_W + 1) {
       if (north && ly >= 8) return true;
       if (!north && ly <= 3) return true;
@@ -93,24 +95,21 @@ export function layoutOwnRoom(room: RoomInput, theme: RoomTheme, mark: KvOwnRoom
   area.door = north ? { x: rect.x + DOOR_X, y: rect.y + 11, w: DOOR_W, h: 1 } : { x: rect.x + DOOR_X, y: rect.y, w: DOOR_W, h: 2 };
   b.walk(area.door.x - rect.x, area.door.y - rect.y, area.door.w, area.door.h);
 
-  // ---- parede: placa, interruptor, relógio, quadro branco (ou TV), o lugar do mural (pôster) e a janela
-  area.signId = b.wall('sign', north ? 8 : 10.5, undefined, { order: 0.95 });
-  const boardCx = north ? 4.5 : 2.5;
-  if (kind === 'descanso') b.wall('tv', boardCx, undefined, { order: 0.6 });
+  // ---- parede: quadro branco (ou TV), placa e o lugar do mural (pôster) no MESMO lugar dos dois lados do corredor
+  // (a sala fica de um lado num prédio e do outro em outro); sem relógio nem janela fixos: sobra parede para a
+  // decoração (x 4–6 e 13–15, livres nos dois lados)
+  area.signId = b.wall('sign', 10.5, undefined, { order: 0.95 });
+  if (kind === 'descanso') b.wall('tv', 2.5, undefined, { order: 0.6 });
   else {
-    b.wall('whiteboard', boardCx, undefined, { order: 0.6 });
-    b.spot('whiteboard', north ? 4 : 2, 2, 'up', { dx: 8, dy: 2 });
+    b.wall('whiteboard', 2.5, undefined, { order: 0.6 });
+    b.spot('whiteboard', 2, 2, 'up', { dx: 8, dy: 2 });
   }
+  b.wall('poster', 12.6, pick(['code', 'coffee', 'rocket', 'cat'] as const), { order: 0.5 });
   if (north) {
-    b.wall('clock', 10, undefined, { order: 0.7 });
-    b.wall('poster', 11.1, pick(['code', 'coffee', 'rocket', 'cat'] as const), { order: 0.5 });
-    b.wall('window', 12.75, undefined, { order: 0.4 });
     b.wall('light_switch', DOOR_X - 0.5, 'on', { ly: 12, on: 'south', order: 0.8 });
     b.spot('switch', DOOR_X - 1, 10, 'down', { dy: -1 });
   } else {
     b.wall('light_switch', DOOR_X - 0.5, 'on', { order: 0.8 });
-    b.wall('clock', 12.3, undefined, { order: 0.7 });
-    b.wall('poster', 13.35, pick(['code', 'coffee', 'rocket', 'cat'] as const), { order: 0.5 });
     b.spot('switch', DOOR_X - 1, 2, 'up', { dy: -3 });
   }
 
@@ -131,10 +130,10 @@ export function layoutOwnRoom(room: RoomInput, theme: RoomTheme, mark: KvOwnRoom
       seat('stool', 3, 6, 'right');
       seat('stool', 10, 5, 'left');
       seat('stool', 10, 6, 'left');
-      b.furn('water_cooler', north ? 1 : 5, 2, undefined, { order: 0.3 });
-      b.furn('plant_tall', 14, north ? 2 : 10, pick(PLANTS_TALL), { order: 0.2 }); // ao sul, a planta alta cobriria o mural
+      b.furn('water_cooler', 14, 4, undefined, { order: 0.3 });
+      b.furn('plant_tall', 14, 9, pick(PLANTS_TALL), { order: 0.2 });
       b.furn('plant_tall', 1, 10, pick(PLANTS_TALL), { order: 0.21 });
-      b.furn('plant_small', north ? 14 : 13, 10, pick(PLANTS_SMALL), { order: 0.22 });
+      b.furn('plant_small', 13, 10, pick(PLANTS_SMALL), { order: 0.22 });
       b.furn('floor_lamp', 14, 6, undefined, { order: 0.3 });
       b.spot('stand', 12, 5, 'left');
       b.spot('stand', 12, 7, 'left');
@@ -143,20 +142,19 @@ export function layoutOwnRoom(room: RoomInput, theme: RoomTheme, mark: KvOwnRoom
     case 'descanso': {
       // sofá de costas para a câmera, de frente para a TV; poltronas e puffs
       b.rug(1.5, 3.2, 7, 5.2, theme.carpet, room.seed + 2);
-      const sofa = b.furn('sofa', north ? 3 : 1, 6, 'up', { order: 0.5 });
-      const sx = north ? 3 : 1;
+      const sx = 1;
+      const sofa = b.furn('sofa', sx, 6, 'up', { order: 0.5 });
       for (let i = 0; i < 3; i++) b.seat('nook', 'sofa', sx + i, 6, 'up', 'up', { noFurniture: true, furnitureId: sofa });
       b.furn('coffee_table', sx, 4, undefined, { dx: TILE / 2, order: 0.45 });
       b.block(sx + 2, 4, 1, 1);
-      if (sx > 1) seat('armchair', sx - 1, 4, 'right', 'right');
       seat('armchair', sx + 3, 4, 'left', 'left');
       b.rug(9.6, 5.6, 4.8, 3.6, theme.carpet2, room.seed + 3);
       (['red', 'blue', 'yellow'] as const).forEach((c, i) => seat('beanbag', 10 + i * 2, 8, 'up', c, { order: 0.62 + i * 0.01 }));
       b.furn('cafe_table', 11, 6, undefined, { order: 0.44 });
-      b.furn('bookshelf', north ? 1 : 4, 2, undefined, { order: 0.3 });
-      b.furn('plant_tall', 14, north ? 2 : 10, pick(PLANTS_TALL), { order: 0.2 }); // ao sul, a planta alta cobriria o mural
-      b.furn('floor_lamp', 1, north ? 9 : 8, undefined, { order: 0.31 });
-      b.furn('plant_small', north ? 14 : 13, 10, pick(PLANTS_SMALL), { order: 0.22 });
+      b.furn('binder_shelf', 14, 4, undefined, { order: 0.3 });
+      b.furn('plant_tall', 14, 10, pick(PLANTS_TALL), { order: 0.2 });
+      b.furn('floor_lamp', 1, 9, undefined, { order: 0.31 });
+      b.furn('plant_small', 12, 10, pick(PLANTS_SMALL), { order: 0.22 });
       break;
     }
     case 'pessoal': {
@@ -165,11 +163,10 @@ export function layoutOwnRoom(room: RoomInput, theme: RoomTheme, mark: KvOwnRoom
       const desk = b.furn('desk', 3, 6, theme.deskVariant, { order: 0.4, seat: 'S0' });
       seat('office_chair', 3, 7, 'up', theme.chairVariant, { dx: TILE / 2, deskId: desk });
       b.furn('trash_bin', 5, 6, undefined, { order: 0.42 });
-      b.furn('bookshelf', north ? 1 : 4, 2, undefined, { order: 0.25 });
-      b.spot('stand', north ? 1 : 4, 3, 'up', { dx: 8, dy: -2 });
+      b.furn('bookshelf', 1, 9, undefined, { order: 0.25 });
       b.furn('binder_shelf', 14, 4, undefined, { order: 0.3 });
       b.furn('binder_shelf', 14, 5, undefined, { order: 0.31 });
-      b.furn('plant_tall', 14, north ? 2 : 10, pick(PLANTS_TALL), { order: 0.2 }); // ao sul, a planta alta cobriria o mural
+      b.furn('plant_tall', 14, 9, pick(PLANTS_TALL), { order: 0.2 });
       // visitas: mesinha com duas poltronas
       b.rug(9.6, 4.7, 4.8, 3.2, theme.carpet2, room.seed + 3);
       b.furn('cafe_table', 11, 6, undefined, { order: 0.45 });
@@ -191,8 +188,8 @@ export function layoutOwnRoom(room: RoomInput, theme: RoomTheme, mark: KvOwnRoom
       seat('stool', 12, 4, 'down');
       seat('stool', 10, 7, 'up');
       seat('stool', 12, 7, 'up');
-      b.furn('bookshelf', north ? 1 : 4, 2, undefined, { order: 0.25 });
-      b.furn('plant_tall', 14, north ? 2 : 10, pick(PLANTS_TALL), { order: 0.2 }); // ao sul, a planta alta cobriria o mural
+      b.furn('bookshelf', 12, 9, undefined, { order: 0.25 });
+      b.furn('plant_tall', 1, 10, pick(PLANTS_TALL), { order: 0.2 });
       b.furn('printer', 14, 8, undefined, { order: 0.32 });
       b.spot('stand', 5, 4, 'down');
     }

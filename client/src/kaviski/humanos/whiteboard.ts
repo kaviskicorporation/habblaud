@@ -14,71 +14,11 @@ import {
 import { tr } from '../../../../shared/i18n';
 import { h, iconButton } from '../../ui/dom';
 import { ICONS } from '../../ui/icons';
+import { BOARD_API, kvApplyBoardEvent, kvDrawBoardOp, kvDrawBoardOps } from './board-draw';
 
-export const BOARD_API = '/api/kaviski/humanos/board';
 const FLUSH_MS = 80;
 const SIZES = [4, 10, 24] as const;
 const TEXT_SIZE = 40;
-
-/** Desenha os traços/textos no contexto (já escalado para as coordenadas do quadro). */
-export function kvDrawBoardOps(ctx: CanvasRenderingContext2D, ops: readonly KvBoardOp[], from = 0): void {
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  for (let i = from; i < ops.length; i++) kvDrawBoardOp(ctx, ops[i]!);
-}
-
-export function kvDrawBoardOp(ctx: CanvasRenderingContext2D, op: KvBoardOp, start = 0): void {
-  const p = op.pts ?? [];
-  if (op.tool === 'text') {
-    if (!op.text || p.length < 2) return;
-    ctx.fillStyle = op.color;
-    ctx.font = `600 ${op.size}px ui-sans-serif, system-ui, sans-serif`;
-    ctx.textBaseline = 'middle';
-    ctx.fillText(op.text, p[0]!, p[1]!);
-    return;
-  }
-  if (p.length < 2) return;
-  ctx.strokeStyle = op.color;
-  ctx.fillStyle = op.color;
-  ctx.lineWidth = op.size;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  const s = Math.max(0, start - 2);
-  if (p.length - s <= 2) {
-    ctx.beginPath();
-    ctx.arc(p[s]!, p[s + 1]!, op.size / 2, 0, Math.PI * 2);
-    ctx.fill();
-    return;
-  }
-  ctx.beginPath();
-  ctx.moveTo(p[s]!, p[s + 1]!);
-  for (let i = s + 2; i < p.length; i += 2) ctx.lineTo(p[i]!, p[i + 1]!);
-  ctx.stroke();
-}
-
-/** Aplica um evento `board` à lista de traços (no lugar). Devolve 'redraw' quando é preciso redesenhar tudo. */
-export function kvApplyBoardEvent(ops: KvBoardOp[], ev: KvBoardEvent): { redraw: boolean; op?: KvBoardOp; from?: number } {
-  if (ev.kind === 'clear') {
-    ops.length = 0;
-    return { redraw: true };
-  }
-  if (ev.kind === 'remove') {
-    const i = ops.findIndex((o) => o.id === ev.id);
-    if (i >= 0) ops.splice(i, 1);
-    return { redraw: i >= 0 };
-  }
-  if (ev.append) {
-    const cur = ops.find((o) => o.id === ev.op.id);
-    if (!cur) return { redraw: false };
-    const from = cur.pts?.length ?? 0;
-    cur.pts = [...(cur.pts ?? []), ...(ev.op.pts ?? [])];
-    return { redraw: false, op: cur, from };
-  }
-  if (ops.some((o) => o.id === ev.op.id)) return { redraw: false };
-  const op = { ...ev.op, pts: [...(ev.op.pts ?? [])] };
-  ops.push(op);
-  return { redraw: false, op, from: 0 };
-}
 
 const rid = () => Math.random().toString(36).slice(2, 12).padEnd(6, '0');
 
@@ -248,11 +188,12 @@ export class KvWhiteboard {
   private down(e: PointerEvent): void {
     if (e.button !== 0) return;
     const p = this.point(e);
+    // sem isto o clique tira o foco da caixa de texto logo depois de ela aparecer
+    e.preventDefault();
     if (this.tool === 'text') {
       this.showText(p);
       return;
     }
-    e.preventDefault();
     try {
       this.canvas.setPointerCapture(e.pointerId);
     } catch {
@@ -344,6 +285,7 @@ export class KvWhiteboard {
     this.textInput.style.color = this.color;
     this.textInput.value = '';
     this.textInput.focus();
+    requestAnimationFrame(() => this.textInput.focus());
   }
 
   private hideText(): void {
