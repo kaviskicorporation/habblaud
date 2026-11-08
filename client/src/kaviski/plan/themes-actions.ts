@@ -31,6 +31,7 @@
 //   conversas     | Correio → caixa de correio, telefone            | Conversas
 //   entregas      | Correio → escaninho                             | Entregas dos agentes
 //   classico      | Descanso → rede                                 | Modo clássico
+//   arquivos      | Sala de Arquivos → balcão, arquivos de gaveta   | Sala de Arquivos
 import { tr } from '../../../../shared/i18n';
 import { kvAction, kvRegisterAction, type KvAction } from './api';
 import { kvRestricted } from '../../../../shared/kaviski-humanos';
@@ -147,6 +148,7 @@ export const KV_ACTION_DEFS: KvActionDef[] = [
   { key: 'conversas', label: () => tr('Conversas'), icon: '💬', button: '.kv-btn-chat', pose: 'use' },
   { key: 'entregas', label: () => tr('Entregas'), icon: '📦', button: '.ui-btn-deliv', pose: 'use' },
   { key: 'classico', label: () => tr('Modo clássico (descansar)'), icon: '🌙', button: '.kv-btn-classic', pose: 'stand' },
+  { key: 'arquivos', label: () => tr('Sala de Arquivos'), icon: '🗂️', button: '.kv-btn-files', pose: 'read' },
 ];
 
 const DEFS = new Map(KV_ACTION_DEFS.map((d) => [d.key, d]));

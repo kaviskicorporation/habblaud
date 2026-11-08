@@ -47,6 +47,7 @@ export const KV_TOP_SLOTS: KvTopSlot[] = [
   { cls: 'kv-btn-people', group: 'escritorio', order: 20, name: () => tr('Pessoas'), drop: 5 },
   { cls: 'kv-btn-salas', group: 'escritorio', order: 30, name: () => tr('Salas'), drop: 2 },
   { cls: 'kv-btn-agenda', group: 'escritorio', order: 40, name: () => tr('Minha agenda'), drop: 4 },
+  { cls: 'kv-btn-files', group: 'escritorio', order: 45, name: () => tr('Sala de Arquivos'), drop: 14 }, // fork Kaviski: Sala de Arquivos
   { cls: 'kv-btn-focus', group: 'escritorio', order: 50, name: () => tr('Modo foco (pomodoro)'), drop: 7 },
   { cls: 'kv-btn-invite', group: 'escritorio', order: 60, name: () => tr('Convidar visitantes'), more: true },
   { cls: 'kv-btn-classic', group: 'escritorio', order: 70, name: () => tr('Modo clássico'), more: true },
@@ -98,7 +99,7 @@ export const KV_TOP_STEPS: { drop?: number; cls?: string }[] = [
   { drop: 2 }, // Salas
   { cls: 'kv-tg-waiting-mini' }, // "precisam de você" só com a mão e o número
   { drop: 3 }, // Timelapse (tecla L)
-  ...[4, 5, 6, 7, 8, 9, 10, 11, 12, 13].map((drop) => ({ drop })),
+  ...[4, 14, 5, 6, 7, 8, 9, 10, 11, 12, 13].map((drop) => ({ drop })),
 ];
 
 export const KV_TOP_COMFORT_STEPS = 6;

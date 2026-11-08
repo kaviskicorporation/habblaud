@@ -392,6 +392,27 @@ const ROOMS: Record<KvThemeKey, (P: KvPlacer) => void> = {
     fill(P, [{ kind: 'beanbag', seat: { spot: 'beanbag', dir: 'up' } }, { kind: 'plant_tall', variant: 'palm' }, { kind: 'floor_lamp' }, { kind: 'armchair', seat: { spot: 'armchair' } }, { kind: 'bookshelf' }]);
     wallDecor(P, ['window', 'painting']);
   },
+
+  // Sala de Arquivos: o balcão do arquivo (abre a Sala de Arquivos), arquivos de gaveta e estantes de pastas nas
+  // paredes, a impressora e uma mesa de consulta.
+  arquivo(P) {
+    floor(P, 'wood', '#d9c7a4', '#cfbb95');
+    P.wall('shelf_wall', 2, undefined, { near: P.cx - 1, use: 'arquivos' });
+    const desk = P.put('reception_desk', P.north(3, P.cx - 1, P.y0 + 1).concat(P.around(P.cx - 1, P.cy, 4)), undefined, { use: 'arquivos', order: 0.4 });
+    if (desk) {
+      const f = P.ctx.b.area.furniture.find((x) => x.id === desk);
+      if (f) P.seat('stool', 'office_chair_front', f.tx - P.ctx.rect.x + 1, f.ty - P.ctx.rect.y - 1, 'down', 'gray', { order: 0.38 });
+    }
+    for (const x of [P.x0, P.x0 + 1, P.x1 - 1, P.x1]) P.put('filing_cabinet', P.north(1, x), 'kv-archive', { use: 'arquivos', order: 0.3 });
+    for (let y = P.y0 + 2; y <= P.y1 - 1; y += 2) P.put('binder_shelf', P.west(1, y), undefined, { order: 0.31 });
+    P.put('printer', P.east(1, 1, P.y0 + 2), undefined, { order: 0.32 });
+    deskWithChair(P, P.cx + 1, Math.min(P.y1 - 1, P.cy + 2), 'wood', 'gray');
+    rug(P, P.cx - 2, P.cy, 5, 2, '#c99a4b');
+    plants(P, 2);
+    groups(P, 5, 4, (x, y) => !!P.putAt('filing_cabinet', x, y, 'kv-archive', { use: 'arquivos', order: 0.4 }) && !!P.putAt('binder_shelf', x + 1, y, undefined, { order: 0.41 }), 0.16);
+    fill(P, [{ kind: 'binder_shelf' }, { kind: 'filing_cabinet', variant: 'kv-archive', use: 'arquivos' }, { kind: 'bookshelf' }, { kind: 'plant_small' }]);
+    wallDecor(P, ['clock', 'window']);
+  },
 };
 
 /** Mobilia a sala temática `key` (para o motor e para os testes). */

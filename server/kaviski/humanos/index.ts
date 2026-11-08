@@ -40,6 +40,7 @@ import { KvPlanStore, kvIsPlanPath, kvPlanRoute, kvUsePlan } from './plan';
 import { KvOrg, kvOrgRoute } from './org';
 import { kvPrefsRoute } from './prefs';
 import { KvMeetings, kvIsMeetingsPath, kvMeetingsRoute } from './meetings';
+import { KvFiles, kvFilesRoute, kvIsFilesPath } from './files';
 import { KV_PREFS_PATH } from '../../../shared/kaviski-prefs';
 
 export const HUMANOS_API = '/api/kaviski/humanos';
@@ -268,6 +269,16 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
     meetings.load();
     rooms.setGuest((roomId, pid) => meetings.guestSees(roomId, pid));
   }
+  // Sala de Arquivos (files.ts): pastas, arquivos, documentos, versões e lixeira; liga com as reuniões.
+  const files = new KvFiles({
+    dir: dir ? join(dir, 'files') : null,
+    meeting: (id) => meetings.get(id),
+    people: () => people().map((p) => ({ id: p.id, name: p.name, role: p.role })),
+    changed: () => presence.emit('files', { at: Date.now() }, () => true),
+    audit: (p, a, d, ok) => auditNote(p, a, d, ok),
+    ...(Number(env.HABBLAUD_FILES_MAX_GB) > 0 ? { maxBytes: Number(env.HABBLAUD_FILES_MAX_GB) * 1024 ** 3 } : {}),
+  });
+  if (enabled) files.load();
   // Organograma e agentes fixos (org.ts): áreas e agentes em org.json; cargo/área/gestor na conta (profile.org).
   const org = new KvOrg(dir ? join(dir, 'org.json') : null);
   if (enabled) org.load();
@@ -773,6 +784,10 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
           changed: () => presence.emit('rooms', { at: Date.now() }, () => true),
           removed: (id) => (objects.dropArea(`r:${id}`), meetings.dropRoom(id)),
         });
+        return true;
+      }
+      if (kvIsFilesPath(path)) {
+        kvFilesRoute(req, res, url, { files, whoIs });
         return true;
       }
       if (kvIsMeetingsPath(path)) {

@@ -100,18 +100,18 @@ describe('mapa de estilos: pinned e name', () => {
 });
 
 describe('marca (HABBLAUD_BRAND)', () => {
-  it('tela de login com o logotipo e o nome da empresa; sem nome, só o logotipo', () => {
+  it('tela de login com o nome do produto como título e o nome da empresa embaixo', () => {
     kvSetEmpresaAtual(undefined); // o createKaviski dos testes de cima liga a empresa dele
     const html = loginPage({ caDownload: false });
     const plain = kvBrandLogin(html, {});
-    expect(plain).toContain('src="/assets/brand/wordmark.png"');
-    expect(plain).not.toContain('<h1>Habblaud</h1>');
-    expect(plain).toContain('<title>');
+    expect(plain).toContain('<h1 class="kv-name">Habblaud</h1>'); // nos testes a troca para "Voxtrin" fica desligada
+    expect(plain).toContain('<div class="kv-sub">escritório virtual</div>');
+    expect(plain).toContain('<title>Habblaud · entrar</title>');
     const branded = kvBrandLogin(html, { HABBLAUD_BRAND: 'Kaviski <Corp>' });
-    expect(branded).toContain('<h1>Kaviski &lt;Corp&gt;</h1>');
-    expect(branded).toContain('<title>Kaviski &lt;Corp&gt; · entrar</title>');
-    expect(branded).toContain('escritório virtual · Habblaud');
+    expect(branded).toContain('<div class="kv-sub">Kaviski &lt;Corp&gt; · escritório virtual</div>');
+    expect(branded).toContain('<title>Habblaud · entrar</title>');
     expect(branded).not.toContain('<h1>Habblaud</h1>');
+    expect(branded).toContain('kv-stage'); // palco fixo que centraliza o card
     expect(branded).toContain('/assets/brand/login-wallpaper.png');
     expect(branded).toContain('class="kv-bg"');
     expect(branded.indexOf('kv-field')).toBeLessThan(branded.indexOf('</body>'));

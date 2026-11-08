@@ -830,6 +830,39 @@ Teams); privada = ninguém de fora vê nem escuta; melhorar o layout com essas s
   repositório (as salas são dados: `rooms.json` + `plan.json`, versão nova da planta; a anterior fica no histórico).
 - Traduções: `shared/locales/kaviski-reunioes{,-ui,-salas}.ts`.
 
+## Sala de Arquivos (2026-11-08) ✅
+Pedido do Vitor: "um sistema de arquivos internos da empresa, uma sala de arquivos interativa no menu de cima, focado em
+tudo relacionado a arquivos e documentos, inclusive ligados às reuniões". Tudo só com `HABBLAUD_HUMANOS=1`.
+- **Contrato** (`shared/kaviski-files.ts`): pastas (`KvFolder`, acesso `equipe` | `todos` | `pessoas`, cor), arquivos
+  (`KvFile`: enviado ou `doc` = Markdown escrito aqui; versões, etiquetas, descrição, favoritos por pessoa, reuniões
+  ligadas com cópia do título/horário e de quem é da reunião, lixeira), regras de acesso puras (`kvSeesFolder`,
+  `kvSeesFile`, `kvCanEditFile`) e o Markdown seguro (`kvMarkdown`: escapa tudo; links só http/https/mailto).
+- **Servidor** (`server/kaviski/humanos/files.ts` + `files.test.ts`): índice em `<dataDir>/kaviski/files/index.json` e o
+  conteúdo em `files/blobs/<id>` (600). `GET /api/kaviski/humanos/files` (o que eu vejo), `POST files/upload` (base64 no
+  JSON: a borda só aceita JSON, barreira contra CSRF; até 25 MB), `POST files/doc`, `POST files/<id>` (nome, pasta,
+  descrição, etiquetas, favorito, texto do documento), `POST files/<id>/link|trash|restore|revert`, `DELETE files/<id>`
+  (só da lixeira), `GET files/<id>/raw[?v=n&dl=1]` (HTML/SVG/desconhecido baixa como `application/octet-stream`, tudo numa
+  sandbox CSP; PDF e imagens abrem na janela), `POST|DELETE files/folders[/<id>]`. Evento `files` no fluxo de presença.
+  Regras: vê pela pasta e todas as mães, por ser da reunião ligada ou por ter enviado; raiz só a equipe; muda quem
+  enviou, a equipe ou um admin; o cliente envia nas pastas que vê (a pasta que ele cria herda o acesso); visitante não
+  entra; apagar de vez só quem enviou ou admin; lixeira some sozinha em 30 dias; espaço total 10 GB
+  (`HABBLAUD_FILES_MAX_GB`). Reunião privada: quem não é dela vê só "Reunião privada" na ligação.
+- **Página** (`client/src/kaviski/humanos/files/`): botão **Sala de Arquivos** no topo (`index.ts`; `kv-btn-files` no
+  grupo Escritório, `topbar-model.ts`), janela `files-dialog.ts` (vistas Todos/Recentes/Favoritos/Meus/Documentos/Das
+  reuniões/Lixeira, árvore de pastas, espaço usado, caminho, busca sem acento, tipo, ordem, grade/lista, arrastar do
+  computador envia e arrastar um arquivo para uma pasta move, detalhes com prévia, descrição, etiquetas, reuniões,
+  versões e ações, "Copiar link" `/?arquivo=<id>`, atividade recente), `files-editor.ts` (editor de documento com barra
+  de formatação, Escrever/Lado a lado/Prévia, Ctrl+S, aviso ao sair sem salvar; pasta com nome, cor e quem vê; mover),
+  lógica pura em `files-model.ts` (+ teste). **Das reuniões**: as minhas reuniões de ontem em diante com **Ata** (cria
+  "Ata - <reunião> - <data>" na pasta Reuniões, já ligada, com data, sala, organizador, participantes, a pauta da nota,
+  anotações, decisões e próximos passos) e **Enviar**; e os arquivos agrupados por reunião. No cartão de cada reunião
+  (`meetings-dialog.ts`) entrou o botão **Arquivos da reunião** com o número de arquivos (`files/meet-hook.ts`).
+- **Sala temática `arquivo`** (`shared/kaviski-plan.ts`, `plan/themes*.ts`): balcão do arquivo, arquivos de gaveta,
+  estantes de pastas, impressora e mesa de consulta; a ação `arquivos` do "ir e fazer" leva o avatar até o balcão. Na
+  planta da Kaviski ela entrou embaixo da Ala das reuniões (x 46, y 62, 12x11, porta para o Passeio), versão nova da
+  planta (a anterior fica no histórico).
+- Traduções: `shared/locales/kaviski-arquivos.ts`.
+
 ## Como desenvolver sem derrubar o escritório
 - Desenvolver numa **segunda instância** (`HABBLAUD_PORT=4757`, `HABBLAUD_REMOTE_PORT=4758`,
   `HABBLAUD_DATA_DIR=~/.habblaud-dev`), sem mexer no serviço `habblaud` em produção.

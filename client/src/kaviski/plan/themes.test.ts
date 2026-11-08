@@ -21,6 +21,7 @@ const MAIN: Record<KvThemeKey, string> = {
   arquitetura: 'planta',
   correio: 'conversas',
   descanso: 'classico',
+  arquivo: 'arquivos',
 };
 
 const SIZES: [number, number][] = [

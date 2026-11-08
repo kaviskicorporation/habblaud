@@ -39,13 +39,11 @@ function esc(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-/** Logotipo do Voxtrin (assets/brand/wordmark.png, liberado sem login: PUBLIC_STATIC), as cores do site e o visual novo
- * (login-visual.ts: wallpaper, animações e o card de vidro). */
+/** As cores do site e o visual novo (login-visual.ts: wallpaper, animações e o card de vidro). */
 const LOGIN_HEAD = `<link rel="icon" href="/assets/brand/favicon-32.png" type="image/png" sizes="32x32">
 <link rel="preload" as="image" href="/assets/brand/login-wallpaper.png">
 <meta name="theme-color" content="#0b0d14">
 <style>
-  .kv-logo { display: block; width: 210px; max-width: 70%; height: auto; margin: 0 0 18px; filter: drop-shadow(0 8px 22px rgba(226,44,63,.28)); }
   .kv-sub { margin: -2px 0 14px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #8b8f9c; }
   input:focus { border-color: #e22c3f !important; }
   button { background: #e22c3f !important; color: #fff !important; }
@@ -55,22 +53,21 @@ ${KV_LOGIN_CSS}
 </head>`;
 
 /**
- * Tela de login (e de convite) com o logotipo do Voxtrin e o nome da empresa (Configurações › Empresa ou HABBLAUD_BRAND,
- * kaviski/empresa.ts): título da aba "<empresa> · entrar", o logotipo no alto, o nome da empresa no lugar do "Habblaud"
- * do cabeçalho e, embaixo dele, "escritório virtual · Voxtrin". Troca só pedaços conhecidos da página original
- * (loginPage); se o original mudar e eles sumirem, a página fica como está.
+ * Tela de login (e de convite) com o nome do produto (Voxtrin) como título e, embaixo, o nome da empresa
+ * (Configurações › Empresa ou HABBLAUD_BRAND, kaviski/empresa.ts): "Kaviski Corporation · escritório virtual". Título da
+ * aba "Voxtrin · entrar". O ícone do Voxtrin fica no selo em cima do card (login-visual.ts). Troca só pedaços
+ * conhecidos da página original (loginPage); se o original mudar e eles sumirem, a página fica como está.
  */
 export function kvBrandLogin(html: string, env: NodeJS.ProcessEnv = process.env): string {
   const brand = kvEmpresaNome(env);
-  const produto = esc(kvProduto('Habblaud'));
-  const logo = `<img class="kv-logo" src="/assets/brand/wordmark.png" alt="${produto}" width="210" height="51">`;
-  const out = html
+  const nome = kvProduto('Habblaud');
+  const produto = esc(nome);
+  const sub = esc(brand ? tr('{0} · escritório virtual', [brand]) : tr('escritório virtual'));
+  return html
     .replace('</head>', LOGIN_HEAD)
     .replace(/<body>/, () => `<body>\n${KV_LOGIN_BG}`)
     .replace(/<\/body>/, () => `${kvLoginScript()}\n</body>`)
-    .replace('<meta name="apple-mobile-web-app-title" content="Habblaud">', `<meta name="apple-mobile-web-app-title" content="${brand ? esc(brand) : produto}">`);
-  if (!brand) return out.replace('<h1>Habblaud</h1>', `${logo}\n  <h1 class="kv-sr" style="position:absolute;left:-9999px">${produto}</h1>`);
-  return out
-    .replace(/<title>[^<]*<\/title>/, `<title>${esc(tr('{0} · entrar', [brand]))}</title>`)
-    .replace('<h1>Habblaud</h1>', `${logo}\n  <h1>${esc(brand)}</h1>\n  <div class="kv-sub">${esc(tr('escritório virtual · Habblaud'))}</div>`);
+    .replace('<meta name="apple-mobile-web-app-title" content="Habblaud">', `<meta name="apple-mobile-web-app-title" content="${produto}">`)
+    .replace(/<title>[^<]*<\/title>/, () => `<title>${esc(tr('{0} · entrar', [nome]))}</title>`)
+    .replace('<h1>Habblaud</h1>', () => `<h1 class="kv-name">${produto}</h1>\n  <div class="kv-sub">${sub}</div>`);
 }

@@ -12,6 +12,16 @@ do meio (0.**3**.0).
 
 ### Adicionado (fork Kaviski)
 
+- **Sala de Arquivos.** Os arquivos e documentos internos da empresa num lugar só, no botão novo do topo e numa sala
+  de verdade no escritório (o avatar vai até o balcão do arquivo). Pastas com cor e acesso (só a equipe, todos com
+  os clientes, ou pessoas escolhidas), envio arrastando do computador, documentos escritos no próprio Voxtrin (com
+  prévia ao lado), versões que dá para baixar ou voltar, favoritos, etiquetas, busca, lixeira de 30 dias e prévia de
+  imagens, PDF, vídeo, áudio e texto. Tudo ligado às reuniões: cada reunião ganha "Arquivos da reunião", e com um
+  clique sai a **ata** pronta (data, sala, participantes, pauta, decisões e próximos passos) na pasta Reuniões; quem é
+  da reunião vê os arquivos dela.
+- **Login com o nome Voxtrin.** O card agora tem "Voxtrin" como título e "Kaviski Corporation · escritório virtual"
+  embaixo, e fica sempre no centro da tela (antes subia para o topo quando uma extensão do navegador mexia na
+  página). Vale também para o convite.
 - **Tela de login nova.** Fundo com um wallpaper em pixel art gerado por IA (escritório noturno com a cidade ao
   fundo, nas cores do Voxtrin) em zoom lento, estrelas piscando, brilhos e partículas subindo e estrelas cadentes.
   O card virou vidro fosco com borda que gira em vermelho e prata, sombra em camadas, o "V" flutuando no alto e uma

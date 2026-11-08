@@ -19,6 +19,7 @@ import { KV_PLANTA_ES } from './kaviski-planta'; // fork Kaviski (planta livre: 
 import { KV_REUNIOES_SALAS_ES } from './kaviski-reunioes-salas'; // fork Kaviski: reuniões e reservas de sala
 import { KV_REUNIOES_UI_ES } from './kaviski-reunioes-ui'; // fork Kaviski: reuniões e reservas de sala
 import { KV_REUNIOES_ES } from './kaviski-reunioes'; // fork Kaviski: reuniões e reservas de sala
+import { KV_ARQUIVOS_ES } from './kaviski-arquivos'; // fork Kaviski: Sala de Arquivos
 export const ES: Readonly<Record<string, string>> = {
   ...KV_HUMANOS_ES, // fork Kaviski (KAVISKI-HUMANOS.md)
   ...KV_EXTRAS_ES, // fork Kaviski (KAVISKI-HUMANOS.md)
@@ -38,6 +39,7 @@ export const ES: Readonly<Record<string, string>> = {
   ...KV_REUNIOES_SALAS_ES, // fork Kaviski: reuniões e reservas de sala
   ...KV_REUNIOES_UI_ES, // fork Kaviski: reuniões e reservas de sala
   ...KV_REUNIOES_ES, // fork Kaviski: reuniões e reservas de sala
+  ...KV_ARQUIVOS_ES, // fork Kaviski: Sala de Arquivos
   // fork Kaviski (KAVISKI.md): client/src/kaviski, server/kaviski
   "Abrir esta sessão no TwiCC": "Abrir esta sesión en TwiCC",
   "Abrir no TwiCC": "Abrir en TwiCC",
@@ -55,7 +57,8 @@ export const ES: Readonly<Record<string, string>> = {
   "mensagens às sessões do TwiCC desligadas (HABBLAUD_TWICC_MESSAGES=1 liga)": "mensajes a las sesiones de TwiCC desactivados (HABBLAUD_TWICC_MESSAGES=1 los activa)",
   "rota só do auxiliar do host (npm run codex:bridge)": "ruta solo del auxiliar del host (npm run codex:bridge)",
   "{0} · entrar": "{0} · entrar",
-  "escritório virtual · Habblaud": "oficina virtual · Habblaud",
+  "{0} · escritório virtual": "{0} · oficina virtual",
+  "escritório virtual": "oficina virtual",
   "pinned inválido para {0} (use true ou false)": "pinned inválido para {0} (use true o false)",
   "hidden inválido para {0} (use true ou false)": "hidden inválido para {0} (use true o false)",
   "nome inválido para {0}": "nombre inválido para {0}",

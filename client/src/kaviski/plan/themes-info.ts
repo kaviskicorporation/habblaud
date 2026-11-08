@@ -74,6 +74,10 @@ const ICON: Record<KvThemeKey, { rows: string[]; pal: Record<string, string> }> 
     rows: ['..kkkkk.r.', '.kbbbbbkrr', 'kbbbbbbbkr', 'kbbwwwbbk.', 'kbbbbbbbk.', 'kkkkkkkkk.', '....k.....', '....k.....', '..kkkkk...'],
     pal: { k: K, b: '#c0603a', w: W, r: '#e05a5a' },
   },
+  arquivo: {
+    rows: ['..kkkkkk..', '.kyyyyyyk.', 'kkkkkkkkkk', 'kaaaaaaaak', 'ka.kkkk.ak', 'kaaaaaaaak', 'kkkkkkkkkk', 'kaaaaaaaak', 'ka.kkkk.ak', 'kkkkkkkkkk'],
+    pal: { k: K, a: '#c99a4b', y: '#f2c14e' },
+  },
   descanso: {
     rows: ['.llllllll.', 'llllllllll', 'llwlllllyl', 'lwwwlllyly', 'llwlllllyl', 'llllllllll', '.ll....ll.'],
     pal: { l: '#7fae2c', w: W, y: '#f2c14e' },
@@ -93,6 +97,7 @@ const DATA: Record<KvThemeKey, { color: string; floor: string; size: [number, nu
   arquitetura: { color: '#5aa9e6', floor: '#dcebf6', size: [14, 10], actions: ['planta', 'salas'] },
   correio: { color: '#c0603a', floor: '#eedbcf', size: [12, 9], actions: ['conversas', 'entregas'] },
   descanso: { color: '#7fae2c', floor: '#c49a6c', size: [16, 12], actions: ['classico'] },
+  arquivo: { color: '#c99a4b', floor: '#e8dcc4', size: [14, 10], actions: ['arquivos'] },
 };
 
 function texts(key: KvThemeKey): { name: string; desc: string } {
@@ -121,6 +126,8 @@ function texts(key: KvThemeKey): { name: string; desc: string } {
       return { name: tr('Correio'), desc: tr('Caixa de correio das conversas e o escaninho das entregas') };
     case 'descanso':
       return { name: tr('Sala de descanso'), desc: tr('Rede para o modo clássico, fliperama e sofás') };
+    case 'arquivo':
+      return { name: tr('Sala de Arquivos'), desc: tr('Balcão, arquivos de gaveta e estantes: os arquivos e documentos da empresa') };
   }
 }
 

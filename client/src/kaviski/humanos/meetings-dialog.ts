@@ -86,6 +86,7 @@ import { KV_ICONS, kvBtn, kvEmpty, kvField, kvIconBtn, kvInput, kvRoleBadge, kvT
 import { KvModal, kvConfirm } from './ui/modal';
 import { kvPick, kvSection, kvSeg, type KvSeg } from './ui/section';
 import { kvToast } from './ui/toast';
+import { kvMeetFilesButton } from './files/meet-hook'; // fork Kaviski: Sala de Arquivos
 
 export { MEET_ICON } from './meetings-ui';
 
@@ -350,6 +351,7 @@ class MeetingsDialog {
           { class: 'kv-meet-card__icons' },
           kvIconBtn(PANEL_PIX, tr('Painel da sala'), () => (this.modal.close(), kvOpenRoomPanel(m.room)), { size: 'sm' }),
           kvIconBtn(DOWNLOAD_PIX, tr('Baixar .ics (Outlook, Google, Apple)'), () => downloadIcs(m), { size: 'sm' }),
+          kvMeetFilesButton(m.id, () => this.modal.close()), // fork Kaviski: Sala de Arquivos (pauta, ata, apresentações)
           m.canEdit && !m.released ? kvIconBtn(KV_ICONS.edit, tr('Editar'), () => this.edit(m), { size: 'sm' }) : null,
           m.canEdit && !m.released ? kvIconBtn(KV_ICONS.trash, tr('Cancelar a reunião'), () => void cancelMeeting(m), { size: 'sm', cls: 'kv-meet-del' }) : null,
         ),

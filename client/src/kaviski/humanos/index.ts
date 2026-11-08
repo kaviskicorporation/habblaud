@@ -30,6 +30,7 @@ import { kvStartTopGroups } from '../topbar-groups';
 import { kvStartGoAndDo } from '../plan/go-and-do';
 import { kvStartUx } from '../ux';
 import { kvStartMeetings } from './meetings';
+import { kvStartFiles } from './files';
 import './humanos.css';
 
 const PEOPLE_ICON = pixelIcon(['..##....##..', '.####..####.', '.####..####.', '..##....##..', '............', '.####..####.', '######.#####', '######.#####', '######.#####']);
@@ -92,6 +93,7 @@ export function kvStartHumanos(store: OfficeStore, root: ParentNode = document):
       kvStartOrg(m, store, root); // planta livre: organograma, áreas e agentes de IA fixos
       kvStartPlan(m, client, store); // planta livre: a planta gravada e o editor da empresa
       kvStartMeetings(m, client, root); // reuniões e reservas de sala (estilo Teams)
+      kvStartFiles(m, client, root); // Sala de Arquivos: pastas, documentos, versões e arquivos das reuniões
     }
     if (kvRestricted(m.person)) {
       // O servidor recusa o timelapse, o Meu dia e o terminal ao cliente (são da empresa toda): os botões somem e os

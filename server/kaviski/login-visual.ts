@@ -2,7 +2,9 @@
 // (assets/brand/login-wallpaper.png, liberado sem login: PUBLIC_STATIC) em zoom lento, estrelas, brilhos e partículas
 // subindo; card de vidro com borda animada, sombra em camadas, inclinação 3D que segue o mouse, ícones nos campos,
 // "mostrar senha" e saudação do dia. Tudo por CSS e um script curto que só enfeita a página original (não troca o
-// formulário nem o envio). Com "reduzir movimento" no sistema, nada se mexe.
+// formulário nem o envio). Com "reduzir movimento" no sistema, nada se mexe. O card fica num palco fixo que centraliza
+// sozinho (antes o <body> em grade virava duas linhas quando uma extensão do navegador injetava um elemento nele, e o
+// card subia para o topo); tela baixa rola o palco.
 import { tr } from '../../shared/i18n';
 
 /** Dentro do <script>: JSON com "<" escapado, para nenhum texto fechar a tag. */
@@ -53,10 +55,16 @@ export const KV_LOGIN_CSS = `
               background: linear-gradient(145deg, #2a2d3d, #12131b); box-shadow: 0 1px 0 rgba(255,255,255,.18) inset, 0 10px 24px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06), 0 0 34px rgba(226,44,63,.35);
               animation: kv-float 6s ease-in-out infinite; }
   .kv-badge img { width: 44px; height: 44px; filter: drop-shadow(0 4px 10px rgba(226,44,63,.5)); }
-  .kv-logo { margin: 0 auto 14px !important; width: 190px !important; transform: translateZ(26px); }
-  form#f h1 { text-align: center; font-size: 24px !important; font-weight: 750; letter-spacing: -.01em; margin: 0 0 4px !important; transform: translateZ(20px);
-              background: linear-gradient(180deg, #fff, #c9ced9); -webkit-background-clip: text; background-clip: text; color: transparent !important; }
-  .kv-sub { text-align: center; margin: 0 0 6px !important; font-size: 11px !important; letter-spacing: .22em !important; color: #8f95a6 !important; }
+  form#f h1 { text-align: center; font-size: 34px !important; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; margin: 2px 0 6px !important;
+              padding-left: .14em; transform: translateZ(20px); line-height: 1.1;
+              background: linear-gradient(180deg, #ffffff 0%, #e6e9f0 45%, #9aa1b4 52%, #f2f4f8 100%); -webkit-background-clip: text; background-clip: text;
+              color: transparent !important; filter: drop-shadow(0 2px 0 rgba(0,0,0,.45)) drop-shadow(0 0 18px rgba(226,44,63,.35)); }
+  form#f h1::first-letter { color: var(--kv-red2); -webkit-text-fill-color: var(--kv-red2); }
+  .kv-sub { text-align: center; margin: 0 0 6px !important; font-size: 11px !important; letter-spacing: .2em !important; color: #8f95a6 !important; }
+  .kv-stage { position: fixed; inset: 0; z-index: 2; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain;
+              padding: max(56px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); }
+  .kv-stage__in { margin: auto; width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; }
+  .kv-stage__in > form#f { width: 100%; margin: 0 !important; }
   .kv-sub::before, .kv-sub::after { content: ""; display: inline-block; width: 22px; height: 1px; margin: 0 10px; vertical-align: middle;
                                     background: linear-gradient(90deg, transparent, var(--kv-red)); }
   .kv-sub::after { transform: scaleX(-1); }
@@ -117,7 +125,7 @@ export const KV_LOGIN_CSS = `
   @keyframes kv-shake { 0%, 100% { transform: none; } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
   @keyframes kv-pulse { 0% { box-shadow: 0 0 0 0 rgba(61,220,132,.6); } 70% { box-shadow: 0 0 0 8px rgba(61,220,132,0); } 100% { box-shadow: 0 0 0 0 rgba(61,220,132,0); } }
 
-  @media (max-width: 480px) { form#f { padding: 30px 20px 22px !important; border-radius: 18px !important; } .kv-orb { filter: blur(60px); } }
+  @media (max-width: 480px) { form#f { padding: 30px 20px 22px !important; border-radius: 18px !important; } form#f h1 { font-size: 28px !important; } .kv-orb { filter: blur(60px); } }
   @media (prefers-reduced-motion: reduce) {
     .kv-bg *, form#f, form#f::before, form#f button[type=submit]::after, .kv-badge, .kv-foot i { animation: none !important; }
     .kv-bit, .kv-shoot { display: none; }
@@ -167,12 +175,9 @@ export function kvLoginScript(): string {
     }
   }
   if (!f) return;
-  const logo = f.querySelector('.kv-logo');
-  if (logo) {
-    const badge = document.createElement('div'); badge.className = 'kv-badge';
-    badge.innerHTML = '<img src="/assets/brand/voxtrin-icon.png" alt="" width="44" height="44">';
-    f.insertBefore(badge, f.firstChild);
-  }
+  const badge = document.createElement('div'); badge.className = 'kv-badge';
+  badge.innerHTML = '<img src="/assets/brand/voxtrin-icon.png" alt="" width="44" height="44">';
+  f.insertBefore(badge, f.firstChild);
   const sub = f.querySelector('.kv-sub') || f.querySelector('h1');
   if (sub && sub.parentNode === f) {
     const h = document.createElement('div'); h.className = 'kv-hello';
@@ -208,9 +213,13 @@ export function kvLoginScript(): string {
   const foot = document.createElement('div'); foot.className = 'kv-foot';
   foot.innerHTML = '<i></i><span></span>';
   foot.lastChild.textContent = T.online + (location.protocol === 'https:' ? ' · ' + T.secure : '');
-  f.parentNode.insertBefore(document.createElement('div'), f).appendChild(f);
-  f.parentElement.style.cssText = 'position:relative;z-index:2;width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center';
-  f.parentElement.appendChild(foot);
+  // palco fixo e centralizado: nada que uma extensão ponha no <body> empurra o card
+  const stage = document.createElement('div'); stage.className = 'kv-stage';
+  const inner = document.createElement('div'); inner.className = 'kv-stage__in';
+  stage.appendChild(inner);
+  f.parentNode.insertBefore(stage, f);
+  inner.appendChild(f);
+  inner.appendChild(foot);
   if (!reduce && matchMedia('(hover: hover) and (pointer: fine)').matches) {
     addEventListener('pointermove', (e) => {
       const b = f.getBoundingClientRect();

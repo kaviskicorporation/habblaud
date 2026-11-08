@@ -53,8 +53,9 @@ export type KvThemeKey =
   | 'ti' // configurações: avisos, atalhos, voz e vídeo
   | 'arquitetura' // a maquete/planta: abre o editor da empresa e as salas próprias
   | 'correio' // conversas e mensagens
-  | 'descanso'; // modo clássico (descansar), jogos
-export const KV_THEME_KEYS: readonly KvThemeKey[] = ['rh', 'diretoria', 'reuniao', 'recepcao', 'provador', 'foco', 'auditorio', 'agentes', 'ti', 'arquitetura', 'correio', 'descanso'];
+  | 'descanso' // modo clássico (descansar), jogos
+  | 'arquivo'; // Sala de Arquivos: arquivos e documentos da empresa
+export const KV_THEME_KEYS: readonly KvThemeKey[] = ['rh', 'diretoria', 'reuniao', 'recepcao', 'provador', 'foco', 'auditorio', 'agentes', 'ti', 'arquitetura', 'correio', 'descanso', 'arquivo'];
 
 export type KvDoorSide = 'n' | 's' | 'e' | 'w';
 export const KV_DOOR_SIDES: readonly KvDoorSide[] = ['n', 's', 'e', 'w'];
