@@ -61,6 +61,7 @@ import { WorldViewer } from './world/viewer';
 import { createKaviski } from './kaviski'; // fork Kaviski (KAVISKI.md)
 import { createHumanos } from './kaviski/humanos'; // fork Kaviski (KAVISKI-HUMANOS.md)
 import { kvRemoteAllows } from './kaviski/humanos/request'; // fork Kaviski (KAVISKI-HUMANOS.md)
+import { kvRedeLocalGuard } from './kaviski/rede'; // fork Kaviski (KAVISKI.md: só na rede da empresa)
 
 const config = loadConfig();
 const startedAt = Date.now();
@@ -453,11 +454,13 @@ if (config.remote) {
     secure: !!remote.tls,
     caFile: remote.tls?.caFile,
   }), kvSessions, remote); // fork Kaviski
+  const kvRede = kvRedeLocalGuard(); // fork Kaviski: só na rede da empresa
   remoteListener = startRemoteListener(
     remote,
     (req, res) => {
       const url = parseUrl(req);
       try {
+        if (kvRede(req, res)) return; // fork Kaviski
         if (guard(req, res)) return;
         if (gate(req, res, url)) return;
         if (kvHumanos.before(req, res, url)) return; // fork Kaviski: HABBLAUD_HUMANOS

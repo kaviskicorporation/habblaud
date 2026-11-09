@@ -1,6 +1,8 @@
 // Fork Kaviski (KAVISKI.md): traduções da marca Voxtrin e do nome da empresa (Configurações › Empresa). Entram nos
 // dicionários com `...KV_MARCA_XX` em en.ts, es.ts e fr.ts.
 export const KV_MARCA_EN: Readonly<Record<string, string>> = {
+  'Acesso de fora da rede recusado: {0} {1}': 'Access from outside the network refused: {0} {1}',
+  'Este escritório só abre na rede da empresa ou pela VPN.': 'This office only opens on the company network or through the VPN.',
   'não foi possível falar com o servidor ({0})': 'could not reach the server ({0})',
   'Aparece no título da aba, na tela de login, nos convites e nas notificações. Em branco, vale o nome da instalação.':
     'Shown in the tab title, on the sign-in screen, in invites and in notifications. Leave blank to use the installation name.',
@@ -15,6 +17,8 @@ export const KV_MARCA_EN: Readonly<Record<string, string>> = {
 };
 
 export const KV_MARCA_ES: Readonly<Record<string, string>> = {
+  'Acesso de fora da rede recusado: {0} {1}': 'Acceso desde fuera de la red rechazado: {0} {1}',
+  'Este escritório só abre na rede da empresa ou pela VPN.': 'Esta oficina solo abre en la red de la empresa o por la VPN.',
   'não foi possível falar com o servidor ({0})': 'no se pudo hablar con el servidor ({0})',
   'Aparece no título da aba, na tela de login, nos convites e nas notificações. Em branco, vale o nome da instalação.':
     'Aparece en el título de la pestaña, en la pantalla de inicio de sesión, en las invitaciones y en las notificaciones. En blanco, vale el nombre de la instalación.',
@@ -29,6 +33,8 @@ export const KV_MARCA_ES: Readonly<Record<string, string>> = {
 };
 
 export const KV_MARCA_FR: Readonly<Record<string, string>> = {
+  'Acesso de fora da rede recusado: {0} {1}': 'Accès depuis l’extérieur du réseau refusé : {0} {1}',
+  'Este escritório só abre na rede da empresa ou pela VPN.': 'Ce bureau ne s’ouvre que sur le réseau de l’entreprise ou via le VPN.',
   'não foi possível falar com o servidor ({0})': 'impossible de joindre le serveur ({0})',
   'Aparece no título da aba, na tela de login, nos convites e nas notificações. Em branco, vale o nome da instalação.':
     "Apparaît dans le titre de l'onglet, sur l'écran de connexion, dans les invitations et les notifications. Vide : le nom de l'installation.",
