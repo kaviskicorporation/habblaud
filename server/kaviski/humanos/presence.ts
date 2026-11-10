@@ -132,7 +132,11 @@ export class KvPresence {
       this.entries.delete(id);
       for (const v of [...this.viewers]) if (v.person.id === id) v.res.end();
       this.deps.changed?.(id);
-    } else e.person = person;
+    } else {
+      e.person = person;
+      // as páginas abertas passam a ver com as regras novas (salas de um cliente ou de um convite editado)
+      for (const v of this.viewers) if (v.person.id === id) v.person = person;
+    }
     this.schedule();
   }
 

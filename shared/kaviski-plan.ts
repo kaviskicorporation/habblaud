@@ -97,6 +97,12 @@ export interface KvPlanItem {
   style?: string;
   /** Ordem das vagas (`vaga`) e desempate geral. */
   order?: number;
+  /**
+   * Só na planta filtrada para cliente/visitante (server/kaviski/humanos/plan.ts `kvPlanFor`): um lugar onde ele não
+   * entra. Vem anônimo (id trocado, sem ref, nome, cor nem agentes): a página desenha a sala fechada ("Acesso
+   * restrito") e o avatar não passa da porta. Nunca é gravado (kvNormPlan descarta: não tem ref).
+   */
+  blocked?: true;
 }
 
 /**

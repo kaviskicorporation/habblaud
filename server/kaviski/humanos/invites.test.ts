@@ -1,11 +1,12 @@
 // Fork Kaviski (KAVISKI-HUMANOS.md): convites por link e visitantes (fase 4).
-import { readFileSync, statSync } from 'node:fs';
+import { readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { setQuiet } from '../../log';
 import { tempDir } from '../../test/fixtures';
 import { kvRestricted, type KvPerson } from '../../../shared/kaviski-humanos';
 import type { OfficeSnapshot } from '../../../shared/types';
+import type { KvPlan } from '../../../shared/kaviski-plan';
 import { KvInvites } from './invites';
 import { kvPublicUrl } from './invites-route';
 import { closeAll, json, login, RARM, start, visit } from './test-harness';
@@ -112,6 +113,88 @@ describe('KvInvites', () => {
     // 7 dias depois de vencer, some
     now += 15 * 24 * H;
     expect(inv.list()).toHaveLength(0);
+  });
+
+  it('editar a validade não derruba quem entrou: o cookie antigo vale e o gate ganha um cookie novo', () => {
+    let now = 1_000_000_000_000;
+    const inv = new KvInvites(null, secret, () => now);
+    const r = inv.create(ADMIN, { ttl: '1h', maxUses: 3 });
+    if (!r.ok) throw new Error('create');
+    const j = inv.join(r.invite.link!.slice(9), 'Visita');
+    if (!j.ok) throw new Error('join');
+    expect(inv.renew(j.token)).toBeUndefined(); // validade igual: nada a reemitir
+    const e = inv.update(r.invite.id, { extend: '1d' });
+    expect(e).toMatchObject({ ok: true, visitors: [j.person.id], ended: false, roomsChanged: false });
+    if (!e.ok) return;
+    expect(e.invite.expiresAt).toBe(now + H + 24 * H);
+    expect(inv.verify(j.token)?.until).toBe(now + 25 * H);
+    const fresh = inv.renew(j.token)!;
+    expect(fresh.maxAgeS).toBe(25 * 3600);
+    expect(fresh.token).not.toBe(j.token);
+    expect(inv.verify(fresh.token)?.name).toBe('Visita');
+    expect(inv.renew(fresh.token)).toBeUndefined();
+    // passou da validade antiga: os dois cookies continuam valendo (vale o fim atual do convite)
+    now += 2 * H;
+    expect(inv.verify(j.token)).toBeDefined();
+    expect(inv.verify(fresh.token)).toBeDefined();
+    // data exata: no passado não; mais que 30 dias, não; encurtar vale e corta quando chega
+    expect(inv.update(r.invite.id, { expiresAt: now - 1 })).toMatchObject({ ok: false, status: 400 });
+    expect(inv.update(r.invite.id, { expiresAt: now + 31 * 24 * H })).toMatchObject({ ok: false, status: 400 });
+    expect(inv.update(r.invite.id, { expiresAt: now + 10 * 60_000 }).ok).toBe(true);
+    expect(inv.renew(fresh.token)?.maxAgeS).toBe(600);
+    now += 10 * 60_000 + 1;
+    expect(inv.verify(j.token)).toBeUndefined();
+    expect(inv.verify(fresh.token)).toBeUndefined();
+    // venceu: estender reabre (a partir de agora), com teto de 30 dias
+    const back = inv.update(r.invite.id, { extend: '7d' });
+    expect(back.ok && back.invite.expiresAt).toBe(now + 7 * 24 * H);
+    for (let k = 0; k < 6; k++) inv.update(r.invite.id, { extend: '7d' });
+    expect(inv.list()[0]!.expiresAt).toBe(now + 30 * 24 * H);
+    // revogado não se edita
+    inv.revoke(r.invite.id);
+    expect(inv.update(r.invite.id, { extend: '1h' })).toMatchObject({ ok: false, status: 409 });
+    expect(inv.update('nao-existe', {})).toMatchObject({ ok: false, status: 404 });
+  });
+
+  it('edita pessoas, descrição, salas e acesso; convite antigo (sem acesso) continua igual', () => {
+    const tmp = tempDir();
+    const file = join(tmp.dir, 'invites.json');
+    const inv = new KvInvites(file, secret);
+    const r = inv.create(ADMIN, { ttl: '1d', label: 'Antes', own: ['kvsala-reuniao1'], meetings: false, blocked: ['arquivo'], voice: false });
+    if (!r.ok) throw new Error('create');
+    expect(r.invite.access).toEqual({ own: ['kvsala-reuniao1'], meetings: false, blocked: ['arquivo'], voice: false, chat: true });
+    expect(inv.create(ADMIN, { ttl: '1h', own: ['/nao/e/sala'] }).ok).toBe(false);
+    expect(inv.create(ADMIN, { ttl: '1h', blocked: ['cozinha'] }).ok).toBe(false);
+    expect(inv.create(ADMIN, { ttl: '1h', voice: 'sim' }).ok).toBe(false);
+    const j = inv.join(r.invite.link!.slice(9), 'Visita');
+    if (!j.ok) throw new Error('join');
+    expect(inv.verify(j.token)?.guest).toEqual({ own: ['kvsala-reuniao1'], meetings: false, blocked: ['arquivo'], voice: false, chat: true });
+    expect(inv.ownAllowed(j.person.id, 'kvsala-reuniao1', 'reuniao')).toBe(true);
+    expect(inv.ownAllowed(j.person.id, 'kvsala-reuniao2', 'reuniao')).toBe(false);
+    const e = inv.update(r.invite.id, { label: 'Depois', maxUses: 4, rooms: ['/proj/Clientes/12-Rarm'], meetings: true, blocked: [], chat: false });
+    expect(e).toMatchObject({ ok: true, roomsChanged: true, invite: { label: 'Depois', maxUses: 4, rooms: ['/proj/Clientes/12-Rarm'], access: { own: ['kvsala-reuniao1'], meetings: true, blocked: [], voice: false, chat: false } } });
+    expect(inv.ownAllowed(j.person.id, 'kvsala-reuniao2', 'reuniao')).toBe(true);
+    expect(inv.ownAllowed(j.person.id, 'kvsala-pessoal', 'pessoal')).toBe(false);
+    expect(inv.ownAllowed('ana', 'kvsala-reuniao2', 'reuniao')).toBe(false);
+    expect(inv.verify(j.token)).toMatchObject({ rooms: ['/proj/Clientes/12-Rarm'], guest: { meetings: true, chat: false } });
+    expect(inv.update(r.invite.id, { maxUses: 0 }).ok).toBe(false);
+    expect(inv.update(r.invite.id, { label: '' })).toMatchObject({ ok: true });
+    expect(inv.list()[0]!.label).toBeUndefined();
+    // nada mudou: nada para registrar
+    expect(inv.update(r.invite.id, { maxUses: 4 })).toMatchObject({ ok: true, changes: [] });
+    expect(inv.activePeople().map((p) => p.id)).toEqual([j.person.id]);
+
+    // arquivo de antes da edição: sem `access` = o de sempre (temáticas abertas, voz e chat)
+    const old = JSON.parse(readFileSync(file, 'utf8')) as { invites: Record<string, unknown>[] };
+    delete old.invites[0]!.access;
+    writeFileSync(file, JSON.stringify(old));
+    const again = new KvInvites(file, secret);
+    again.load();
+    expect(again.list()[0]!.access).toEqual({ own: [], meetings: false, blocked: [], voice: true, chat: true });
+    expect(again.verify(j.token)?.guest).toEqual({ own: [], meetings: false, blocked: [], voice: true, chat: true });
+    again.revoke(r.invite.id);
+    expect(again.activePeople()).toEqual([]);
+    tmp.cleanup();
   });
 
   it('perfil (boneco) do visitante mora no convite', () => {
@@ -226,6 +309,104 @@ describe('convites pela porta remota', () => {
     let done = false;
     while (!done) done = (await reader.read()).done;
     expect(done).toBe(true);
+    ac.abort();
+  });
+
+  it('editar pela tela: só a equipe; estender reemite o cookie; salas novas chegam ao visitante; encurtar para o passado não', async () => {
+    const h = await start();
+    const admin = await login(h, 'kavisvi', 'senha-do-admin');
+    const api = `${h.base}/api/kaviski/humanos`;
+    const made = await fetch(`${api}/invites`, { method: 'POST', headers: { ...json, cookie: admin }, body: JSON.stringify({ ttl: '1h', maxUses: 2 }) });
+    const { invite } = (await made.json()) as { invite: { id: string; link: string; expiresAt: number } };
+    const v = await visit(h, invite.link, 'Visita');
+    const cookie = v.cookie!;
+    const patch = (body: unknown, c = admin) => fetch(`${api}/invites/${invite.id}`, { method: 'PATCH', headers: { ...json, cookie: c }, body: JSON.stringify(body) });
+    expect((await patch({ extend: '1d' }, cookie)).status).toBe(403);
+    // sala de reunião criada pelo admin: o visitante ainda não vê
+    const sala = (await (await fetch(`${api}/rooms`, { method: 'POST', headers: { ...json, cookie: admin }, body: JSON.stringify({ kind: 'reuniao', name: 'Sala Azul' }) })).json()) as { room: { id: string } };
+    const ownOf = async () => ((await (await fetch(`${api}/rooms`, { headers: { cookie } })).json()) as { rooms: { id: string }[] }).rooms.map((r) => r.id);
+    expect(await ownOf()).toEqual([]);
+    const snap0 = (await (await fetch(`${h.base}/api/snapshot`, { headers: { cookie } })).json()) as OfficeSnapshot;
+    expect(snap0.rooms).toEqual([]);
+
+    const e = await patch({ extend: '1d', rooms: ['/proj/Clientes/12-Rarm'], meetings: true, voice: false });
+    expect(e.status).toBe(200);
+    const edited = ((await e.json()) as { invite: { expiresAt: number; access: { meetings: boolean } } }).invite;
+    expect(edited.expiresAt).toBe(invite.expiresAt + 24 * H);
+    // o mesmo cookie continua valendo e volta renovado (Max-Age até o fim novo)
+    const me = await fetch(`${api}/me`, { headers: { cookie } });
+    expect(me.status).toBe(200);
+    expect(((await me.json()) as { person: KvPerson }).person).toMatchObject({ rooms: ['/proj/Clientes/12-Rarm'], until: edited.expiresAt, guest: { meetings: true, voice: false } });
+    const set = me.headers.get('set-cookie') ?? '';
+    expect(set).toMatch(/^habblaud_remote=g1\./);
+    const maxAge = Number(/Max-Age=(\d+)/.exec(set)?.[1]);
+    expect(maxAge).toBeGreaterThan(24 * 3600);
+    const renewed = `habblaud_remote=${/habblaud_remote=([^;]+)/.exec(set)![1]}`;
+    const again = await fetch(`${api}/me`, { headers: { cookie: renewed } });
+    expect(again.status).toBe(200);
+    expect(again.headers.get('set-cookie')).toBeNull();
+    // salas novas: projeto e a sala de reunião (todas as de reunião)
+    const snap = (await (await fetch(`${h.base}/api/snapshot`, { headers: { cookie } })).json()) as OfficeSnapshot;
+    expect(snap.rooms.map((r) => r.path)).toEqual([RARM]);
+    expect(await ownOf()).toEqual([sala.room.id]);
+    // tirar "todas as de reunião" e liberar só ela, uma a uma; depois nenhuma: some de novo (lista e planta)
+    expect((await patch({ meetings: false, own: [sala.room.id] })).status).toBe(200);
+    expect(await ownOf()).toEqual([sala.room.id]);
+    expect((await patch({ own: [] })).status).toBe(200);
+    expect(await ownOf()).toEqual([]);
+    expect((await fetch(`${api}/livekit-token`, { method: 'POST', headers: { ...json, cookie }, body: JSON.stringify({ area: `r:${sala.room.id}` }) })).status).not.toBe(200);
+    // voz desligada no convite
+    expect(((await (await fetch(`${api}/livekit`, { headers: { cookie } })).json()) as { enabled: boolean }).enabled).toBe(false);
+    // a tela vê o visitante (online ou não) e o que dá para liberar
+    const list = (await (await fetch(`${api}/invites`, { headers: { cookie: admin } })).json()) as { invites: { id: string; visitors: { name: string }[] }[]; own: { id: string; kind: string }[]; themes: unknown[] };
+    expect(list.invites[0]!.visitors.map((x) => x.name)).toEqual(['Visita']);
+    expect(list.own).toEqual([{ id: sala.room.id, name: 'Sala Azul', kind: 'reuniao' }]);
+    expect((await patch({ expiresAt: Date.now() - 1000 })).status).toBe(400);
+    // o registro guarda a edição
+    const log = (await (await fetch(`${api}/audit`, { headers: { cookie: admin } })).json()) as { entries: { action: string }[] };
+    expect(log.entries.map((x) => x.action)).toContain('convite editado');
+  });
+
+  it('sala temática bloqueada e chat desligado valem no servidor; a planta do visitante leva o lugar fechado; editar avisa a página', async () => {
+    const h = await start();
+    const admin = await login(h, 'kavisvi', 'senha-do-admin');
+    const api = `${h.base}/api/kaviski/humanos`;
+    const planBody = {
+      v: 1, on: true, w: 80, h: 40, auto: { x: 60, y: 0, dir: 'e' },
+      items: [
+        { id: 'el-rec', kind: 'nucleo', ref: 'recepcao', x: 0, y: 0, w: 16, h: 12 },
+        { id: 'el-cor', kind: 'corredor', x: 0, y: 12, w: 60, h: 4 },
+        { id: 'el-rh', kind: 'tema', ref: 'rh', x: 16, y: 0, w: 12, h: 12, name: 'Pessoas' },
+        { id: 'el-arq', kind: 'tema', ref: 'arquivo', x: 28, y: 0, w: 12, h: 12 },
+      ],
+    };
+    expect((await fetch(`${api}/plan`, { method: 'POST', headers: { ...json, cookie: admin }, body: JSON.stringify({ plan: planBody, base: 0 }) })).status).toBe(200);
+    const { invite } = (await (await fetch(`${api}/invites`, { method: 'POST', headers: { ...json, cookie: admin }, body: JSON.stringify({ ttl: '1h', blocked: ['rh'], chat: false }) })).json()) as { invite: { id: string; link: string } };
+    const themes = ((await (await fetch(`${api}/invites`, { headers: { cookie: admin } })).json()) as { themes: { key: string }[] }).themes;
+    expect(themes.map((t) => t.key)).toEqual(['rh', 'arquivo']);
+    const cookie = (await visit(h, invite.link, 'Visita')).cookie!;
+    const plan = ((await (await fetch(`${api}/plan`, { headers: { cookie } })).json()) as { plan: KvPlan }).plan;
+    expect(plan.items.filter((i) => i.blocked).map((i) => [i.x, i.y])).toEqual([[16, 0]]);
+    expect(JSON.stringify(plan)).not.toContain('Pessoas');
+    expect(JSON.stringify(plan)).not.toContain('el-rh');
+
+    const ac = new AbortController();
+    const stream = await fetch(`${api}/presence`, { headers: { cookie }, signal: ac.signal });
+    const reader = stream.body!.getReader();
+    let text = '';
+    while (!text.includes('event: people')) text += new TextDecoder().decode((await reader.read()).value);
+    const at = (area: string) => fetch(`${api}/presence`, { method: 'POST', headers: { ...json, cookie }, body: JSON.stringify({ pos: { k: 'a', x: 300, y: 100, d: 'down', m: 0 }, area }) });
+    expect((await at('a:kv:el-rh')).status).toBe(400);
+    expect((await at('a:kv:el-arq')).status).toBe(200);
+    expect((await fetch(`${api}/chat`, { method: 'POST', headers: { ...json, cookie }, body: JSON.stringify({ area: 'a:kv:el-arq', text: 'oi' }) })).status).toBe(403);
+
+    // liberou o RH e bloqueou o arquivo: a página do visitante recebe `plan` (refilter) e a guarda troca na hora
+    expect((await fetch(`${api}/invites/${invite.id}`, { method: 'PATCH', headers: { ...json, cookie: admin }, body: JSON.stringify({ blocked: ['arquivo'], chat: true }) })).status).toBe(200);
+    while (!text.includes('"refilter":true')) text += new TextDecoder().decode((await reader.read()).value);
+    expect((await at('a:kv:el-rh')).status).toBe(200);
+    expect((await at('a:kv:el-arq')).status).toBe(400);
+    const plan2 = ((await (await fetch(`${api}/plan`, { headers: { cookie } })).json()) as { plan: KvPlan }).plan;
+    expect(plan2.items.filter((i) => i.blocked).map((i) => [i.x, i.y])).toEqual([[28, 0]]);
     ac.abort();
   });
 

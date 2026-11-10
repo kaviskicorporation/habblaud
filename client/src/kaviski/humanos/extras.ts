@@ -22,7 +22,7 @@ export function kvStartExtras(me: KvMe, store: OfficeStore, root: ParentNode = d
   const team = !kvRestricted(p);
   if (me.local || (p && team)) {
     let invites: InvitesDialog | null = null;
-    kvTopButton(INVITE_ICON, tr('Convidar visitantes (link)'), () => void (invites ??= new InvitesDialog()).open(), 'kv-btn-invite', 35, root)?.setAttribute('aria-haspopup', 'dialog');
+    kvTopButton(INVITE_ICON, tr('Convidar visitantes (link)'), () => void (invites ??= new InvitesDialog(store)).open(), 'kv-btn-invite', 35, root)?.setAttribute('aria-haspopup', 'dialog');
   }
   if (!p) return;
   const visitor = p.role === 'visitante';

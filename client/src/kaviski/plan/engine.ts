@@ -20,6 +20,7 @@ import { kvBridgeFloors, kvBuildFromStatics, kvOutsideSides, kvPlanStatics, kvSt
 import { kvPlanExterior } from './engine-ext';
 import { kvFixedSlot, kvIndexPlan, kvInRect, kvSlotPlace, kvStripCount, kvStripRect, type KvPlanIndex } from './engine-geom';
 import { kvLayoutPlanRoom } from './engine-room';
+import { kvDrawBlocked } from './engine-blocked';
 import { kvPlanHooks, type KvPlanEngineHooks } from './hooks';
 import { kvThemeColor, kvThemeInfo } from './themes-info';
 import { kvComputeActionSpots } from './themes-spots';
@@ -346,6 +347,8 @@ const impl: KvPlanEngineHooks = {
     } catch {
       // sem vinheta
     }
+    // salas sem acesso (cliente/visitante): névoa, fita zebrada, cadeado e placa (engine-blocked.ts)
+    kvDrawBlocked(ctx, s.items);
     return true;
   },
   rectPx(sim) {

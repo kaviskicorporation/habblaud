@@ -27,6 +27,11 @@ export interface KvPerson {
   createdAt?: number;
   /** Visitante: até quando o convite vale (epoch ms); a sessão acaba junto. */
   until?: number;
+  /**
+   * Visitante: o que o convite libera além das salas de projeto (shared/kaviski-invites.ts KvInviteAccess). Quem
+   * decide é o servidor; a página só usa para mostrar (ex.: esconder o botão de voz).
+   */
+  guest?: { own: string[]; meetings: boolean; blocked: string[]; voice: boolean; chat: boolean };
 }
 
 /** GET /api/kaviski/humanos/me */

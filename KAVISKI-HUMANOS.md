@@ -490,8 +490,45 @@ de boas-vindas e fica até o convite vencer.
   revogado há mais de 7 dias é esquecido.
 - `HABBLAUD_PUBLIC_URL` (opcional, ex.: `https://escritorio.kaviski.com.br`): o link sai com esse endereço mesmo quando a
   tela é aberta pela porta local.
-- Rotas: `GET|POST /api/kaviski/humanos/invites`, `DELETE /api/kaviski/humanos/invites/:id`, `GET /convite/<token>`,
+- Rotas: `GET|POST /api/kaviski/humanos/invites`, `PATCH|DELETE /api/kaviski/humanos/invites/:id`, `GET /convite/<token>`,
   `POST /api/kaviski/humanos/invite/join {token, name}`.
+
+**Editar convites e o acesso de cada um (2026-11-10, pedido do Vitor).** Na lista de convites, o lápis abre o convite
+no formulário ao lado:
+- **Validade:** "Termina em X (faltam Y)", atalhos **+1 hora / +1 dia / +7 dias** (somam ao fim atual; vencido: a
+  partir de agora, e o link volta a abrir), **data exata** e **Encerrar agora** (= revogar). Teto: 30 dias a partir de
+  agora (`KV_INVITE_MAX_AHEAD_MS`); data no passado é recusada. Ao criar: 1 h / 1 dia / 7 dias ou "até" uma data.
+- **Quem já entrou não cai ao estender:** o cookie `g1.<visitante>.<exp>.<assinatura>` continua assinado com o `exp` de
+  quando saiu, mas `verify` não exige mais `exp` = fim do convite (vale o fim ATUAL do convite, conferido a cada
+  requisição). Quando difere, o gate reemite o cookie com o Max-Age novo (`KvInvites.renew`; a página do visitante já
+  pergunta o `/me` a cada 30 s). Encurtar corta quando o novo fim chega (a varredura de 30 s fecha a presença).
+- **Acesso** (`KvInviteAccess` em `shared/kaviski-invites.ts`, guardado em `access` no `invites.json`; convite antigo sem
+  o campo = o de sempre: nenhuma sala própria, temáticas abertas, voz e chat): salas de projeto (`rooms`, como antes),
+  **salas próprias** uma a uma (`own`, ids `kvsala-...`) ou **todas as salas de reunião** (`meetings`, as novas também),
+  **salas temáticas bloqueadas** (`blocked`: RH, Sala de Arquivos...), **voz e vídeo** (`voice`) e **escrever no chat da
+  sala** (`chat`; ler continua). O visitante leva isso em `KvPerson.guest`.
+- **Quem decide é o servidor:** a sala própria passa pelo `rooms.setGuest` (index.ts compõe a regra das reuniões com
+  `invites.ownAllowed`), então lista de salas, planta, presença, voz e chat seguem sozinhos; a sala temática bloqueada
+  é recusada na área `a:kv:<item>` (`invites-live.ts` `areaGuard`, antes do guarda do social.ts); `voice: false` recusa
+  o token do LiveKit (e o `/livekit` diz `enabled: false`); `chat: false` recusa o POST do chat. Falar 1:1 com a equipe
+  não é opção do convite (a conversa 1:1 é de outra frente; `KvInvites.activePeople()` lista os visitantes valendo).
+- **Ao vivo:** `PATCH` (admin/equipe, registro "convite editado") chama `KvInviteLive.edited`: a presença troca a pessoa
+  (inclusive nas páginas abertas, que passam a filtrar com as regras novas), as páginas do visitante recebem `rooms` e
+  `plan` com `refilter` e, se mudaram as salas de projeto, o `/api/stream` dele fecha (reconecta já filtrado).
+- **Tela** (`client/src/kaviski/humanos/invites.ts` + `invites-access.ts` + `invites.css`): lista agrupada (Projetos,
+  Salas de reunião com "todas", Salas próprias, Salas temáticas — desmarcada fica zebrada), busca, marcar/desmarcar tudo
+  por grupo com a contagem, interruptores de voz/vídeo e chat; cada cartão mostra "até X (faltam Y)", o resumo do acesso
+  e os visitantes (online agora e onde está). `GET /invites` traz também `own` (salas próprias que quem pede vê) e
+  `themes` (salas temáticas da planta).
+- **Sala sem acesso imersiva (planta ligada):** para cliente e visitante, `kvPlanFor` troca cada sala que ele não pode
+  ver (projeto, sala própria, temática bloqueada) por um item anônimo `{id: 'el-blkN', kind: 'propria', x, y, w, h,
+  doors, blocked: true}` — sem ref, nome, cor nem agentes (teste em `plan.test.ts`). A página desenha uma sala fechada na
+  camada base (`plan/engine-blocked.ts`: paredes grafite com o vão das portas, chão com névoa escura, fita zebrada
+  amarela e preta nas portas, cadeado e placa "ACESSO RESTRITO"); nenhum tile é caminhável. `humanos/blocked.ts` avisa
+  "🔒 Você não tem acesso a esta sala." ao chegar na porta e devolve o avatar para fora se ele aparecer lá dentro. Equipe
+  e admin nunca recebem item fechado (salas próprias que não veem continuam sumindo, para o editor não gravar um buraco).
+  Sem planta ligada (prédio original), quem não vê a sala simplesmente não a tem no prédio (como antes); salas da faixa
+  automática e das vagas também (elas só existem quando a sala aparece para quem vê).
 
 **Agenda (Google Agenda, Outlook, iCloud) por ICS.** Botão do calendário no topo → **Minha agenda**: a pessoa cola o
 "endereço secreto no formato iCal" (OAuth do Google: não — não temos credenciais; fica como opção futura, com o mesmo

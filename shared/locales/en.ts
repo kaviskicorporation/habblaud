@@ -9,6 +9,7 @@ import { KV_UX_EN } from './kaviski-ux'; // fork Kaviski (KAVISKI.md, detalhes d
 import { KV_SOCIAL_EN } from './kaviski-social'; // fork Kaviski (KAVISKI-HUMANOS.md, W2)
 import { KV_AVISOS_EN } from './kaviski-avisos'; // fork Kaviski (KAVISKI-HUMANOS.md, avisos)
 import { KV_CARTAO_EN } from './kaviski-cartao'; // fork Kaviski (cartão da pessoa)
+import { KV_CONVITES_EN } from './kaviski-convites'; // fork Kaviski (KAVISKI-HUMANOS.md, convites)
 import { KV_MEDIA_EN } from './kaviski-media'; // fork Kaviski (KAVISKI-HUMANOS.md, W3)
 import { KV_UI_EN } from './kaviski-ui'; // fork Kaviski (KAVISKI-HUMANOS.md, W6)
 import { KV_EDITOR_EN } from './kaviski-editor'; // fork Kaviski (planta livre: editor)
@@ -30,6 +31,7 @@ export const EN: Readonly<Record<string, string>> = {
   ...KV_SOCIAL_EN, // fork Kaviski (KAVISKI-HUMANOS.md, W2)
   ...KV_AVISOS_EN, // fork Kaviski (KAVISKI-HUMANOS.md, avisos)
   ...KV_CARTAO_EN, // fork Kaviski (cartão da pessoa)
+  ...KV_CONVITES_EN, // fork Kaviski (KAVISKI-HUMANOS.md, convites)
   ...KV_MEDIA_EN, // fork Kaviski (KAVISKI-HUMANOS.md, W3)
   ...KV_SALAS_EN, // fork Kaviski: salas próprias e objetos
   ...KV_APROV_EN, // fork Kaviski (aprovações do TwiCC)

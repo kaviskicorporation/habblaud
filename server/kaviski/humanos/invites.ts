@@ -5,17 +5,33 @@
 // - Link: /convite/<id>.<assinatura> — a assinatura é um HMAC do id com a chave do remote-secret (a mesma de onde o
 //   gate.ts tira a dele; nenhum segredo novo). Sem a assinatura certa o link não abre.
 // - Entrar: a página do link pede o nome; POST /api/kaviski/humanos/invite/join {token, name} cria o visitante e
-//   devolve o cookie "g1.<visitante>.<validade>.<assinatura>" (validade = fim do convite; a assinatura mistura o id do
-//   convite). Cada requisição confere de novo o convite: vencido ou revogado, o cookie deixa de valer na hora.
+//   devolve o cookie "g1.<visitante>.<validade>.<assinatura>" (validade = fim do convite quando o cookie saiu; a
+//   assinatura mistura o id do convite). Cada requisição confere de novo o convite: vencido ou revogado, o cookie deixa
+//   de valer na hora. A validade do cookie não precisa bater com a do convite (o convite pode ter sido estendido ou
+//   encurtado depois): vale o fim ATUAL do convite, e o gate reemite o cookie com o Max-Age novo (`renew`).
+// - Editar (PATCH): validade, pessoas, descrição e o acesso (salas de projeto, salas próprias, temáticas bloqueadas,
+//   voz/vídeo, chat). Os visitantes online recebem o acesso novo na hora (index.ts).
 // - Freio de tentativas (KvLoginLimiter, por endereço e por convite) no link e na entrada.
-// - Rotas da tela de convites (admin e equipe): GET|POST /api/kaviski/humanos/invites e DELETE .../invites/:id.
+// - Rotas da tela de convites (admin e equipe): GET|POST /api/kaviski/humanos/invites e PATCH|DELETE .../invites/:id.
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { getLocale, tr } from '../../../shared/i18n';
 import { kvPersonName, kvRoomRules, type KvPerson } from '../../../shared/kaviski-humanos';
-import { KV_INVITE_MAX_USES, KV_INVITE_TTLS, KV_INVITES_MAX, kvIsInviteTtl, type KvInviteInfo, type KvInviteState } from '../../../shared/kaviski-invites';
+import {
+  KV_INVITE_MAX_USES,
+  KV_INVITE_TTLS,
+  KV_INVITES_MAX,
+  kvInviteNewExpiry,
+  kvIsInviteTtl,
+  kvNormInviteAccess,
+  kvParseInviteAccess,
+  type KvInviteAccess,
+  type KvInviteInfo,
+  type KvInviteState,
+} from '../../../shared/kaviski-invites';
+import type { KvOwnRoomKind } from '../../../shared/kaviski-rooms';
 import { log } from '../../log';
 
 interface InviteRec {
@@ -27,7 +43,10 @@ interface InviteRec {
   maxUses: number;
   uses: number;
   rooms: string[];
+  /** Ausente nos convites de antes da edição: o padrão (KV_INVITE_ACCESS_DEFAULT). */
+  access?: KvInviteAccess;
   revokedAt?: number;
+  updatedAt?: number;
 }
 
 interface VisitorRec {
@@ -45,6 +64,10 @@ interface FileShape {
 }
 
 export type KvInviteResult = { ok: true; invite: KvInviteInfo } | { ok: false; status: number; error: string };
+/** Resultado da edição: os visitantes do convite e se eles perderam o acesso agora (encurtado para antes de agora). */
+export type KvInviteEditResult =
+  | { ok: true; invite: KvInviteInfo; visitors: string[]; ended: boolean; changes: string[]; roomsChanged: boolean }
+  | { ok: false; status: number; error: string };
 export type KvJoinResult = { ok: true; person: KvPerson; token: string; maxAgeS: number; rooms: string[] } | { ok: false; status: number; error: string };
 
 const LINK_RE = /^([A-Za-z0-9_-]{16})\.([A-Za-z0-9_-]{43})$/;
@@ -89,7 +112,12 @@ export class KvInvites {
       const data = JSON.parse(readFileSync(this.file, 'utf8')) as Partial<FileShape>;
       this.invites = (Array.isArray(data.invites) ? data.invites : []).filter(
         (i): i is InviteRec => !!i && typeof i.id === 'string' && /^[A-Za-z0-9_-]{16}$/.test(i.id) && typeof i.expiresAt === 'number' && Array.isArray(i.rooms),
-      ).map((i) => ({ ...i, rooms: kvRoomRules(i.rooms) ?? [] }));
+      ).map((i) => {
+        const rec: InviteRec = { ...i, rooms: kvRoomRules(i.rooms) ?? [] };
+        if (i.access !== undefined) rec.access = kvNormInviteAccess(i.access);
+        else delete rec.access;
+        return rec;
+      });
       const ids = new Set(this.invites.map((i) => i.id));
       this.visitors = (Array.isArray(data.visitors) ? data.visitors : []).filter(
         (v): v is VisitorRec => !!v && typeof v.id === 'string' && kvIsVisitorId(v.id) && ids.has(v.invite) && !!kvPersonName(v.name),
@@ -149,6 +177,10 @@ export class KvInvites {
     return `${id}.${this.sigLink(id)}`;
   }
 
+  private accessOf(i: InviteRec): KvInviteAccess {
+    return i.access ?? kvNormInviteAccess(undefined);
+  }
+
   private info(i: InviteRec): KvInviteInfo {
     const state = this.stateOf(i);
     return {
@@ -160,6 +192,7 @@ export class KvInvites {
       maxUses: i.maxUses,
       uses: i.uses,
       rooms: [...i.rooms],
+      access: { ...this.accessOf(i), own: [...this.accessOf(i).own], blocked: [...this.accessOf(i).blocked] },
       state,
       ...(state === 'ativo' ? { link: `${INVITE_PAGE}${this.linkToken(i.id)}` } : {}),
       visitors: this.visitors.filter((v) => v.invite === i.id).map((v) => ({ id: v.id, name: v.name, joinedAt: v.joinedAt })),
@@ -173,7 +206,14 @@ export class KvInvites {
 
   create(by: KvPerson, body: unknown): KvInviteResult {
     const b = (body ?? {}) as Record<string, unknown>;
-    if (!kvIsInviteTtl(b.ttl)) return { ok: false, status: 400, error: tr('validade inválida (1h, 1d ou 7d)') };
+    const t0 = this.now();
+    let expiresAt: number;
+    if (b.expiresAt !== undefined) {
+      const e = kvInviteNewExpiry({ expiresAt: b.expiresAt }, t0, t0);
+      if (typeof e !== 'number') return { ok: false, status: 400, error: e?.error ?? tr('data de fim inválida') };
+      expiresAt = e;
+    } else if (kvIsInviteTtl(b.ttl)) expiresAt = t0 + KV_INVITE_TTLS[b.ttl];
+    else return { ok: false, status: 400, error: tr('validade inválida (1h, 1d ou 7d)') };
     const maxUses = b.maxUses === undefined ? 1 : b.maxUses;
     if (typeof maxUses !== 'number' || !Number.isInteger(maxUses) || maxUses < 1 || maxUses > KV_INVITE_MAX_USES) {
       return { ok: false, status: 400, error: tr('número de pessoas inválido (1 a {0})', [KV_INVITE_MAX_USES]) };
@@ -185,6 +225,8 @@ export class KvInvites {
       label = kvPersonName(typeof b.label === 'string' ? b.label.slice(0, LABEL_MAX) : undefined);
       if (!label) return { ok: false, status: 400, error: tr('descrição inválida') };
     }
+    const acc = kvParseInviteAccess(b);
+    if ('error' in acc) return { ok: false, status: 400, error: acc.error };
     this.prune();
     if (this.invites.length >= KV_INVITES_MAX) return { ok: false, status: 400, error: tr('convites demais (máximo {0}): revogue os antigos', [KV_INVITES_MAX]) };
     const t = this.now();
@@ -193,14 +235,75 @@ export class KvInvites {
       ...(label ? { label } : {}),
       by: { id: by.id, name: by.name },
       createdAt: t,
-      expiresAt: t + KV_INVITE_TTLS[b.ttl],
+      expiresAt,
       maxUses,
       uses: 0,
       rooms,
+      access: acc.access,
     };
     this.invites.push(rec);
     this.save();
     return { ok: true, invite: this.info(rec) };
+  }
+
+  /**
+   * Edita um convite (não revogado): `label` ('' apaga), validade (`extend` ou `expiresAt`), `maxUses`, `rooms` e o
+   * acesso (`own`, `meetings`, `blocked`, `voice`, `chat`). Campos ausentes ficam como estão. `changes` = o que mudou
+   * (para o registro). `ended` = o convite não segura mais ninguém (vencido): o chamador derruba quem estiver online.
+   */
+  update(id: string, body: unknown): KvInviteEditResult {
+    const i = this.invites.find((x) => x.id === id);
+    if (!i) return { ok: false, status: 404, error: tr('convite não encontrado') };
+    if (i.revokedAt) return { ok: false, status: 409, error: tr('este convite foi encerrado: crie um novo') };
+    const b = (body ?? {}) as Record<string, unknown>;
+    const t = this.now();
+    const next: InviteRec = { ...i, rooms: [...i.rooms], access: { ...this.accessOf(i) } };
+    const changes: string[] = [];
+    let roomsChanged = false;
+    if (b.label !== undefined) {
+      if (b.label === '' || b.label === null) delete next.label;
+      else {
+        const label = kvPersonName(typeof b.label === 'string' ? b.label.slice(0, LABEL_MAX) : undefined);
+        if (!label) return { ok: false, status: 400, error: tr('descrição inválida') };
+        next.label = label;
+      }
+      if (next.label !== i.label) changes.push(tr('descrição'));
+    }
+    const exp = kvInviteNewExpiry(b, i.expiresAt, t);
+    if (exp && typeof exp === 'object') return { ok: false, status: 400, error: exp.error };
+    if (typeof exp === 'number' && exp !== i.expiresAt) {
+      next.expiresAt = exp;
+      changes.push(tr('validade: até {0}', [new Date(exp).toISOString().slice(0, 16).replace('T', ' ')]));
+    }
+    if (b.maxUses !== undefined) {
+      const m = b.maxUses;
+      if (typeof m !== 'number' || !Number.isInteger(m) || m < 1 || m > KV_INVITE_MAX_USES) {
+        return { ok: false, status: 400, error: tr('número de pessoas inválido (1 a {0})', [KV_INVITE_MAX_USES]) };
+      }
+      if (m !== i.maxUses) changes.push(tr('pessoas: {0}', [m]));
+      next.maxUses = m;
+    }
+    if (b.rooms !== undefined) {
+      const rooms = kvRoomRules(b.rooms);
+      if (!rooms) return { ok: false, status: 400, error: tr('salas inválidas: use caminhos absolutos (ex.: /home/hostadmin/projetos/Clientes/12-Rarm)') };
+      roomsChanged = rooms.join('\0') !== i.rooms.join('\0');
+      if (roomsChanged) changes.push(tr('salas de projeto'));
+      next.rooms = rooms;
+    }
+    const acc = kvParseInviteAccess(b, this.accessOf(i));
+    if ('error' in acc) return { ok: false, status: 400, error: acc.error };
+    if (JSON.stringify(acc.access) !== JSON.stringify(this.accessOf(i))) changes.push(tr('acesso'));
+    next.access = acc.access;
+    if (changes.length) next.updatedAt = t;
+    Object.assign(i, next);
+    if (!next.label) delete i.label;
+    if (changes.length) this.save();
+    return { ok: true, invite: this.info(i), visitors: this.visitorsOf(id), ended: !this.holds(i), changes, roomsChanged };
+  }
+
+  /** Ids dos visitantes que entraram pelo convite. */
+  visitorsOf(id: string): string[] {
+    return this.visitors.filter((v) => v.invite === id).map((v) => v.id);
   }
 
   /** Revoga: devolve os ids dos visitantes dele (para derrubar quem está online) ou undefined se não existe. */
@@ -211,7 +314,7 @@ export class KvInvites {
       i.revokedAt = this.now();
       this.save();
     }
-    return { invite: this.info(i), visitors: this.visitors.filter((v) => v.invite === id).map((v) => v.id) };
+    return { invite: this.info(i), visitors: this.visitorsOf(id) };
   }
 
   /** O convite do link, se a assinatura confere; e o motivo, se não dá mais para entrar por ele. */
@@ -249,23 +352,73 @@ export class KvInvites {
   }
 
   private personOf(v: VisitorRec, i: InviteRec): KvPerson {
-    return { id: v.id, user: 'visitante', name: v.name, role: 'visitante', rooms: [...i.rooms], createdAt: v.joinedAt, until: i.expiresAt };
+    const a = this.accessOf(i);
+    return {
+      id: v.id,
+      user: 'visitante',
+      name: v.name,
+      role: 'visitante',
+      rooms: [...i.rooms],
+      createdAt: v.joinedAt,
+      until: i.expiresAt,
+      guest: { own: [...a.own], meetings: a.meetings, blocked: [...a.blocked], voice: a.voice, chat: a.chat },
+    };
   }
 
-  /** A pessoa do cookie de visitante (convite ainda valendo), ou undefined. */
-  verify(token: string | undefined): KvPerson | undefined {
+  /** O visitante e o convite do cookie (assinatura certa e convite ainda valendo). */
+  private session(token: string | undefined): { v: VisitorRec; i: InviteRec; exp: number } | undefined {
     const m = token ? SESSION_RE.exec(token) : null;
     if (!m) return undefined;
     const [, vid, expText, sig] = m;
     const exp = Number(expText);
-    if (exp <= this.now()) return undefined;
     const v = this.visitors.find((x) => x.id === vid);
     if (!v) return undefined;
     const i = this.invites.find((x) => x.id === v.invite);
-    if (!this.holds(i) || exp !== i.expiresAt) return undefined;
+    // a validade do cookie é só a de quando ele saiu: quem manda é o fim ATUAL do convite (estender não derruba)
+    if (!this.holds(i)) return undefined;
     const want = Buffer.from(this.sigSession(vid!, exp, i.id));
     const got = Buffer.from(sig!);
-    return want.length === got.length && timingSafeEqual(want, got) ? this.personOf(v, i) : undefined;
+    return want.length === got.length && timingSafeEqual(want, got) ? { v, i, exp } : undefined;
+  }
+
+  /** A pessoa do cookie de visitante (convite ainda valendo), ou undefined. */
+  verify(token: string | undefined): KvPerson | undefined {
+    const s = this.session(token);
+    return s ? this.personOf(s.v, s.i) : undefined;
+  }
+
+  /**
+   * Cookie novo quando a validade do convite mudou depois que o cookie saiu (estendido ou encurtado): o gate reemite com
+   * o Max-Age novo, para o navegador não apagar antes (nem guardar depois) do fim do convite. undefined = nada a fazer.
+   */
+  renew(token: string | undefined): { token: string; maxAgeS: number } | undefined {
+    const s = this.session(token);
+    if (!s || s.exp === s.i.expiresAt) return undefined;
+    const exp = s.i.expiresAt;
+    return { token: `g1.${s.v.id}.${exp}.${this.sigSession(s.v.id, exp, s.i.id)}`, maxAgeS: Math.max(1, Math.floor((exp - this.now()) / 1000)) };
+  }
+
+  /** Visitantes com o convite ainda valendo (para o chat 1:1 e a tela de convites). */
+  activePeople(): KvPerson[] {
+    const out: KvPerson[] = [];
+    for (const v of this.visitors) {
+      const i = this.invites.find((x) => x.id === v.invite);
+      if (this.holds(i)) out.push(this.personOf(v, i));
+    }
+    return out;
+  }
+
+  /**
+   * O convite do visitante libera a sala própria? (uma a uma ou "todas as salas de reunião"). Composto com a regra das
+   * reuniões no `rooms.setGuest` (index.ts).
+   */
+  ownAllowed(personId: string, roomId: string, kind: KvOwnRoomKind | undefined): boolean {
+    if (!kvIsVisitorId(personId)) return false;
+    const v = this.visitors.find((x) => x.id === personId);
+    const i = v && this.invites.find((x) => x.id === v.invite);
+    if (!this.holds(i)) return false;
+    const a = this.accessOf(i);
+    return a.own.includes(roomId) || (a.meetings && kind === 'reuniao');
   }
 
   /** É um visitante conhecido (o perfil mora aqui, não no users.json)? */
@@ -278,16 +431,6 @@ export class KvInvites {
     const v = this.visitors.find((x) => x.id === id);
     const i = v && this.invites.find((x) => x.id === v.invite);
     return v && this.holds(i) ? this.personOf(v, i) : undefined;
-  }
-
-  /** Todos os visitantes com o convite ainda valendo (online ou não): a conversa 1:1 da equipe os enxerga. */
-  activePeople(): KvPerson[] {
-    const out: KvPerson[] = [];
-    for (const v of this.visitors) {
-      const i = this.invites.find((x) => x.id === v.invite);
-      if (this.holds(i)) out.push(this.personOf(v, i));
-    }
-    return out;
   }
 
   profile(id: string): Record<string, unknown> {

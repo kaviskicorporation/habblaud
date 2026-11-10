@@ -9,7 +9,9 @@
 //
 // Quem grava: admin; a equipe só com `editors: 'equipe'` (e não troca isso); cliente e visitante nunca.
 // Filtro (aqui, no servidor): cliente/visitante não recebem itens `projeto` de salas que não vê (nem o caminho), nem
-// `propria` que não vê, nem agentes fixos dessas salas. Salas próprias "só escolhidas" saem para quem não as vê.
+// `propria` que não vê, nem as salas temáticas que o convite bloqueia, nem agentes fixos dessas salas: no lugar de cada
+// uma vai um item anônimo `blocked` (id novo, só o retângulo e as portas) que a página desenha como sala fechada
+// ("Acesso restrito"). Para a equipe, as salas próprias "só escolhidas" que ela não vê saem (como antes).
 //
 // Salas fixas (`projeto` com `fixed: true`, planta ligada) entram no snapshot vazias e apagadas pelo mesmo caminho das
 // `pinned` do mapa de estilos (server/kaviski/index.ts junta as duas listas com `kvPlanPinned`). O Habblaud World nunca
@@ -23,6 +25,7 @@ import {
   kvPlanRoomRef,
   type KvPlan,
   type KvPlanDoc,
+  type KvPlanItem,
   type KvPlanProblem,
   type KvPlanVersionInfo,
 } from '../../../shared/kaviski-plan';
@@ -72,6 +75,8 @@ export interface KvPlanViewDeps {
   seesProject?(ref: string, person: KvPerson): boolean;
   /** A pessoa vê a sala própria? */
   seesOwn(id: string, person: KvPerson): boolean;
+  /** A sala temática está bloqueada para a pessoa (convite)? */
+  blocksTheme?(key: string, person: KvPerson): boolean;
 }
 
 /**
@@ -83,21 +88,26 @@ export function kvPlanFor(plan: KvPlan, person: KvPerson, deps: KvPlanViewDeps):
   const restricted = kvRestricted(person);
   const seesProject = (ref: string) => !restricted || (deps.seesProject ? deps.seesProject(ref, person) : kvRoomAllowed(ref, person.rooms));
   const hidden = new Set<string>();
-  const items = plan.items.filter((it) => {
-    if (it.kind === 'projeto' && it.ref && !seesProject(it.ref)) {
-      hidden.add(it.ref);
-      return false;
+  let blockedN = 0;
+  const items: KvPlanItem[] = [];
+  for (const it of plan.items) {
+    let shut = false;
+    if (it.kind === 'projeto' && it.ref && !seesProject(it.ref)) shut = true;
+    else if (it.kind === 'propria' && it.ref && !deps.seesOwn(it.ref, person)) shut = true;
+    else if (restricted && it.kind === 'tema' && it.ref && deps.blocksTheme?.(it.ref, person)) shut = true;
+    if (!shut) {
+      items.push({ ...it, ...(it.doors ? { doors: it.doors.map((d) => ({ ...d })) } : {}) });
+      continue;
     }
-    if (it.kind === 'propria' && it.ref && !deps.seesOwn(it.ref, person)) {
-      hidden.add(it.ref);
-      return false;
-    }
-    return true;
-  });
-  const out: KvPlan = { ...plan, items: items.map((it) => ({ ...it, ...(it.doors ? { doors: it.doors.map((d) => ({ ...d })) } : {}) })), auto: { ...plan.auto } };
+    hidden.add(it.id);
+    if (it.ref) hidden.add(it.ref);
+    // cliente/visitante: o lugar continua lá, fechado e anônimo (nada do que tem dentro, nem de quem é)
+    if (restricted) items.push({ id: `el-blk${blockedN++}`, kind: 'propria', x: it.x, y: it.y, w: it.w, h: it.h, doors: (it.doors ?? []).map((d) => ({ ...d })), blocked: true });
+  }
+  const out: KvPlan = { ...plan, items, auto: { ...plan.auto } };
   if (plan.agents) {
     const agents = plan.agents.filter((a) => {
-      if (hidden.has(a.room)) return false;
+      if (hidden.has(a.room) || (a.room.startsWith('kv:') && hidden.has(a.room.slice(3)))) return false;
       if (a.room.startsWith('kvsala-')) return deps.seesOwn(a.room, person);
       if (a.room.startsWith('/') || /^[a-z]:\//i.test(a.room)) return seesProject(a.room);
       return true; // sala temática ou do plano

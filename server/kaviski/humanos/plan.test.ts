@@ -145,10 +145,33 @@ describe('planta: filtro por quem vê', () => {
     expect(v.agents?.map((a) => a.id)).toEqual(['ag-a', 'ag-c']);
   });
 
-  it('visitante sem salas: só áreas comuns e temáticas', () => {
+  it('visitante sem salas: só áreas comuns e temáticas (as outras salas, fechadas)', () => {
     const v = kvPlanFor(plan(), visit, { seesOwn });
-    expect(v.items.filter((i) => i.kind === 'projeto' || i.kind === 'propria')).toEqual([]);
+    expect(v.items.filter((i) => (i.kind === 'projeto' || i.kind === 'propria') && !i.blocked)).toEqual([]);
+    expect(v.items.filter((i) => i.blocked)).toHaveLength(3);
     expect(v.agents?.map((a) => a.id)).toEqual(['ag-c']);
+  });
+
+  it('cliente/visitante: sala sem acesso vira um lugar fechado e anônimo (nada vaza)', () => {
+    const p = plan();
+    p.items[2] = { ...p.items[2], name: 'Projeto Secreto', color: '#ff0000', palette: 3, style: 'ilhas', locked: true, doors: [{ side: 's', at: 7 }] };
+    p.items[5] = { ...p.items[5], name: 'Pessoas e RH' };
+    const v = kvPlanFor(p, { ...visit, guest: { own: [], meetings: false, blocked: ['rh'], voice: true, chat: true } }, { seesOwn, blocksTheme: (k, who) => !!who.guest?.blocked.includes(k) });
+    const shut = v.items.filter((i) => i.blocked);
+    // Rarm, FPF, a sala própria e o RH (bloqueado no convite)
+    expect(shut).toHaveLength(4);
+    for (const it of shut) {
+      expect(Object.keys(it).sort()).toEqual(['blocked', 'doors', 'h', 'id', 'kind', 'w', 'x', 'y']);
+      expect(it.id).toMatch(/^el-blk\d+$/);
+      expect(it.kind).toBe('propria');
+    }
+    expect(shut[0]).toMatchObject({ x: 16, y: 0, w: 16, h: 12, doors: [{ side: 's', at: 7 }] });
+    const text = JSON.stringify(v);
+    for (const bad of ['12-rarm', '14-fpf', 'Projeto Secreto', 'kvsala-abc', 'Pessoas e RH', '"rh"', 'el-rarm', 'el-fpf', 'el-sala', 'el-rh', 'Claude', 'Recepcionista', '#ff0000']) expect(text, bad).not.toContain(bad);
+    expect(v.agents).toBeUndefined();
+    // o cliente vê a dele normal; equipe nunca recebe item fechado
+    expect(kvPlanFor(p, bia, { seesOwn }).items.find((i) => i.id === 'el-rarm')?.name).toBe('Projeto Secreto');
+    expect(kvPlanFor(p, ana, { seesOwn: () => false, blocksTheme: () => true }).items.some((i) => i.blocked)).toBe(false);
   });
 
   it('equipe vê todos os projetos; sala própria que não vê sai; o original não muda', () => {

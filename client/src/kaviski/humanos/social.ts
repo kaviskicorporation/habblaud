@@ -8,6 +8,7 @@ import { h } from '../../ui/dom';
 import { kvStartAlerts } from './alerts';
 import type { KvBar } from './bar';
 import { KvBubble } from './bubble';
+import { KvBlocked } from './blocked';
 import { KvLocks } from './locks';
 import type { KvPresenceClient } from './presence';
 import { KvReactions } from './reactions';
@@ -25,6 +26,7 @@ export function kvStartSocial(client: KvPresenceClient, bar: KvBar, store: Offic
   const group = h('span', { class: 'kv-dock__social', role: 'group' });
   new KvReactions(client, bar).mount(group);
   new KvLocks(client, bar, store, me).mount(group);
+  new KvBlocked(bar); // sala sem acesso (cliente/visitante): o avatar para na porta com um aviso
   new KvBubble(client, bar).mount(group);
   bar.el.insertBefore(group, bar.media.nextSibling);
   // depuração e uso pelos outros módulos sem import (ex.: o console): habblaud.kvStatus

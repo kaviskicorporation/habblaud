@@ -437,6 +437,9 @@ export function createPeopleGate(deps: KvGateDeps): Gate {
     }
 
     if (person) {
+      // visitante cujo convite mudou de validade depois que o cookie saiu: cookie novo com o Max-Age certo
+      const renewed = person.role === 'visitante' ? deps.invites?.renew(token) : undefined;
+      if (renewed) res.setHeader('Set-Cookie', cookie(renewed.token, renewed.maxAgeS, deps.secure));
       kvMarkRemote(req);
       kvSetPerson(req, person);
       return false;

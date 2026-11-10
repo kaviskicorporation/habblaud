@@ -1,0 +1,219 @@
+/* Fork Kaviski (KAVISKI-HUMANOS.md → "Convites"): editar convites e o "onde o visitante pode ir" (invites.ts,
+   invites-access.ts). Mesmo desenho do kit (section.css). */
+
+.kv-inv2__heading {
+  margin: 0 2px;
+  font: 700 15px/1.3 var(--font-ui);
+}
+
+.kv-inv2__when {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kv-inv2__when[hidden] {
+  display: none;
+}
+
+.kv-inv2__exact {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ui-muted);
+}
+
+.kv-inv2__date {
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--ui-line-strong);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--ui-text);
+  font: 500 13px/1.2 var(--font-ui);
+  color-scheme: dark;
+}
+
+.kv-inv2__date:focus-visible {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 1px;
+}
+
+.kv-inv2__extend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.kv-inv2__ends {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(79, 209, 139, 0.45);
+  background: rgba(79, 209, 139, 0.1);
+  font: 600 13px/1.4 var(--font-ui);
+}
+
+.kv-inv2__ends.is-off {
+  border-color: var(--ui-line-strong);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--ui-muted);
+}
+
+/* a lista de convites um pouco mais larga (cartões com os visitantes) */
+@media (min-width: 900px) {
+  .kv-inv2 .kv-ui-split {
+    grid-template-columns: 360px minmax(0, 1fr);
+  }
+}
+
+/* onde o visitante pode ir */
+.kv-inv2__access {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kv-inv2__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kv-inv2__group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--ui-line);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.kv-inv2__group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+
+.kv-inv2__group-head strong {
+  font: 700 13px/1.3 var(--font-ui);
+}
+
+.kv-inv2__group-n {
+  font: 600 11px/1 var(--font-ui);
+  color: var(--ui-accent);
+}
+
+.kv-inv2__group-hint {
+  flex: 1 1 200px;
+  font-size: 11.5px;
+  color: var(--ui-muted);
+}
+
+.kv-inv2__group-btns {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.kv-inv2__all {
+  align-self: flex-start;
+}
+
+.kv-inv2__theme-ico {
+  display: inline-grid;
+  place-items: center;
+  margin-left: 2px;
+}
+
+.kv-inv2__theme-ico svg {
+  width: 16px;
+  height: auto;
+  image-rendering: pixelated;
+}
+
+/* sala temática fechada para o visitante: faixa zebrada como na porta do escritório */
+.kv-ui-pick.is-shut {
+  border-color: rgba(242, 194, 48, 0.55);
+  background:
+    repeating-linear-gradient(135deg, rgba(242, 194, 48, 0.16) 0 6px, rgba(0, 0, 0, 0.16) 6px 12px),
+    rgba(0, 0, 0, 0.3);
+}
+
+.kv-ui-pick.is-shut .kv-ui-pick__label {
+  text-decoration: line-through;
+  text-decoration-color: rgba(242, 194, 48, 0.7);
+}
+
+.kv-ui-pick:disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.kv-inv2__perms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  padding-top: 2px;
+}
+
+/* visitantes de cada convite */
+.kv-inv2__visitors {
+  margin-top: 2px;
+  font-size: 11.5px;
+}
+
+.kv-inv2__visitors summary {
+  cursor: pointer;
+  color: var(--ui-muted);
+}
+
+.kv-inv2__visitors ul {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 5px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kv-inv2__visitor {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr);
+  align-items: center;
+  gap: 1px 6px;
+  min-width: 0;
+}
+
+.kv-inv2__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--ui-faint);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.kv-inv2__visitor.is-on .kv-inv2__dot {
+  background: var(--st-working);
+  box-shadow: 0 0 0 2px rgba(79, 209, 139, 0.25);
+}
+
+.kv-inv2__vname {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* onde está: na linha de baixo, alinhado com o nome */
+.kv-inv2__vwhere {
+  grid-column: 2;
+  color: var(--ui-muted);
+  overflow-wrap: anywhere;
+}
+
+.kv-inv2__visitor.is-on .kv-inv2__vwhere {
+  color: var(--st-working);
+}

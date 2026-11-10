@@ -1,6 +1,6 @@
 // Fork Kaviski (KAVISKI-HUMANOS.md → "Planta livre"): monta o prédio a partir da planta — as áreas fixas (núcleo
 // transladado, corredores, jardins, salas temáticas, corredor da faixa automática), as cascas da camada base (pátios das
-// vagas vazias, fechamentos do corredor, enfeites dos jardins), a grade de caminhabilidade e, se alguma parte ficou sem
+// vagas vazias, fechamentos do corredor, enfeites dos jardins, salas sem acesso de cliente/visitante), a grade de caminhabilidade e, se alguma parte ficou sem
 // caminho até a recepção, um caminho de pedra pela grama (o Sim nunca teletransporta). Puro (sem DOM).
 import type { RoomTheme } from '../../art/api';
 import { hash32 } from '../../../../shared/hash';
@@ -16,6 +16,7 @@ import { kvCoreFronts, kvDoorFront, kvIndexPlan, kvInRect, kvStripCorridor, kvSt
 import { kvCorridorClosure, kvPatioShell, kvRuns, type KvEdgeRuns, type KvEntrance } from './engine-ext';
 import { kvLayoutGarden, kvLayoutOpenCorridor } from './engine-open';
 import { kvLayoutPlanRoom } from './engine-room';
+import { kvBlockedShell } from './engine-blocked';
 
 /** Onde fica cada área do núcleo no prédio original (para transladar). */
 const CORE_HOME: Record<KvCoreRef, { x: number; y: number }> = {
@@ -29,6 +30,7 @@ const MARGIN = 3;
 /** Slots das cascas que nenhuma sala usa (fechamento do corredor, jardins). */
 const CLOSURE_SLOT = -1_000_000;
 const GARDEN_SLOT = -2_000_000;
+const BLOCKED_SLOT = -3_000_000;
 
 /** Área transladada (dx, dy tiles): rect, pisos, tapetes, paredes, itens de parede, móveis, spots, porta, sombra. */
 export function kvTranslateArea(a: AreaLayout, dx: number, dy: number): AreaLayout {
@@ -223,7 +225,9 @@ export function kvPlanStatics(plan: KvPlan, stripN: number, themeFor: (seed: num
   });
   ix.vagas.forEach((v, i) => shells.push(kvPatioShell(i, v, edges(v, isOpen))));
   plan.items.forEach((it, i) => {
-    if (it.kind === 'projeto' || it.kind === 'propria') shells.push(kvPatioShell(-1 - i, it, edges(it, isOpen)));
+    // sala sem acesso (cliente/visitante): casca fechada, nunca pátio (engine-blocked.ts)
+    if (it.blocked) shells.push(kvBlockedShell(BLOCKED_SLOT - i, it));
+    else if (it.kind === 'projeto' || it.kind === 'propria') shells.push(kvPatioShell(-1 - i, it, edges(it, isOpen)));
   });
   for (let k = 0; k < stripN; k++) shells.push(kvPatioShell(ix.vagas.length + k, strip[k], edges(strip[k], isOpen)));
   // fechamento dos corredores onde encostam na grama

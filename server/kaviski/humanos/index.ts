@@ -30,6 +30,7 @@ import { kvParseLook, type KvLook } from '../../../shared/kaviski-presence';
 import { BUILTIN_ID, KvUsers, publicPerson } from './users';
 import { KvInvites } from './invites';
 import { kvInvitesRoute, INVITES_PATH } from './invites-route';
+import { KvInviteLive } from './invites-live';
 import { AGENDA_PATH, AGENDA_ROOMS_PATH, KvAgenda, kvAgendaAllowPrivate, kvAgendaRoute, type KvAgendaRoom } from './agenda';
 import { kvDeskOf, kvDeskRoute } from './desk';
 import { KvStage, kvStageRoute } from './stage';
@@ -142,7 +143,7 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
     const person = whoIs(req);
     if (path === LIVEKIT_PATH) {
       req.resume();
-      return sendJson(res, 200, lk.config && person ? { enabled: true, url: lk.config.url } : { enabled: false });
+      return sendJson(res, 200, lk.config && person && !inviteLive.noVoice(person) ? { enabled: true, url: lk.config.url } : { enabled: false });
     }
     if (method !== 'POST') {
       req.resume();
@@ -156,6 +157,10 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
     if (!lk.config) {
       req.resume();
       return sendJson(res, 404, { error: tr('voz e vídeo desligados (falta HABBLAUD_LIVEKIT_URL, _KEY e _SECRET)') });
+    }
+    if (inviteLive.noVoice(person)) {
+      req.resume();
+      return sendJson(res, 403, { error: tr('o seu convite não libera voz e vídeo') });
     }
     const cfg = lk.config;
     readJson(req, 4096)
@@ -242,7 +247,8 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
       .catch((err) => fail(res, err));
   };
   const social = new KvSocial({ presence, snapshot: deps.snapshot, audit, unlockMeeting: (id, p) => meetings.unlocked(id, p) });
-  if (enabled) kvSetAreaGuard((area, p) => social.areaGuard(area, p));
+  // convite: sala temática bloqueada fica de fora para o visitante (invites-live.ts), antes das regras do social.ts
+  if (enabled) kvSetAreaGuard((area, p) => (inviteLive.areaGuard(area, p) === null ? null : social.areaGuard(area, p)));
   // Palco (megafone, stage.ts): a equipe fala para o andar inteiro; todos ouvem.
   const stage = new KvStage({ emit: (e, d, to) => presence.emit(e, d, to), online: (id) => !!presence.personOf(id), scope: deps.dataDir ?? '', audit: (p, a) => audit.add(p, a, { ok: true }) });
   // Salas próprias e objetos de parede: a checagem de área (kvAreaAllowed) passa a conhecer as salas de rooms.json.
@@ -268,7 +274,8 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
   });
   if (enabled) {
     meetings.load();
-    rooms.setGuest((roomId, pid) => meetings.guestSees(roomId, pid));
+    // convidado de reunião perto do horário OU visitante cujo convite libera a sala (uma a uma ou as de reunião)
+    rooms.setGuest((roomId, pid) => meetings.guestSees(roomId, pid) || invites.ownAllowed(pid, roomId, rooms.get(roomId)?.kind));
   }
   // Sala de Arquivos (files.ts): pastas, arquivos, documentos, versões e lixeira; liga com as reuniões.
   const files = new KvFiles({
@@ -301,6 +308,8 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
     meetings.start(); // depois da planta: a primeira volta já pode avisar as páginas (evento `plan`)
   }
   const auditNote = (person: KvPerson, action: string, detail: string, ok: boolean) => audit.add(person, action, { detail: kvShort(detail), ok });
+  // o acesso do convite ao vivo: temáticas bloqueadas, voz/chat, edição chegando a quem já entrou (invites-live.ts)
+  const inviteLive = new KvInviteLive({ invites, presence, plan });
   let messages: KvMessageSender | undefined;
   const summoned = new Map<string, number>();
   // Visitante cujo convite venceu (ou foi revogado) sai do escritório mesmo com a página aberta.
@@ -480,6 +489,10 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
       res.setHeader('Allow', 'GET, POST');
       return sendJson(res, 405, { error: tr('método não permitido') });
     }
+    if (inviteLive.noChat(person)) {
+      req.resume();
+      return sendJson(res, 403, { error: tr('o seu convite não libera escrever no chat') });
+    }
     readJson(req, 4096)
       .then((body) => {
         const r = chat.post(person, body);
@@ -639,6 +652,7 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
     const isRead = method === 'GET' || method === 'HEAD';
     if (path === '/api/stream' && method === 'GET') {
       kvFilterStream(res, person.rooms);
+      inviteLive.trackStream(person, res); // convite editado: fecha para reabrir com as salas novas
       return false; // segue para o hub.attach, já filtrado
     }
     if (path === '/api/snapshot' && isRead) {
@@ -747,7 +761,21 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
         return true;
       }
       if (path === INVITES_PATH || path.startsWith(`${INVITES_PATH}/`)) {
-        kvInvitesRoute(req, res, path, { who: whoIs(req), invites, presence, audit, snapshot: deps.snapshot });
+        kvInvitesRoute(req, res, path, {
+          who: whoIs(req),
+          invites,
+          presence,
+          audit,
+          snapshot: deps.snapshot,
+          ownRooms: (who) => rooms.visibleTo(who).map((r) => ({ id: r.id, name: r.name, kind: r.kind })),
+          themes: () => {
+            const seen = new Map<string, { key: string; name?: string }>();
+            for (const it of plan.plan()?.items ?? []) if (it.kind === 'tema' && it.ref && !seen.has(it.ref)) seen.set(it.ref, { key: it.ref, ...(it.name ? { name: it.name } : {}) });
+            return [...seen.values()];
+          },
+          online: () => new Map(presence.online().filter((o) => o.person.role === 'visitante').map((o) => [o.person.id, o.area])),
+          edited: (r) => inviteLive.edited(r),
+        });
         return true;
       }
       if (path === DESK_PATH) {
@@ -804,7 +832,7 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
         kvPlanRoute(req, res, path, {
           store: plan,
           whoIs,
-          view: { seesOwn: (id, p) => rooms.canSee(id, p) },
+          view: { seesOwn: (id, p) => rooms.canSee(id, p), blocksTheme: (key, p) => inviteLive.blocksTheme(key, p) },
           knownPaths: () => deps.snapshot().rooms.map((r) => r.path).filter((p): p is string => !!p),
           audit: auditNote,
           changed: (version) => presence.emit('plan', { version, at: Date.now() }, () => true),
