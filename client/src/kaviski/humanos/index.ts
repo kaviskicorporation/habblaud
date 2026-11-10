@@ -15,6 +15,7 @@ import { kvStartMedia } from './media';
 import { KvBar } from './bar';
 import { KvChatPanel } from './chat';
 import { KvPersonCard, kvRegisterBasicActions } from './person-card';
+import { kvStartPersonCardMore } from './person-card-more';
 import { kvTopButton } from './topbar';
 import { kvStartAgentExtras } from './agent';
 import { kvStartSocial } from './social';
@@ -82,6 +83,7 @@ export function kvStartHumanos(store: OfficeStore, root: ParentNode = document):
       chat.attachTopButton(kvTopButton(CHAT_TOP_ICON, tr('Conversas'), () => chat?.toggle(), 'kv-btn-chat', 15, root));
       new KvPersonCard(client, store);
       kvRegisterBasicActions(chat);
+      kvStartPersonCardMore(m, client); // cartão: Enviar arquivo, Marcar reunião, organograma, copiar nome
       // Fase 3: "Chamar até mim" na gaveta do agente e o agente andando até quem chamou.
       kvStartAgentExtras((text) => bar.warn(text));
       client.onEvent<{ agentId: string; to: string; name: string }>('summon', (e) => kvPeople.summon?.(e.agentId, e.to === client.state?.me ? null : e.to, e.name));

@@ -8,6 +8,12 @@ export interface KvPersonAction {
   label: string;
   /** Emoji ou ícone curto (opcional). */
   icon?: string;
+  /** Ícone em pixel (SVG, como os de KV_ICONS); vence o `icon` no cartão. */
+  svg?: string;
+  /** No cartão: botão grande ('main') ou no grupo "Mais" ('more'). Padrão: person-card-model.ts KV_CARD_MAIN. */
+  group?: 'main' | 'more';
+  /** Não fecha o cartão ao clicar (a ação continua nele, ex.: "Mensagem urgente"). */
+  keepOpen?: boolean;
   /** Menor fica antes. */
   order: number;
   /** Mostra só quando devolver true (padrão: sempre). */
@@ -37,4 +43,9 @@ export function kvPersonActions(p: KvPresencePerson): KvPersonAction[] {
 export function kvOnPersonActions(cb: () => void): () => void {
   listeners.add(cb);
   return () => listeners.delete(cb);
+}
+
+/** Avisa que o `when` de alguma ação pode ter mudado (ex.: a Sala de Arquivos carregou): o cartão confere de novo. */
+export function kvNotifyPersonActions(): void {
+  listeners.forEach((f) => f());
 }

@@ -899,6 +899,43 @@ tudo relacionado a arquivos e documentos, inclusive ligados às reuniões". Tudo
   planta (a anterior fica no histórico).
 - Traduções: `shared/locales/kaviski-arquivos.ts`.
 
+## Cartão da pessoa: arrastável, fixável e com mais ações (2026-11-10) ✅ (pedido do Vitor)
+Pedido: "quando eu clicar em um user real, o popup que abre deve poder ser movido para qualquer posição da tela e ter um
+X no topo para fechar, e deve ter bem mais opções: enviar arquivo, marcar reunião etc."
+- **Mover** (`person-card.ts`): arrasta pela faixa ou pelo topo (avatar e nome), com mouse ou toque (pointer events; a
+  captura só começa quando o ponteiro anda, então o duplo clique chega à faixa). Não sai da tela nem passa para baixo
+  da barra do topo. A posição fica lembrada neste navegador (`localStorage` `habblaud.kv.personCard`: `{pos, pinned}`)
+  e vale para as próximas aberturas. **Movido = fixado**: não fecha ao clicar fora (vira um painel; trocar de pessoa
+  com ele aberto não o tira do lugar). Alfinete no canto fixa/solta; **duplo clique na faixa** volta ao lugar padrão
+  (perto do clique) e solta. **X** grande no canto de cima (aria-label, foco por teclado) e **Esc** fecham.
+- **Celular** (< 560 px): folha embaixo, sem arrastar nem alfinete.
+- **Ações**: as principais em botões grandes (Mensagem, Chamar, Cumprimentar, Ir até; as duas últimas só com a pessoa
+  visível aqui) e o grupo **Mais ações** (recolhível, lembrado em `habblaud.kv.personCard.more`): Mensagem urgente (liga
+  o "urgente" da caixa de mensagem rápida), Seguir, Teleportar, Ir até a mesa, Chamar para a conversa privada (os de
+  sempre) e os novos de `person-card-more.ts`:
+  - **Enviar arquivo**: escolhe arquivo(s), sobe na Sala de Arquivos numa pasta só das duas pessoas ("Compartilhados:
+    Ana e Bia", raiz, acesso "pessoas escolhidas" com as duas; criada na primeira vez, depois reaproveitada — a regra
+    está em `kvSharedFolder`) e manda na conversa 1:1 "📎 Enviei o arquivo X: <link ?arquivo=id>". Equipe/admin:
+    sempre; cliente: só quando a pasta de vocês já existe (o servidor não deixa cliente criar pasta na raiz); visitante:
+    nunca (só lê); e nunca para um visitante (não tem conta para entrar no acesso da pasta).
+  - **Arquivos compartilhados**: abre essa pasta (quando existe).
+  - **Marcar reunião**: Reuniões → Marcar já com a pessoa convidada (`KvOpenMeetingsOpts.people`, novo). Só para quem
+    pode marcar (`canBook`) e para quem tem conta.
+  - **Ver no organograma** (pessoa destacada) e **Copiar nome**.
+  - Fixado, o cartão continua aberto depois de uma ação; solto, fecha antes (como antes).
+- **Reação rápida** (👋 👍 ❤️ 😂 🎉 ☕): vai como mensagem na conversa 1:1, sem fechar o cartão.
+- **Informação**: status com recado e "até", onde está, **"Online há X"** (`since`), cargo/área, a quem responde e
+  "Visitante: entrou por um convite".
+- Registro (`person-actions.ts`): a ação pode trazer `svg` (ícone em pixel), `group` ('main'/'more') e `keepOpen`;
+  `kvNotifyPersonActions()` pede para o cartão conferir os `when` de novo (Sala de Arquivos/Reuniões/organograma
+  carregaram). Ícones novos em `person-card-icons.ts`; partes puras e testes em `person-card-model.ts` (+ `.test.ts`);
+  traduções em `shared/locales/kaviski-cartao.ts`.
+- **Ficou de fora (não existe no código, então nada de botão vazio)**: ligar com vídeo/voz 1:1 (a voz é por área/sala;
+  dá para usar "Chamar para a conversa privada" perto da pessoa), "Chamar até mim" para pessoas (só existe para
+  agentes), hora local (o servidor não sabe o fuso de ninguém), até quando vale o convite de um visitante (o `until`
+  do convite não chega às outras páginas — a presença só manda o `until` do status) e copiar o usuário (a presença
+  não manda o login).
+
 ## Como desenvolver sem derrubar o escritório
 - Desenvolver numa **segunda instância** (`HABBLAUD_PORT=4757`, `HABBLAUD_REMOTE_PORT=4758`,
   `HABBLAUD_DATA_DIR=~/.habblaud-dev`), sem mexer no serviço `habblaud` em produção.

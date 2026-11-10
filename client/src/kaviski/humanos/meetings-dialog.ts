@@ -100,6 +100,8 @@ export interface KvOpenMeetingsOpts {
   start?: number;
   /** Id da reunião a editar (abre Marcar preenchida). */
   edit?: string;
+  /** Convidados já escolhidos (ids; aba Marcar, reunião nova): o "Marcar reunião" do cartão da pessoa. */
+  people?: string[];
 }
 
 /** Largura de uma hora na linha do tempo do assistente (px). */
@@ -227,8 +229,8 @@ class MeetingsDialog {
       this.tick = setInterval(() => this.refresh(), 30_000);
       void kvReloadMeetings();
     }
-    const tab: KvMeetTab = o.edit ? 'marcar' : (o.tab ?? (o.room || o.start ? 'marcar' : 'minhas'));
-    if (tab === 'marcar') this.book.reset({ room: o.room, start: o.start, edit: o.edit });
+    const tab: KvMeetTab = o.edit ? 'marcar' : (o.tab ?? (o.room || o.start || o.people?.length ? 'marcar' : 'minhas'));
+    if (tab === 'marcar') this.book.reset({ room: o.room, start: o.start, edit: o.edit, people: o.people });
     this.modal.show();
     this.show(tab);
   }
@@ -650,7 +652,7 @@ class BookForm {
   // ------------------------------------------------------------------ estado
 
   /** Começa de novo: reunião nova (com sala/início opcionais) ou a edição de uma reunião. */
-  reset(o: { room?: string; start?: number; edit?: string }): void {
+  reset(o: { room?: string; start?: number; edit?: string; people?: string[] }): void {
     const now = Date.now();
     const s = kvMeetings();
     const m = o.edit ? s.meetings.find((x) => x.id === o.edit && x.canEdit) : undefined;
@@ -675,7 +677,8 @@ class BookForm {
       this.title.input.value = '';
       this.start = o.start && o.start > now - DAY ? o.start : kvSuggestStart(now);
       this.dur = 30 * MIN;
-      this.people = [];
+      const me = kvMeId();
+      this.people = [...new Set((o.people ?? []).filter((id) => id && id !== me && this.names.has(id)))];
       this.room = o.room && kvMeetRoom(o.room)?.meet.bookable ? o.room : '';
       this.priv.checked = this.room ? !!kvMeetRoom(this.room)?.meet.privateDefault : false;
       this.note.value = '';

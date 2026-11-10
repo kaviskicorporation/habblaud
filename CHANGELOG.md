@@ -13,6 +13,7 @@ do meio (0.**3**.0).
 ### Adicionado (fork Kaviski)
 
 - **Avisos integrados ao Windows/navegador.** Notificação do sistema (Central de Notificações do Windows, com botões como Responder e Deixar entrar) também com a janela sem foco, novos avisos de cumprimento, convite de reunião e pasta compartilhada, liga/desliga por tipo e Testar notificação no sino, pedido de permissão amigável e contador no ícone do app; e a equipe já consegue responder no 1:1 a quem entrou por convite (antes dava "pessoa não encontrada").
+- **Cartão da pessoa arrastável e com mais ações.** Arraste pela faixa (fica lembrado e não fecha ao clicar fora; alfinete fixa/solta, duplo clique volta), X grande e Esc fecham; novas ações: Enviar arquivo (pasta só de vocês dois na Sala de Arquivos + link na conversa), Marcar reunião já com a pessoa, Arquivos compartilhados, Ver no organograma, Copiar nome, Mensagem urgente e reação rápida; mostra há quanto tempo está online; no celular vira folha embaixo.
 - **Organograma editável ali mesmo.** Botão **Editar** no organograma: arraste um cartão sobre outro para mudar a
   quem ele responde (pessoas e agentes de IA juntos, um pode responder ao outro), sobre uma área em "Por área" para
   mudar a área, ou para "sem gestor" no topo; clicar num cartão abre cargo, área e gestor para mudar e salvar. Um
