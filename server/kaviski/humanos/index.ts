@@ -189,7 +189,8 @@ export function createHumanos(deps: KvHumanosDeps): KvHumanos {
   const chat = new KvChat(presence, deps.snapshot, dir ? join(dir, 'chat.json') : null);
   const audit = new KvAudit(dir ? join(dir, 'audit.jsonl') : null);
   const direct = new KvDirect({
-    people: () => people(),
+    // os visitantes com convite valendo também (senão a equipe não consegue responder a quem entrou por link)
+    people: () => [...people(), ...invites.activePeople()],
     online: () => new Map(presence.online().map((o) => [o.person.id, o.status])),
     look: (id) => lookOf(id),
     emit: (event, data, to) => presence.emit(event, data, (viewer) => to(viewer)),

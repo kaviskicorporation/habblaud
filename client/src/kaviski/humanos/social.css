@@ -197,6 +197,27 @@
   gap: 8px;
 }
 
+/* liga/desliga por tipo de aviso */
+.kv-alerts__sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--ui-text);
+}
+
+.kv-alerts__kinds {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--ui-line);
+  font-size: 12px;
+}
+
+.kv-alerts__help[hidden] {
+  display: none;
+}
+
 /* os botões (Permitir / Testar) quebram de linha em vez de vazar do menu */
 .kv-alerts__btns {
   flex-wrap: wrap;

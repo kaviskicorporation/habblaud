@@ -5,7 +5,7 @@
 // - Sala privada (reunião privada ou sala trancada e coberta) de que eu não faço parte: coberta com persianas e o aviso
 //   "Reunião privada · até 15h" — o servidor já não manda quem está dentro, nem voz, conversa ou quadro.
 // - Minha reunião acontecendo: status "📅 Em reunião até 15h" (fonte `reuniao`; o manual vence). 1 min antes: aviso com
-//   "Ir para a sala".
+//   "Ir para a sala" (som, notificação do sistema e aviso na página: `kvAlert`, tipo "reunioes").
 import type { KvMe } from '../../../../shared/kaviski-humanos';
 import type { KvLockInfo } from '../../../../shared/kaviski-social';
 import type { KvMeetingView } from '../../../../shared/kaviski-meetings';
@@ -15,7 +15,7 @@ import { TILE } from '../../world/constants';
 import type { Sim } from '../../world/sim/sim';
 import { kvRegisterAction, kvPlanWorld } from '../plan/api';
 import { kvHour } from './agenda';
-import { kvPlay, kvToast } from './alerts';
+import { kvAlert } from './alerts';
 import { kvAutoClear, kvAutoSet } from './auto-status';
 import { kvRegisterInteract } from './interact';
 import { kvMeetingNow, kvMeetings, kvMeetLabel, kvMeetRoom, kvMyMeetings, kvNextMeeting, kvOnMeetings, kvStartMeetingsStore } from './meetings-api';
@@ -218,17 +218,20 @@ class MeetingsWorld {
 
   private toast(m: KvMeetingView): void {
     const room = kvMeetRoom(m.room)?.name ?? '';
-    kvPlay('enter');
-    kvToast({
+    kvAlert({
+      kind: 'reunioes',
       key: `meet:${m.id}`,
       icon: '📅',
-      tone: 'call',
       title: tr('Reunião às {0}: {1}', [kvHour(m.start), kvMeetLabel(m)]),
-      text: [room, m.private ? tr('privada') : ''].filter(Boolean).join(' · '),
-      ms: 5 * 60_000,
+      body: [room, m.private ? tr('privada') : ''].filter(Boolean).join(' · '),
+      tone: 'enter',
+      attention: tr('📅 {0}', [kvMeetLabel(m)]),
+      urgent: true,
+      needsAnswer: true,
+      toast: { ms: 5 * 60_000 },
       actions: [
-        { label: tr('Ir para a sala'), primary: true, run: () => void kvGoArea(`r:${m.room}`) },
-        { label: tr('Agenda da sala'), run: () => kvOpenRoomPanel(m.room) },
+        { id: 'ir', label: tr('Ir para a sala'), primary: true, run: () => void kvGoArea(`r:${m.room}`) },
+        { id: 'agenda', label: tr('Agenda da sala'), run: () => kvOpenRoomPanel(m.room) },
       ],
     });
   }

@@ -280,6 +280,16 @@ export class KvInvites {
     return v && this.holds(i) ? this.personOf(v, i) : undefined;
   }
 
+  /** Todos os visitantes com o convite ainda valendo (online ou não): a conversa 1:1 da equipe os enxerga. */
+  activePeople(): KvPerson[] {
+    const out: KvPerson[] = [];
+    for (const v of this.visitors) {
+      const i = this.invites.find((x) => x.id === v.invite);
+      if (this.holds(i)) out.push(this.personOf(v, i));
+    }
+    return out;
+  }
+
   profile(id: string): Record<string, unknown> {
     return { ...(this.visitors.find((v) => v.id === id)?.profile ?? {}) };
   }

@@ -194,7 +194,10 @@ Liga com `HABBLAUD_HUMANOS=1` (e a porta remota configurada, como hoje). Sem a v
   (`KvDirectMessage`: `{id, at, from:{id,name,role}, to:{id,name}, text, urgent?}`) para quem manda e quem recebe.
   Guardada em `<dataDir>/kaviski/dm.json` (600; 200 falas por conversa, 90 dias) com "lido até aqui". Quem fala com
   quem: equipe/admin com todos; cliente com a equipe e com os clientes da mesma empresa (as pastas se cruzam), nunca
-  com outro cliente. Mensagem nova com a janela fechada: contador + aviso pequeno (clique abre; urgente fica até clicar).
+  com outro cliente. **Visitante** (convite por link) conversa nos dois sentidos enquanto o convite vale: o `KvDirect`
+  recebe `people: [...contas, ...invites.activePeople()]` (o `people()` geral, da tela de admin, continua só com as
+  contas); antes a equipe recebia a mensagem mas ao responder dava "pessoa não encontrada" (`dm-visitante.test.ts`).
+  Mensagem nova com a janela fechada: contador + aviso pequeno (clique abre; urgente fica até clicar).
   `kvOpenDirect(id)` / `kvPeople.openDirect(id)` abrem a 1:1 (os avisos fora da aba da sessão d553e49d usam).
 - **Voz e vídeo**: ao trocar de área, microfone, câmera e tela **continuam** (as faixas passam para a chamada nova sem
   desligar; antes a tela compartilhada caía ao andar); quem compartilha vê a própria tela com **Parar**; "Requested
@@ -316,12 +319,42 @@ de seguir / fecha, Enter abre a conversa, G cumprimenta, 1–9 reações, N mini
   senão a automática mais recente ainda válida (agenda e foco entram por `auto-status.ts`); senão disponível. Por cima, o
   **ausente automático**: aba escondida 10 min ou sem mexer 15 min (menos em não perturbe), volta sozinho. A manual
   fica lembrada no navegador.
-- **Avisos fora da aba** (`alerts.ts`): toque curto feito na hora (WebAudio, sem arquivo), notificação do navegador
-  (permissão só pelo botão "Permitir notificações" do sino **Avisos** no topo, nunca ao abrir), título piscando com o
-  contador e o contador também no ícone da aba; voltar à aba zera. Avisa: chamada, 1:1 (evento `dm`), **@menção** no chat
-  da área (primeira palavra do nome ou o usuário, sem acento), batida na porta e **alguém entrando na minha sala** (a da
-  mesa fixa `kvPeople.myDesk`, a sala própria `kvPeople.myRoom()` ou, sem elas, a sala em que estou). Preferências (sons,
-  notificações) lembradas. Não perturbe: sem som e sem notificação (aviso na página e contador continuam, quietos).
+- **Avisos** (`alerts.ts` + `alerts-system.ts` + `client/public/sw.js`; revisto em 2026-11-10, pedido do Vitor): cada
+  aviso (`kvAlert({kind, key, icon, title, body, tone, urgent, actions, needsAnswer, toast})`) = toque curto (WebAudio,
+  sem arquivo) + **notificação do sistema** + aviso na página (kvToast) com a ação útil + título piscando com o contador
+  (também no favicon e no ícone do app instalado pela **Badging API**, `navigator.setAppBadge`); voltar ao Voxtrin zera.
+  - **Notificação do sistema**: sai quando o Voxtrin não está na frente — aba escondida **ou janela sem foco**
+    (`kvAway()`); opção "Notificar também com o Voxtrin aberto na frente". Por **service worker** (`/sw.js`, escopo `/`,
+    registrado ao ligar os avisos; SÓ notificações: sem `fetch` e sem cache, então não atrapalha atualizar a página):
+    `showNotification` vai para a Central de Notificações do Windows, funciona no Chrome do celular e aceita **botões**
+    (Responder / Ir até na chamada, Deixar entrar / Recusar na porta, Cumprimentar de volta, Ver a reunião, Abrir a
+    pasta). A página manda `{kv:'show'}` ao worker; o clique volta para a MESMA aba (foca e manda
+    `{kv:'notification-click', key, action}`) e roda o que a página registrou; sem aba aberta, abre uma nova. Sem service
+    worker: `new Notification` (sem botões), como antes. Ícone da marca, `badge`, `tag` = chave do aviso (agrupa e
+    troca), `renotify`, `requireInteraction` em chamada/porta/urgente/começo de reunião, `silent` quando a página já
+    tocou o som dela. Responder pela página (ex.: outra pessoa abriu a porta) fecha a notificação (`kvCloseToast`).
+    Tudo isso só existe em **https ou localhost** (o sino explica quando o endereço é http).
+  - **Permissão**: nunca pedida sozinha. Depois do primeiro clique/tecla, um aviso na página pergunta "Ativar as
+    notificações do Windows/navegador?" (**Ativar** chama o pedido do navegador dentro do clique; **Agora não** fica
+    lembrado em `habblaud.kv.avisos.pedido`). O sino tem "Permitir notificações".
+  - **O que avisa** (tipo no sino): mensagem 1:1 e @menção no chat da área (`mensagens`; o aviso na página da 1:1 é o
+    do chat.ts), chamada (`chamadas`, ring.ts) e alguém me puxando para uma conversa privada (evento `bubble`),
+    **cumprimento para mim** (`cumprimentos`: evento `chat` com `greet` e `to.id` = eu; "Cumprimentar de volta" manda o
+    mesmo cumprimento), batida na porta (`porta`, locks.ts), alguém entrando na minha sala (`entradas`: a da mesa fixa,
+    a sala própria ou a sala em que estou), reunião (`reunioes`: **convite** = reunião minha nova marcada por outra
+    pessoa, vista pelo armazém `kvOnMeetings`; e o aviso 1 min antes, meetings.ts) e **pasta compartilhada comigo**
+    (`arquivos`: pasta nova com acesso "pessoas escolhidas" que me inclui, vista pelo `kvOnFiles`). As reações (`react`)
+    não têm alvo e não avisam. Tipo desligado: sem som, sem notificação e sem aviso na página, menos o que precisa de
+    resposta (chamada, porta, começo de reunião), que ainda aparece quieto na página.
+  - **Sino** (KvAlertsMenu): Sons, Notificações do Windows/do sistema, "também com o Voxtrin na frente", "Avisar sobre"
+    (liga/desliga por tipo), **Testar notificação** (uma notificação real do sistema, com botão), Testar o som, estado
+    da permissão e ajuda quando bloqueada ("cadeado da barra de endereço > Notificações > Permitir" e, no Windows,
+    "Configurações > Sistema > Notificações > ligue o navegador" e o "Não incomodar" do Windows). O menu se mede e
+    nunca sai da tela.
+  - **Não perturbe**: sem som e sem notificação do sistema (aviso na página e contador continuam, quietos).
+  - **API**: `kvNotify(title, body, tag, onClick?, opts?)` continua (opções novas: `kind`, `sticky`, `actions`,
+    `silent`, `force`); `kvAlert(...)`, `kvAway()`, `kvGoToPerson(id)`; preferências em `habblaud.kv.avisos`
+    (`sound`, `notify`, `always`, `kinds`).
 - **Chamar** (`ring.ts`, ação "Chamar" 🔔 no cartão): `POST /api/kaviski/humanos/ring {to}` → evento `ring` só para
   quem foi chamado; toque, notificação e aviso com **Ir até** (`kvPeople.goTo`, senão leva a câmera) e **Responder**
   (abre a 1:1). Só chama quem eu vejo (a mesma regra da presença); em não perturbe responde 409 "Fulano está em não

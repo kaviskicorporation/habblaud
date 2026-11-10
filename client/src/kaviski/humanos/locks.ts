@@ -14,7 +14,7 @@ import type { OfficeStore } from '../../net/store';
 import { h } from '../../ui/dom';
 import { TILE } from '../../world/constants';
 import type { Sim } from '../../world/sim/sim';
-import { kvAttention, kvCloseToast, kvNotify, kvPlay, kvToast } from './alerts';
+import { kvAlert, kvCloseToast, kvPlay, kvToast } from './alerts';
 import { kvAreaLabel, type KvBar } from './bar';
 import { kvRegisterInteract } from './interact';
 import { kvEachFrame, kvWorldToScreen } from './overlay';
@@ -233,20 +233,23 @@ export class KvLocks {
   private onKnock(e: KvKnockEvent): void {
     if (!e?.from) return;
     const name = e.from.name;
-    kvPlay('knock');
-    kvAttention(tr('🚪 {0} quer entrar', [name]));
-    kvNotify(tr('{0} quer entrar', [name]), kvAreaLabel(e.area, this.store), `knock:${e.from.id}`);
     const answer = (allow: boolean) => void kvSocialPost('knock/answer', { area: e.area, who: e.from.id, allow }).then((r) => !r.ok && this.bar.warn(r.error));
-    kvToast({
+    kvAlert({
+      kind: 'porta',
       key: `knock:${e.from.id}`,
       icon: '🚪',
-      tone: 'call',
       title: tr('{0} quer entrar', [name]),
-      text: tr('Bateu na porta de {0}.', [kvAreaLabel(e.area, this.store)]),
-      ms: 60_000,
+      body: tr('Bateu na porta de {0}.', [kvAreaLabel(e.area, this.store)]),
+      tone: 'knock',
+      attention: tr('🚪 {0} quer entrar', [name]),
+      urgent: true,
+      needsAnswer: true,
+      toast: { ms: 60_000 },
+      // clicar no corpo da notificação só traz o Voxtrin para a frente (o aviso na página continua lá para responder)
+      onClick: () => {},
       actions: [
-        { label: tr('Deixar entrar'), primary: true, run: () => answer(true) },
-        { label: tr('Recusar'), run: () => answer(false) },
+        { id: 'deixar', label: tr('Deixar entrar'), primary: true, run: () => answer(true) },
+        { id: 'recusar', label: tr('Recusar'), run: () => answer(false) },
       ],
     });
   }
