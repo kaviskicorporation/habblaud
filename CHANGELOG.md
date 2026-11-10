@@ -12,6 +12,19 @@ do meio (0.**3**.0).
 
 ### Adicionado (fork Kaviski)
 
+- **Organograma editável ali mesmo.** Botão **Editar** no organograma: arraste um cartão sobre outro para mudar a
+  quem ele responde (pessoas e agentes de IA juntos, um pode responder ao outro), sobre uma área em "Por área" para
+  mudar a área, ou para "sem gestor" no topo; clicar num cartão abre cargo, área e gestor para mudar e salvar. Um
+  agente ao vivo sem lugar fixo ganha **Fixar no organograma** (ou é só arrastá-lo para debaixo de uma pessoa). Botões
+  **Novo agente de IA** e **Áreas** na barra de edição. **Personalizar**: tamanho dos cartões (compacto, normal,
+  grande), status ao vivo, empilhar equipes grandes, mostrar ou esconder os agentes soltos e fundo na cor da área
+  (fica guardado no navegador).
+
+### Corrigido (fork Kaviski)
+
+- **Menu de Avisos (sino):** o botão "Testar o som" saía para fora do menu; agora os botões quebram de linha e o menu
+  nunca passa da borda da tela.
+
 - **Sala de Arquivos.** Os arquivos e documentos internos da empresa num lugar só, no botão novo do topo e numa sala
   de verdade no escritório (o avatar vai até o balcão do arquivo). Pastas com cor e acesso (só a equipe, todos com
   os clientes, ou pessoas escolhidas), envio arrastando do computador, documentos escritos no próprio Voxtrin (com

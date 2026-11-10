@@ -32,6 +32,7 @@ export function kvStartOrg(me: KvMe, store: OfficeStore, root: ParentNode = docu
   };
   kvOrgHooks.newAgent = () => edit(null);
   if (admin) kvOrgHooks.editPerson = (id) => kvOpenPeople('contas', id);
+  if (admin) kvOrgHooks.openAreas = () => kvOpenPeople('areas');
   kvPeopleOrgHooks.edit = (a) => edit(a);
   kvPeopleOrgHooks.goSeat = (a) => void kvGoToFixedSeat(a);
   kvPeopleOrgHooks.roomName = (id) => store.liveSnapshot?.rooms.find((r) => r.id === kvFixedRoomId(id))?.name;

@@ -359,7 +359,7 @@ class KvAlertsMenu {
       h('p', { class: 'kv-alerts__hint', text: tr('Quando alguém te chama, fala com você, bate na porta ou entra na sua sala.') }),
       h('label', { class: 'kv-alerts__row' }, this.sound, h('span', { text: tr('Sons') })),
       h('label', { class: 'kv-alerts__row' }, this.notify, h('span', { text: tr('Notificações do navegador (com a aba escondida)') })),
-      h('div', { class: 'kv-alerts__row' }, this.allow, test),
+      h('div', { class: 'kv-alerts__row kv-alerts__btns' }, this.allow, test),
       this.state,
       this.dndBtn,
     );
@@ -379,10 +379,13 @@ class KvAlertsMenu {
   private toggle(open = this.pop.hidden): void {
     this.pop.hidden = !open;
     if (!open || !this.btn) return;
-    const r = this.btn.getBoundingClientRect();
-    this.pop.style.left = `${Math.round(Math.max(8, Math.min(r.left, window.innerWidth - 300)))}px`;
-    this.pop.style.top = `${Math.round(r.bottom + 8)}px`;
     this.paint();
+    // mede o menu já pintado: nunca sai da tela (nem pela direita nem por baixo)
+    const r = this.btn.getBoundingClientRect();
+    const w = this.pop.offsetWidth;
+    const hgt = this.pop.offsetHeight;
+    this.pop.style.left = `${Math.round(Math.max(8, Math.min(r.left, window.innerWidth - w - 8)))}px`;
+    this.pop.style.top = `${Math.round(Math.max(8, Math.min(r.bottom + 8, window.innerHeight - hgt - 8)))}px`;
   }
 
   private paint(): void {

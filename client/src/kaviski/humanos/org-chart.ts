@@ -4,7 +4,9 @@
 // agrupada por hierarquia ou por área, filtros Pessoas / Agentes / Todos, busca, zoom e arrastar, recolher equipes,
 // exportar como PNG. Clicar num cartão abre o detalhe (cartão da pessoa, mensagem, ver o agente no escritório, editar).
 // Agentes ao vivo que não são fixos aparecem como "equipe de IA" do projeto. Celular (ou o botão Lista): lista
-// recolhível em vez da árvore.
+// recolhível em vez da árvore. Botão Editar (org-edit.ts): arrastar um cartão sobre outro muda a quem ele responde
+// (pessoas e agentes de IA misturados), sobre uma área muda a área, e o detalhe vira formulário; Personalizar muda o
+// tamanho dos cartões, o status, o empilhamento e os agentes soltos.
 //
 // `kvOpenOrgChart()` abre a janela (o quadro da sala do RH/diretoria usa, pela ação 'organograma'); `KvOrgView` é a peça
 // que a tela Pessoas embute na aba Organograma.
@@ -24,10 +26,9 @@ import { KV_ICONS, kvAvatar, kvBtn, kvCap, kvEmpty, kvIconBtn, kvInput, kvTitle 
 import { kvSeg } from './ui/section';
 import { KvModal } from './ui/modal';
 import { kvToast } from './ui/toast';
+import { KV_ORG_SIZES, kvCanBoss, kvCanEditNode, kvFixLiveAgent, kvOrgEditForm, kvOrgPrefs, kvOrgPrefsPanel, kvPatchOrgNode, kvSaveOrgPrefs, type KvOrgPrefs } from './org-edit';
 import './org-chart.css';
 
-const CARD_W = 200;
-const CARD_H = 86;
 const GROUP_H = 58;
 
 type Group = 'hierarquia' | 'area';
@@ -35,7 +36,7 @@ type Show = 'todos' | 'pessoas' | 'agentes';
 
 let store: OfficeStore | null = null;
 /** Quem abre o editor de um agente fixo e a tela Pessoas (registrados por fixed-agents.ts e people.ts). */
-export const kvOrgHooks: { editAgent?: (id: string) => void; editPerson?: (id: string) => void; newAgent?: () => void } = {};
+export const kvOrgHooks: { editAgent?: (id: string) => void; editPerson?: (id: string) => void; newAgent?: () => void; openAreas?: () => void } = {};
 
 export function kvSetOrgStore(s: OfficeStore): void {
   store = s;
@@ -109,6 +110,16 @@ export class KvOrgView {
   private sig = '';
   private selected: string | null = null;
   private timer = 0;
+  private editing = false;
+  private prefs: KvOrgPrefs = kvOrgPrefs();
+  private readonly editBtn: HTMLButtonElement;
+  private readonly editBar: HTMLElement;
+  private readonly prefsBtn: HTMLButtonElement;
+  private readonly prefsPop: { el: HTMLElement; paint: () => void };
+  private readonly dropTop: HTMLElement;
+  private liveList: KvLiveAgent[] = [];
+  /** Acabou de arrastar um cartão: o clique que vem junto não abre o detalhe. */
+  private dragged = false;
 
   constructor(private readonly opts: { onClose?: () => void; embedded?: boolean } = {}) {
     const groupSeg = kvSeg<Group>(
@@ -157,6 +168,33 @@ export class KvOrgView {
       this.render(true);
     }, { size: 'sm', cls: 'kv-org__listbtn' });
     const png = kvBtn(tr('Imagem'), { icon: KV_ORG_ICONS.image, size: 'sm', title: tr('Exportar o organograma como imagem (PNG)'), onClick: () => void this.exportPng() });
+    this.editBtn = kvBtn(tr('Editar'), { icon: KV_ICONS.edit, size: 'sm', title: tr('Editar o organograma: arraste os cartões, mude cargo, área e gestor'), onClick: () => this.setEditing(!this.editing) });
+    this.editBtn.hidden = true;
+    this.prefsPop = kvOrgPrefsPanel(() => this.prefs, (p) => {
+      this.prefs = p;
+      kvSaveOrgPrefs(p);
+      this.fitted = false;
+      this.render(true);
+    });
+    this.prefsBtn = kvBtn(tr('Personalizar'), { icon: KV_ICONS.dots, size: 'sm', title: tr('Tamanho dos cartões, status, cores'), onClick: () => this.togglePrefs() });
+    this.prefsBtn.setAttribute('aria-haspopup', 'dialog');
+    document.addEventListener('pointerdown', (e) => {
+      if (!this.prefsPop.el.hidden && !this.prefsPop.el.contains(e.target as Node) && !this.prefsBtn.contains(e.target as Node)) this.prefsPop.el.hidden = true;
+    });
+    const newAgent = kvBtn(tr('Novo agente de IA'), { icon: KV_ORG_ICONS.robot, size: 'sm', onClick: () => kvOrgHooks.newAgent?.() });
+    const areas = kvBtn(tr('Áreas'), { icon: KV_ORG_ICONS.tree, size: 'sm', title: tr('Criar e mudar as áreas (nome, cor, ícone, responsável)'), onClick: () => kvOrgHooks.openAreas?.() });
+    areas.dataset.admin = '1';
+    this.editBar = h(
+      'div',
+      { class: 'kv-org__editbar', hidden: true },
+      h('span', { class: 'kv-org__ehead', text: tr('Modo edição') }),
+      h('span', { class: 'kv-org__etext', text: tr('Arraste um cartão sobre outro para mudar a quem ele responde (pessoas e agentes de IA juntos), ou sobre uma área em "Por área". Clique num cartão para mudar cargo, área e gestor.') }),
+      h('span', { class: 'kv-org__spacer' }),
+      newAgent,
+      areas,
+      kvBtn(tr('Pronto'), { variant: 'primary', icon: KV_ICONS.check, size: 'sm', onClick: () => this.setEditing(false) }),
+    );
+    this.dropTop = h('div', { class: 'kv-org__droptop', hidden: true, text: tr('Solte aqui: sem gestor (vai para o topo)') });
     this.count = h('span', { class: 'kv-org__count' });
     this.legend = h('div', { class: 'kv-org__legend' });
     this.vp = h('div', { class: 'kv-org__vp', tabIndex: 0, attrs: { 'aria-label': tr('Organograma: arraste para mover, roda para o zoom') } });
@@ -170,9 +208,10 @@ export class KvOrgView {
     this.el = h(
       'div',
       { class: `kv-org${opts.embedded ? ' is-embedded' : ''}` },
-      h('div', { class: 'kv-org__bar' }, groupSeg.el, showSeg.el, h('div', { class: 'kv-org__search' }, this.search.el), h('span', { class: 'kv-org__spacer' }), this.count, listBtn, zoom, png),
+      h('div', { class: 'kv-org__bar' }, groupSeg.el, showSeg.el, h('div', { class: 'kv-org__search' }, this.search.el), h('span', { class: 'kv-org__spacer' }), this.count, listBtn, zoom, h('span', { class: 'kv-org__prefswrap' }, this.prefsBtn, this.prefsPop.el), png, this.editBtn),
+      this.editBar,
       this.legend,
-      h('div', { class: 'kv-org__main' }, this.vp, this.listBox, this.detail),
+      h('div', { class: 'kv-org__main' }, this.vp, this.dropTop, this.listBox, this.detail),
     );
     this.bindPan();
     kvOnOrg(() => this.render());
@@ -215,7 +254,14 @@ export class KvOrgView {
     const snap = store?.liveSnapshot ?? null;
     const { list, byId } = liveAgents(snap);
     const roomName = (id: string) => snap?.rooms.find((r) => r.id === id)?.name;
-    const nodes = kvOrgTree(doc, list, { group: this.group, show: this.show, roomName, labels: { noDept: tr('Sem área'), liveTeam: tr('Equipe de IA') } });
+    this.liveList = list;
+    let nodes = kvOrgTree(doc, list, { group: this.group, show: this.show, roomName, labels: { noDept: tr('Sem área'), liveTeam: tr('Equipe de IA') } });
+    if (!this.prefs.live) {
+      // sem os agentes soltos: some também o grupo da IA que ficaria vazio
+      nodes = nodes.filter((n) => n.kind !== 'live' && n.kind !== 'project');
+      const used = new Set(nodes.map((n) => n.parent));
+      nodes = nodes.filter((n) => n.key !== 'd:ia' || used.has('d:ia'));
+    }
     return { nodes, byLive: byId };
   }
 
@@ -239,9 +285,17 @@ export class KvOrgView {
   render(force = false): void {
     const doc = kvOrg();
     if (!doc) return;
+    if (!force && this.el.classList.contains('is-dragging')) return; // arrastando: não troca os cartões debaixo do mouse
     const { nodes, byLive } = this.build(doc);
     const pres = this.presence();
-    const sig = JSON.stringify([this.group, this.show, this.listMode, [...this.collapsed], nodes.map((n) => [n.key, n.parent, n.name, n.title, n.dept, n.liveId]), [...pres.values()].map((p) => [p.id, p.status]), [...byLive.values()].map((a) => [a.id, a.status])]);
+    this.editBtn.hidden = !doc.can;
+    if (!doc.can && this.editing) this.setEditing(false);
+    for (const b of this.editBar.querySelectorAll<HTMLElement>('[data-admin]')) b.hidden = doc.can !== 'admin';
+    this.el.classList.toggle('is-editing', this.editing);
+    this.el.classList.toggle('no-status', !this.prefs.status);
+    this.el.classList.toggle('is-tint', this.prefs.tint);
+    this.el.dataset.size = this.prefs.size;
+    const sig = JSON.stringify([this.group, this.show, this.listMode, this.editing, this.prefs, [...this.collapsed], nodes.map((n) => [n.key, n.parent, n.name, n.title, n.dept, n.liveId]), [...pres.values()].map((p) => [p.id, p.status]), [...byLive.values()].map((a) => [a.id, a.status])]);
     if (!force && sig === this.sig) return;
     this.sig = sig;
     this.nodes = nodes;
@@ -262,7 +316,8 @@ export class KvOrgView {
     this.listBox.hidden = !this.listMode;
     if (this.listMode) return this.renderList(nodes, kids, byLive, pres);
     const vis = this.visible(nodes);
-    const L = kvOrgLayout(vis, { w: CARD_W, h: CARD_H, gapX: 22, gapY: 46, stackFrom: 4, groupH: GROUP_H });
+    const sz = KV_ORG_SIZES[this.prefs.size];
+    const L = kvOrgLayout(vis, { w: sz.w, h: sz.h, gapX: sz.gapX, gapY: sz.gapY, stackFrom: this.prefs.stack ? 4 : 9999, groupH: Math.min(GROUP_H, sz.h) });
     this.layout = L;
     const pad = 40;
     this.stage.style.width = `${L.width + pad * 2}px`;
@@ -416,7 +471,15 @@ export class KvOrgView {
     el.setAttribute('role', 'button');
     el.setAttribute('aria-label', [n.name, n.title, dept?.name].filter(Boolean).join(', '));
     if (this.selected === n.key) el.classList.add('is-sel');
-    el.addEventListener('click', () => this.openDetail(n.key));
+    if (this.editing && kvCanEditNode(doc, n.key)) {
+      el.classList.add('is-draggable');
+      el.title = tr('Arraste sobre outro cartão para mudar a quem responde');
+      el.addEventListener('pointerdown', (e) => this.startDrag(e, n.key, el));
+    }
+    el.addEventListener('click', () => {
+      if (this.dragged) return void (this.dragged = false);
+      this.openDetail(n.key);
+    });
     el.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
@@ -492,6 +555,7 @@ export class KvOrgView {
     if (boss) facts.push([tr('Responde a'), boss.name]);
     if (team) facts.push([tr('Equipe'), tr('{0} pessoa(s) ou agente(s)', [team])]);
     const actions: HTMLElement[] = [];
+    const more: HTMLElement[] = [];
     const close = () => this.opts.onClose?.();
     if (n.kind === 'person') {
       const id = key.slice(2);
@@ -500,7 +564,7 @@ export class KvOrgView {
       if (p) facts.push([tr('Agora'), kvCap(STATUS_LABEL[p.status])]);
       if (p && id !== me) actions.push(kvBtn(tr('Abrir o cartão'), { variant: 'primary', icon: KV_ICONS.user, onClick: () => (close(), kvOpenPersonCard(id)) }));
       if (id !== me) actions.push(kvBtn(tr('Mensagem'), { icon: KV_ICONS.chat, onClick: () => (close(), kvOpenDirect(id)) }));
-      if (doc.can === 'admin' && kvOrgHooks.editPerson) actions.push(kvBtn(tr('Editar'), { icon: KV_ICONS.edit, onClick: () => kvOrgHooks.editPerson!(id) }));
+      if (doc.can === 'admin' && kvOrgHooks.editPerson && !this.editing) actions.push(kvBtn(tr('Editar'), { icon: KV_ICONS.edit, onClick: () => kvOrgHooks.editPerson!(id) }));
     } else {
       const fixed = n.kind === 'agent' ? doc.agents.find((a) => `a:${a.id}` === key) : undefined;
       const liveId = n.kind === 'live' ? key.slice(2) : n.liveId;
@@ -511,19 +575,182 @@ export class KvOrgView {
       if (live && fixed) facts.push([tr('Quem está sentado'), live.name]);
       if (fixed) facts.push([tr('Mesa'), fixed.seat ? tr('cadeira marcada') : tr('o Habblaud escolhe')]);
       if (live) actions.push(kvBtn(tr('Ver no escritório'), { variant: 'primary', icon: KV_ICONS.walk, onClick: () => (close(), selectAgent(live.id)) }));
-      if (fixed && doc.can && kvOrgHooks.editAgent) actions.push(kvBtn(tr('Editar'), { icon: KV_ICONS.edit, onClick: () => kvOrgHooks.editAgent!(fixed.id) }));
+      // no modo edição o botão vai para dentro do formulário ("Mais opções": sala, mesa, aparência)
+      if (fixed && doc.can && kvOrgHooks.editAgent) {
+        const b = kvBtn(this.editing ? tr('Mais opções') : tr('Editar'), { icon: KV_ICONS.edit, onClick: () => kvOrgHooks.editAgent!(fixed.id) });
+        if (this.editing) more.push(b);
+        else actions.push(b);
+      }
+      if (n.kind === 'live' && live && doc.can && !this.editing) {
+        actions.push(kvBtn(tr('Fixar no organograma'), { icon: KV_ORG_ICONS.chair, title: tr('Vira agente fixo: entra no organograma e pode responder a uma pessoa'), onClick: () => void this.fixLive(key) }));
+      }
     }
+    const canEdit = this.editing && kvCanEditNode(doc, key);
+    const liveForm = n.kind === 'live' ? this.liveList.find((a) => `l:${a.id}` === key) : undefined;
+    const form = canEdit ? kvOrgEditForm(doc, key, { ...(liveForm ? { live: liveForm } : {}), more, onSaved: (k) => this.afterSave(k) }) : null;
+    if (n.kind === 'person' && canEdit && kvOrgHooks.editPerson) actions.push(kvBtn(tr('Conta e aparência'), { variant: 'ghost', icon: KV_ICONS.user, onClick: () => kvOrgHooks.editPerson!(key.slice(2)) }));
     const dl = h('dl', { class: 'kv-org__facts' }, ...facts.map(([k, v]) => h('div', {}, h('dt', { text: k }), h('dd', { text: v }))));
     const big = this.avatarFor(n, byId, pres, doc, 'lg');
     this.detail.replaceChildren(
       h('div', { class: 'kv-org__dhead' }, big, h('div', {}, h('strong', { class: 'kv-org__dname', text: n.name }), h('span', { class: 'kv-org__dtitle', text: n.title ?? '' }))),
       dl,
+      ...(form ? [form] : []),
       h('div', { class: 'kv-org__dacts' }, ...actions),
       kvIconBtn(KV_ICONS.close, tr('Fechar'), () => ((this.detail.hidden = true), (this.selected = null), this.render(true)), { size: 'sm', cls: 'kv-org__dclose' }),
     );
     if (dept) this.detail.style.setProperty('--c', dept.color);
     else this.detail.style.removeProperty('--c');
     this.detail.hidden = false;
+  }
+
+  // ------------------------------------------------------------------ edição
+
+  private setEditing(on: boolean): void {
+    this.editing = on;
+    this.editBar.hidden = !on;
+    this.editBtn.setAttribute('aria-pressed', String(on));
+    this.editBtn.classList.toggle('is-on', on);
+    if (on && this.listMode && window.innerWidth >= 720) this.listMode = false;
+    this.render(true);
+    if (this.selected && !this.detail.hidden) this.openDetail(this.selected);
+  }
+
+  private togglePrefs(): void {
+    this.prefsPop.el.hidden = !this.prefsPop.el.hidden;
+    if (!this.prefsPop.el.hidden) this.prefsPop.paint();
+  }
+
+  /** Gravou: relê, redesenha e reabre o detalhe de quem mudou (um agente ao vivo fixado vira `a:`). */
+  private afterSave(key: string): void {
+    void kvLoadOrg().then(() => {
+      this.render(true);
+      if (this.nodes.some((n) => n.key === key)) {
+        this.openDetail(key);
+        this.centerOn(key);
+      }
+    });
+  }
+
+  private async fixLive(key: string, extra: { reportsTo?: string; dept?: string } = {}): Promise<string | null> {
+    const a = this.liveList.find((x) => `l:${x.id}` === key);
+    if (!a) return tr('agente não encontrado');
+    const r = await kvFixLiveAgent(a, extra);
+    if (r.error) {
+      kvToast(r.error, { kind: 'error' });
+      return r.error;
+    }
+    kvToast(tr('{0} agora é agente fixo no organograma.', [a.name]), { kind: 'ok' });
+    if (r.agent) this.afterSave(`a:${r.agent.id}`);
+    return null;
+  }
+
+  /** O que acontece se soltar `from` em cima de `to` (null = não pode). */
+  private dropAction(from: string, to: string | null): { label: string; run: () => Promise<string | null> } | null {
+    const doc = kvOrg();
+    if (!doc) return null;
+    const live = from.startsWith('l:');
+    const name = (k: string) => this.nodes.find((n) => n.key === k)?.name ?? '';
+    if (to === null) {
+      if (live) return null;
+      const cur = from.startsWith('u:') ? doc.people.find((p) => `u:${p.id}` === from)?.reportsTo : doc.agents.find((a) => `a:${a.id}` === from)?.reportsTo;
+      return cur ? { label: tr('Sem gestor'), run: () => kvPatchOrgNode(doc, from, { reportsTo: null }) } : null;
+    }
+    if (to === from) return null;
+    if (to.startsWith('u:') || to.startsWith('a:')) {
+      if (!live && !kvCanBoss(doc, from, to)) return null;
+      const label = tr('Responde a {0}', [name(to)]);
+      return { label, run: () => (live ? this.fixLive(from, { reportsTo: to }) : kvPatchOrgNode(doc, from, { reportsTo: to })) };
+    }
+    if (to.startsWith('d:') && to !== 'd:ia') {
+      const dept = to === 'd:-' ? null : to.slice(2);
+      if (dept && !doc.depts.some((d) => d.id === dept)) return null;
+      const label = dept ? tr('Área: {0}', [name(to)]) : tr('Sem área');
+      return { label, run: () => (live ? this.fixLive(from, dept ? { dept } : {}) : kvPatchOrgNode(doc, from, { dept })) };
+    }
+    return null;
+  }
+
+  /** Arrastar um cartão (modo edição): fantasma segue o mouse, o alvo acende, soltar grava. */
+  private startDrag(e: PointerEvent, key: string, card: HTMLElement): void {
+    if (e.button !== 0 || (e.target as HTMLElement).closest('button')) return;
+    e.stopPropagation();
+    const x0 = e.clientX;
+    const y0 = e.clientY;
+    let ghost: HTMLElement | null = null;
+    let label: HTMLElement | null = null;
+    let target: string | null | undefined;
+    let over: HTMLElement | null = null;
+    let off = { x: 0, y: 0 };
+    const find = (ev: PointerEvent): string | null | undefined => {
+      const el = document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null;
+      if (!el) return undefined;
+      if (this.dropTop.contains(el)) return null;
+      const c = el.closest<HTMLElement>('.kv-org__card');
+      if (c && this.stage.contains(c)) return c.dataset.key ?? undefined;
+      return undefined;
+    };
+    const move = (ev: PointerEvent) => {
+      if (!ghost) {
+        if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
+        ghost = card.cloneNode(true) as HTMLElement;
+        ghost.classList.add('kv-org__ghost');
+        ghost.style.transform = '';
+        const r = card.getBoundingClientRect();
+        ghost.style.width = `${r.width}px`;
+        ghost.style.height = `${r.height}px`;
+        label = h('span', { class: 'kv-org__glabel' });
+        ghost.append(label);
+        // dentro da janela (o <dialog> fica na camada de cima: no body o fantasma ficaria atrás)
+        const host = this.el.closest('dialog') ?? document.body;
+        host.append(ghost);
+        // janela com transform: o "fixed" passa a contar a partir dela
+        if (getComputedStyle(host).transform !== 'none') {
+          const hr = host.getBoundingClientRect();
+          off = { x: hr.left, y: hr.top };
+        }
+        card.classList.add('is-dragging');
+        this.el.classList.add('is-dragging');
+        this.dropTop.hidden = !this.dropAction(key, null);
+      }
+      ghost.style.left = `${ev.clientX + 12 - off.x}px`;
+      ghost.style.top = `${ev.clientY + 12 - off.y}px`;
+      const t = find(ev);
+      target = t;
+      const act = t === undefined ? null : this.dropAction(key, t);
+      over?.classList.remove('is-drop', 'is-nodrop');
+      over = t === null ? this.dropTop : t ? (this.cards.get(t) ?? null) : null;
+      if (over && t !== key) over.classList.add(act ? 'is-drop' : 'is-nodrop');
+      if (label) {
+        label.textContent = act?.label ?? (t && t !== key ? tr('Não dá: faria um ciclo ou não é um lugar válido') : '');
+        label.hidden = !label.textContent;
+      }
+    };
+    const end = (ev: PointerEvent) => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', end);
+      window.removeEventListener('pointercancel', end);
+      over?.classList.remove('is-drop', 'is-nodrop');
+      card.classList.remove('is-dragging');
+      this.el.classList.remove('is-dragging');
+      this.dropTop.hidden = true;
+      if (!ghost) return;
+      ghost.remove();
+      this.dragged = true;
+      setTimeout(() => (this.dragged = false), 0);
+      if (ev.type === 'pointercancel' || target === undefined) return;
+      const act = this.dropAction(key, target);
+      if (!act) return;
+      void act.run().then((err) => {
+        if (err) return void kvToast(err, { kind: 'error' });
+        if (!key.startsWith('l:')) {
+          kvToast(tr('{0}: {1}', [this.nodes.find((n) => n.key === key)?.name ?? '', act.label]), { kind: 'ok' });
+          this.afterSave(key);
+        }
+      });
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
   }
 
   // ------------------------------------------------------------------ câmera do organograma
@@ -722,7 +949,7 @@ export class KvOrgView {
       g.fillStyle = group ? 'rgba(17,20,27,0.75)' : '#9aa4b8';
       const sub = group ? (n.kind === 'project' ? tr('Equipe de IA') : tr('Área')) : n.title ?? '';
       g.fillText(clip(g, sub, x + b.w - tx - 8), tx, y + (group ? 44 : 48));
-      if (dept && !group) {
+      if (dept && !group && b.h >= 80) {
         g.fillStyle = color;
         g.font = '600 11px system-ui, sans-serif';
         g.fillText(clip(g, dept.name, x + b.w - tx - 8), tx, y + 66);
