@@ -11,6 +11,9 @@ design e a identidade do Habblaud. Decisões do Vitor (2026-11-05):
 ## Licenças (regra)
 
 - Habblaud: **MIT** — manter o aviso de autoria (LICENSE).
+- **Atualização 2026-11-10 (ADR 0015, Voxtrin Cloud):** o Voxtrin passou a ser **vendido** como SaaS
+  (`05.Voxtrin_Cloud`). Com isso, **nenhum código ou elemento do WorkAdventure pode entrar neste fork** (a Commons
+  Clause proíbe cobrar pelo produto). A regra abaixo vale só como histórico; até hoje nada dele foi copiado.
 - WorkAdventure: **AGPL v3 + Commons Clause**. Decisão do Vitor (2026-11-06): **pode reaproveitar** código e elementos
   dele, porque o produto é gratuito (nunca vendido) e vai ser aberto como open source. Consequências que valem enquanto
   houver código do WorkAdventure aqui:
