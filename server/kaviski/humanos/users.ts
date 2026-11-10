@@ -19,6 +19,7 @@ import {
 } from '../../../shared/kaviski-humanos';
 import { tr } from '../../../shared/i18n';
 import { log } from '../../log';
+import { kvMaxPessoas } from '../cloud';
 
 export interface KvUserRecord {
   id: string;
@@ -168,7 +169,8 @@ export class KvUsers {
     const user = kvUserName(b.user);
     if (!user) return { ok: false, status: 400, error: tr('usuário inválido: 2 a 32 letras minúsculas, números, ponto, hífen ou sublinhado') };
     if (this.taken(user)) return { ok: false, status: 409, error: tr('esse usuário já existe') };
-    if (this.users.length >= KV_PEOPLE_MAX) return { ok: false, status: 400, error: tr('pessoas demais (máximo {0})', [KV_PEOPLE_MAX]) };
+    const max = kvMaxPessoas(KV_PEOPLE_MAX); // Voxtrin Cloud: o plano limita as pessoas
+    if (this.users.length >= max.contas) return { ok: false, status: 400, error: tr('pessoas demais (máximo {0})', [max.total]) };
     const name = kvPersonName(b.name) ?? user;
     if (!kvIsRole(b.role)) return { ok: false, status: 400, error: tr('papel inválido (admin, equipe ou cliente)') };
     const rooms = kvRoomRules(b.rooms ?? []);
